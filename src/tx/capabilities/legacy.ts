@@ -71,24 +71,13 @@ export function getDataGas(tx: LegacyTxInterface): bigint {
 
 /**
  * The minimum gas limit which the tx to have to be valid.
- * This covers costs as the standard fee (21000 gas), the data fee (paid for each calldata byte),
- * and the optional creation fee (if the transaction creates a contract).
+ * This covers costs as the standard fee (21000 gas) and the data fee (paid for each calldata byte).
+ * Note: Contract creation is not supported, so no creation fee is added.
  */
 export function getIntrinsicGas(tx: LegacyTxInterface): bigint {
   const txFee = tx.common.param('txGas')
   let fee = tx.getDataGas()
   if (txFee) fee += txFee
-  let isContractCreation = false
-  try {
-    isContractCreation = tx.toCreationAddress()
-  } catch {
-    isContractCreation = false
-  }
-  // Contract creation fee (from Frontier)
-  if (isContractCreation) {
-    const txCreationFee = tx.common.param('txCreationGas')
-    if (txCreationFee) fee += txCreationFee
-  }
   return fee
 }
 
@@ -140,6 +129,7 @@ export function validateHighS(tx: LegacyTxInterface): void {
 
 /**
  * Recovers the sender's public key from the transaction signature.
+ * Supports both pre-EIP-155 (v = 27 or 28) and EIP-155 (v = chainId * 2 + 35 or 36) signatures.
  * @param tx - Transaction from which the public key should be derived
  * @returns The uncompressed sender public key
  * @throws EthereumJSErrorWithoutCode if the signature is invalid
@@ -155,6 +145,13 @@ export function getSenderPublicKey(tx: LegacyTxInterface): Uint8Array {
 
   validateHighS(tx)
 
+  // Detect if this is an EIP-155 signature by checking v value
+  // Pre-EIP-155: v = 27 or 28
+  // EIP-155: v = chainId * 2 + 35 or chainId * 2 + 36
+  const vNum = Number(v!)
+  const isEIP155 = vNum !== 27 && vNum !== 28
+  const chainId = isEIP155 ? tx.common.chainId() : undefined
+
   try {
     const ecrecoverFunction = tx.common.customCrypto.ecrecover ?? ecrecover
     const sender = ecrecoverFunction(
@@ -162,7 +159,7 @@ export function getSenderPublicKey(tx: LegacyTxInterface): Uint8Array {
       v!,
       bigIntToUnpaddedBytes(r!),
       bigIntToUnpaddedBytes(s!),
-      tx.supports(Capability.EIP155ReplayProtection) ? tx.common.chainId() : undefined,
+      chainId,
     )
     if (Object.isFrozen(tx)) {
       tx.cache.senderPubKey = sender
