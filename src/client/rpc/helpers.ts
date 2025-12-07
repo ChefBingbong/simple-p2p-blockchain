@@ -35,7 +35,7 @@ export function callWithStackTrace(handler: Function, debug: boolean): RPCMethod
 }
 
 /**
- * Returns tx formatted to the standard JSON-RPC fields
+ * Returns tx formatted to the standard JSON-RPC fields (legacy transactions only)
  */
 export const toJSONRPCTx = (tx: TypedTransaction, block?: Block, txIndex?: number): JSONRPCTx => {
   const txJSON = tx.toJSON()
@@ -44,12 +44,8 @@ export const toJSONRPCTx = (tx: TypedTransaction, block?: Block, txIndex?: numbe
     blockNumber: block ? bigIntToHex(block.header.number) : null,
     from: tx.getSenderAddress().toString(),
     gas: txJSON.gasLimit!,
-    gasPrice: txJSON.gasPrice ?? txJSON.maxFeePerGas!,
-    maxFeePerGas: txJSON.maxFeePerGas,
-    maxPriorityFeePerGas: txJSON.maxPriorityFeePerGas,
+    gasPrice: txJSON.gasPrice!,
     type: intToHex(tx.type),
-    accessList: txJSON.accessList,
-    chainId: txJSON.chainId,
     hash: bytesToHex(tx.hash()),
     input: txJSON.data!,
     nonce: txJSON.nonce!,
@@ -59,9 +55,6 @@ export const toJSONRPCTx = (tx: TypedTransaction, block?: Block, txIndex?: numbe
     v: txJSON.v!,
     r: txJSON.r!,
     s: txJSON.s!,
-    maxFeePerBlobGas: txJSON.maxFeePerBlobGas,
-    blobVersionedHashes: txJSON.blobVersionedHashes,
-    yParity: txJSON.yParity,
   }
 }
 

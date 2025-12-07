@@ -4,11 +4,7 @@ import { EVM } from './evm.ts'
 import { Message } from './message.ts'
 import { getOpcodesForHF } from './opcodes'
 import {
-    MCLBLS,
-    NobleBLS,
-    NobleBN254,
     type PrecompileInput,
-    RustBN254,
     getActivePrecompiles,
 } from './precompiles'
 import { EVMMockBlockchain } from './types.ts'
@@ -47,12 +43,11 @@ export {
     EOFContainer,
     EVM,
     EVMError,
-    EVMMockBlockchain, MCLBLS,
+    EVMMockBlockchain,
     Message,
-    NobleBLS,
-    NobleBN254,
-    RustBN254, getActivePrecompiles,
-    getOpcodesForHF, validateEOF
+    getActivePrecompiles,
+    getOpcodesForHF,
+    validateEOF
 }
 
 export * from './binaryTreeAccessWitness.ts'

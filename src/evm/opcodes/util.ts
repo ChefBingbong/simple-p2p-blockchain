@@ -189,12 +189,8 @@ export function maxCallGas(
   runState: RunState,
   common: Common,
 ): bigint {
-  if (common.gteHardfork(Hardfork.TangerineWhistle)) {
-    const gasAllowed = gasLeft - gasLeft / BIGINT_64
-    return gasLimit > gasAllowed ? gasAllowed : gasLimit
-  } else {
-    return gasLimit
-  }
+  // Frontier: no gas cap on CALL operations (EIP-150 came in TangerineWhistle)
+  return gasLimit
 }
 
 /**

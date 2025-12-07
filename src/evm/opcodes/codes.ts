@@ -1,4 +1,3 @@
-import { Hardfork } from '../../chain-config'
 import { EthereumJSErrorWithoutCode } from '../../utils'
 
 import { handlers } from './functions.ts'
@@ -44,7 +43,6 @@ export class Opcode {
     this.dynamicGas = dynamicGas
     this.isInvalid = this.name === 'INVALID'
 
-    // Opcode isn't subject to change, thus all further modifications are prevented.
     Object.freeze(this)
   }
 }
@@ -69,10 +67,9 @@ const asyncAndDynamicGasOp = (name: string) => {
   return { name, isAsync: true, dynamicGas: true }
 }
 
-// Base opcode list. The opcode list is extended in future hardforks
+// Base Frontier opcode list - no EIP-specific opcodes
 const opcodes: OpcodeEntry = {
   // 0x0 range - arithmetic ops
-  // name, async
   0x00: defaultOp('STOP'),
   0x01: defaultOp('ADD'),
   0x02: defaultOp('MUL'),
@@ -139,7 +136,7 @@ const opcodes: OpcodeEntry = {
   0x5a: defaultOp('GAS'),
   0x5b: defaultOp('JUMPDEST'),
 
-  // 0x60, range
+  // 0x60, range - PUSH
   0x60: defaultOp('PUSH'),
   0x61: defaultOp('PUSH'),
   0x62: defaultOp('PUSH'),
@@ -173,6 +170,7 @@ const opcodes: OpcodeEntry = {
   0x7e: defaultOp('PUSH'),
   0x7f: defaultOp('PUSH'),
 
+  // 0x80 range - DUP
   0x80: defaultOp('DUP'),
   0x81: defaultOp('DUP'),
   0x82: defaultOp('DUP'),
@@ -190,6 +188,7 @@ const opcodes: OpcodeEntry = {
   0x8e: defaultOp('DUP'),
   0x8f: defaultOp('DUP'),
 
+  // 0x90 range - SWAP
   0x90: defaultOp('SWAP'),
   0x91: defaultOp('SWAP'),
   0x92: defaultOp('SWAP'),
@@ -207,6 +206,7 @@ const opcodes: OpcodeEntry = {
   0x9e: defaultOp('SWAP'),
   0x9f: defaultOp('SWAP'),
 
+  // 0xa0 range - LOG
   0xa0: dynamicGasOp('LOG'),
   0xa1: dynamicGasOp('LOG'),
   0xa2: dynamicGasOp('LOG'),
@@ -219,175 +219,13 @@ const opcodes: OpcodeEntry = {
   0xf2: asyncAndDynamicGasOp('CALLCODE'),
   0xf3: dynamicGasOp('RETURN'),
 
-  // '0x70', range - other
+  // '0xfe' - other
   0xfe: defaultOp('INVALID'),
   0xff: asyncAndDynamicGasOp('SELFDESTRUCT'),
 }
 
-// Array of hard forks in order. These changes are repeatedly applied to `opcodes` until the hard fork is in the future based upon the common
-// TODO: All gas price changes should be moved to common
-// If the base gas cost of any of the operations change, then these should also be added to this list.
-// If there are context variables changed (such as "warm slot reads") which are not the base gas fees,
-// Then this does not have to be added.
-const hardforkOpcodes: { hardfork: Hardfork; opcodes: OpcodeEntry }[] = [
-  {
-    hardfork: Hardfork.Homestead,
-    opcodes: {
-      0xf4: asyncAndDynamicGasOp('DELEGATECALL'), // EIP-7
-    },
-  },
-  {
-    hardfork: Hardfork.TangerineWhistle,
-    opcodes: {
-      0x54: asyncAndDynamicGasOp('SLOAD'),
-      0xf1: asyncAndDynamicGasOp('CALL'),
-      0xf2: asyncAndDynamicGasOp('CALLCODE'),
-      0x3b: asyncAndDynamicGasOp('EXTCODESIZE'),
-      0x3c: asyncAndDynamicGasOp('EXTCODECOPY'),
-      0xf4: asyncAndDynamicGasOp('DELEGATECALL'), // EIP-7
-      0xff: asyncAndDynamicGasOp('SELFDESTRUCT'),
-      0x31: asyncAndDynamicGasOp('BALANCE'),
-    },
-  },
-  {
-    hardfork: Hardfork.Byzantium,
-    opcodes: {
-      0xfd: dynamicGasOp('REVERT'), // EIP-140
-      0xfa: asyncAndDynamicGasOp('STATICCALL'), // EIP-214
-      0x3d: asyncOp('RETURNDATASIZE'), // EIP-211
-      0x3e: asyncAndDynamicGasOp('RETURNDATACOPY'), // EIP-211
-    },
-  },
-  {
-    hardfork: Hardfork.Constantinople,
-    opcodes: {
-      0x1b: defaultOp('SHL'), // EIP-145
-      0x1c: defaultOp('SHR'), // EIP-145
-      0x1d: defaultOp('SAR'), // EIP-145
-      0x3f: asyncAndDynamicGasOp('EXTCODEHASH'), // EIP-1052
-      0xf5: asyncAndDynamicGasOp('CREATE2'), // EIP-1014
-    },
-  },
-  {
-    hardfork: Hardfork.Istanbul,
-    opcodes: {
-      0x46: defaultOp('CHAINID'), // EIP-1344
-      0x47: defaultOp('SELFBALANCE'), // EIP-1884
-    },
-  },
-  {
-    hardfork: Hardfork.Paris,
-    opcodes: {
-      0x44: asyncOp('PREVRANDAO'), // EIP-4399
-    },
-  },
-]
-
-const eipOpcodes: { eip: number; opcodes: OpcodeEntry }[] = [
-  {
-    eip: 663,
-    opcodes: {
-      0xe6: defaultOp('DUPN'),
-      0xe7: defaultOp('SWAPN'),
-      0xe8: defaultOp('EXCHANGE'),
-    },
-  },
-  {
-    eip: 1153,
-    opcodes: {
-      0x5c: defaultOp('TLOAD'),
-      0x5d: defaultOp('TSTORE'),
-    },
-  },
-  {
-    eip: 3198,
-    opcodes: {
-      0x48: defaultOp('BASEFEE'),
-    },
-  },
-  {
-    eip: 3855,
-    opcodes: {
-      0x5f: defaultOp('PUSH0'),
-    },
-  },
-  {
-    eip: 4200,
-    opcodes: {
-      0xe0: defaultOp('RJUMP'),
-      0xe1: defaultOp('RJUMPI'),
-      0xe2: defaultOp('RJUMPV'),
-    },
-  },
-  {
-    eip: 4750,
-    opcodes: {
-      0xe3: defaultOp('CALLF'),
-      0xe4: defaultOp('RETF'),
-    },
-  },
-  {
-    eip: 4844,
-    opcodes: {
-      0x49: defaultOp('BLOBHASH'),
-    },
-  },
-  {
-    eip: 5656,
-    opcodes: {
-      0x5e: dynamicGasOp('MCOPY'),
-    },
-  },
-  {
-    eip: 6206,
-    opcodes: {
-      0xe5: defaultOp('JUMPF'),
-    },
-  },
-  {
-    eip: 7069,
-    opcodes: {
-      0xf7: defaultOp('RETURNDATALOAD'),
-      0xf8: asyncAndDynamicGasOp('EXTCALL'),
-      0xf9: asyncAndDynamicGasOp('EXTDELEGATECALL'),
-      0xfb: asyncAndDynamicGasOp('EXTSTATICCALL'),
-    },
-  },
-  {
-    eip: 7480,
-    opcodes: {
-      0xd0: defaultOp('DATALOAD'),
-      0xd1: defaultOp('DATALOADN'),
-      0xd2: defaultOp('DATASIZE'),
-      0xd3: dynamicGasOp('DATACOPY'),
-    },
-  },
-  {
-    eip: 7516,
-    opcodes: {
-      0x4a: defaultOp('BLOBBASEFEE'),
-    },
-  },
-  {
-    eip: 7620,
-    opcodes: {
-      0xec: asyncAndDynamicGasOp('EOFCREATE'),
-      0xee: asyncAndDynamicGasOp('RETURNCONTRACT'),
-    },
-  },
-  {
-    eip: 7939,
-    opcodes: {
-      0x1e: defaultOp('CLZ'),
-    },
-  },
-]
-
 /**
  * Convert basic opcode info dictionary into complete OpcodeList instance.
- *
- * @param opcodes {Object} Receive basic opcodes info dictionary.
- * @returns {OpcodeList} Complete Opcode list
  */
 function createOpcodes(opcodes: OpcodeEntryFee): OpcodeList {
   const result: OpcodeList = new Map()
@@ -421,11 +259,8 @@ export type OpcodeMapEntry = {
 export type OpcodeMap = OpcodeMapEntry[]
 
 /**
- * Get suitable opcodes for the required hardfork.
- *
- * @param common {Common} Ethereumjs Common metadata object.
- * @param customOpcodes List with custom opcodes (see EVM `customOpcodes` option description).
- * @returns {OpcodeList} Opcodes dictionary object.
+ * Get suitable opcodes for Frontier/Chainstart.
+ * Simplified version - no hardfork or EIP checks.
  */
 export function getOpcodesForHF(common: Common, customOpcodes?: CustomOpcode[]): OpcodeContext {
   let opcodeBuilder: any = { ...opcodes }
@@ -433,20 +268,10 @@ export function getOpcodesForHF(common: Common, customOpcodes?: CustomOpcode[]):
   const handlersCopy = new Map(handlers)
   const dynamicGasHandlersCopy = new Map(dynamicGasHandlers)
 
-  for (let fork = 0; fork < hardforkOpcodes.length; fork++) {
-    if (common.gteHardfork(hardforkOpcodes[fork].hardfork)) {
-      opcodeBuilder = { ...opcodeBuilder, ...hardforkOpcodes[fork].opcodes }
-    }
-  }
-  for (const eipOps of eipOpcodes) {
-    if (common.isActivatedEIP(eipOps.eip)) {
-      opcodeBuilder = { ...opcodeBuilder, ...eipOps.opcodes }
-    }
-  }
+  // No hardfork or EIP opcode additions - Frontier only
 
   for (const key in opcodeBuilder) {
     const baseFee = Number(common.param(`${opcodeBuilder[key].name.toLowerCase()}Gas`))
-    // explicitly verify that we have defined a base fee
     if (baseFee === undefined) {
       throw EthereumJSErrorWithoutCode(`base fee not defined for: ${opcodeBuilder[key].name}`)
     }
@@ -475,13 +300,10 @@ export function getOpcodesForHF(common: Common, customOpcodes?: CustomOpcode[]):
       if (code.gasFunction !== undefined) {
         dynamicGasHandlersCopy.set(code.opcode, code.gasFunction)
       }
-      // logicFunction is never undefined
       handlersCopy.set(code.opcode, code.logicFunction)
     }
   }
 
-  //const dynamicGasHandlers = dynamicGasHandlersCopy
-  //const handlers = handlersCopy
   const ops = createOpcodes(opcodeBuilder)
 
   const opcodeMap: OpcodeMap = []

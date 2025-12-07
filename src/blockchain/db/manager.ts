@@ -54,8 +54,8 @@ export class DBManager {
    * Fetches iterator heads from the db.
    */
   async getHeads(): Promise<{ [key: string]: Uint8Array }> {
-    const heads = (await this.get(DBTarget.Heads)) as DBObject
-    if (heads === undefined) return heads
+    const heads = await this.get(DBTarget.Heads)
+    if (heads === undefined) return {} as { [key: string]: Uint8Array }
     const decodedHeads: { [key: string]: Uint8Array } = {}
     for (const key of Object.keys(heads)) {
       // Heads are stored in DB as hex strings since Level converts Uint8Arrays
@@ -119,21 +119,11 @@ export class DBManager {
         throw new Error('uncle hash should be equal to hash of empty array')
       }
 
-      // If this block had empty withdrawals push an empty array in body
-      if (header.withdrawalsRoot !== undefined) {
-        // Do extra validations for withdrawal before assuming empty withdrawals
-        if (!equalsBytes(header.withdrawalsRoot, KECCAK256_RLP)) {
-          throw new Error(
-            'withdrawals root shoot be equal to hash of null when no withdrawals',
-          )
-        } else {
-          body.push([])
-        }
-      }
+      // Frontier/Chainstart - no withdrawals
     }
 
     const blockData = [header.raw(), ...body] as BlockBytes
-    const opts: BlockOptions = { common: this.common, setHardfork: true }
+    const opts: BlockOptions = { common: this.common }
     return createBlockFromBytesArray(blockData, opts)
   }
 
@@ -152,7 +142,7 @@ export class DBManager {
     const encodedHeader = await this.get(DBTarget.Header, { blockHash, blockNumber })
     const headerValues = RLP.decode(encodedHeader)
 
-    const opts: BlockOptions = { common: this.common, setHardfork: true }
+    const opts: BlockOptions = { common: this.common }
     return createBlockHeaderFromBytesArray(headerValues as Uint8Array[], opts)
   }
 

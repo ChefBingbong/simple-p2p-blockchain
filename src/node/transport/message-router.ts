@@ -1,5 +1,5 @@
+import { ConnectionHandler } from "../../connection";
 import type {
-	ConnectionHandler,
 	MuxedConnection,
 } from "../../connection/connection";
 import type { Packet } from "../../packet/types";

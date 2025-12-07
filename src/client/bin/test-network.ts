@@ -56,19 +56,20 @@ const BOOTNODE_PORT = 8000;
 
 const RPC_BASE_PORT = 8545;
 
-const SHARED_DIR = "./test-network-data";
+const SHARED_DIR = "../../test-network-data";
 
 const ACCOUNTS_FILE = `${SHARED_DIR}/accounts.json`;
 
+// Simplified chain config - only Chainstart/Frontier hardfork with PoW
 export const customChainConfig: ChainConfig = {
 	name: "testnet",
 	chainId: 12345,
-	defaultHardfork: "byzantium",
+	defaultHardfork: "chainstart",
 	consensus: {
 		type: "pow",
 		algorithm: "ethash",
 	},
-	comment: "Private test network",
+	comment: "Private test network - Frontier/Chainstart only with PoW",
 	url: "[TESTNET_URL]",
 	genesis: {
 		gasLimit: 10485760,
@@ -79,18 +80,6 @@ export const customChainConfig: ChainConfig = {
 	},
 	hardforks: [
 		{ name: "chainstart", block: 0 },
-		{ name: "homestead", block: 1 },
-		{ name: "tangerineWhistle", block: 2 },
-		{ name: "spuriousDragon", block: 3 },
-		{ name: "byzantium", block: 4 },
-		{ name: "constantinople", block: 5 },
-		{ name: "petersburg", block: 6 },
-		{ name: "istanbul", block: 7 },
-		{ name: "muirGlacier", block: 8 },
-		{ name: "berlin", block: 9 },
-		{ name: "london", block: 10 },
-		// NOTE: Paris (The Merge) is NOT included because it transitions to PoS
-		// which requires a Beacon Chain. This keeps the network on PoW.
 	],
 	bootstrapNodes: [],
 };
@@ -309,7 +298,6 @@ async function startClient() {
 		port,
 		saveReceipts: true,
 		syncmode: SyncMode.Full,
-		enableSnapSync: true,
 	});
 
 	const chainDataDir = config.getDataDirectory(DataDirectory.Chain);

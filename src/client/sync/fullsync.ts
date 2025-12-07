@@ -1,4 +1,4 @@
-import { ConsensusAlgorithm, Hardfork } from '../../chain-config'
+import { ConsensusAlgorithm } from '../../chain-config'
 import { BIGINT_0, BIGINT_1, equalsBytes } from '../../utils'
 
 import { Event } from '../types.ts'
@@ -124,32 +124,20 @@ export class FullSynchronizer extends Synchronizer {
     const peers = this.pool.peers.filter(this.syncable.bind(this))
     if (peers.length < this.config.minPeers && !this.forceSync) return
 
-    const consensus = this.config.chainCommon.consensusAlgorithm()
-
-    if (
-      (consensus === ConsensusAlgorithm.Ethash || consensus === ConsensusAlgorithm.Clique) &&
-      this.config.chainCommon.hardforkBlock(Hardfork.Paris) === null
-    ) {
-      // For pure non-Merge HF Ethash/Clique chains we want to select the peer with the highest TD
-      let best
-      for (const peer of peers) {
-        if (peer.eth?.status !== undefined) {
-          const td = peer.eth.status.td
-          if (
-            (!best && td >= this.chain.blocks.td) ||
-            (best && best.eth && best.eth.status.td < td)
-          ) {
-            best = peer
-          }
+    // For PoW (Ethash) chains we want to select the peer with the highest TD
+    let best
+    for (const peer of peers) {
+      if (peer.eth?.status !== undefined) {
+        const td = peer.eth.status.td
+        if (
+          (!best && td >= this.chain.blocks.td) ||
+          (best && best.eth && best.eth.status.td < td)
+        ) {
+          best = peer
         }
       }
-      return best
-    } else {
-      // Take a random peer which advertises the eth protocol (and did handshake with, `status !== undefined`)
-      const peersWithEth = peers.filter((peer) => peer.eth?.status !== undefined)
-      // If the array is empty, will return `peersWithEth[0]`, so `undefined`.
-      return peersWithEth[Math.floor(Math.random() * peersWithEth.length)]
     }
+    return best
   }
 
   /**
@@ -223,14 +211,6 @@ export class FullSynchronizer extends Synchronizer {
    * Process blocks fetched from the fetcher.
    */
   async processBlocks(blocks: Block[]) {
-    if (this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-      if (this.fetcher !== null) {
-        // If we are beyond the merge block we should stop the fetcher
-        this.config.logger?.info('Paris (Merge) hardfork reached, stopping block fetcher')
-        this.clearFetcher()
-      }
-    }
-
     if (blocks.length === 0) {
       if (this.fetcher !== null) {
         this.config.logger?.warn('No blocks fetched are applicable for import')
@@ -241,33 +221,19 @@ export class FullSynchronizer extends Synchronizer {
     const first = BigInt(blocks[0].header.number)
     const last = BigInt(blocks[blocks.length - 1].header.number)
     const hash = short(blocks[0].hash())
-    const baseFeeAdd = this.config.chainCommon.gteHardfork(Hardfork.London)
-      ? `baseFee=${blocks[0].header.baseFeePerGas} `
-      : ''
-
-    let attentionHF: string | null = null
-    const nextHFBlockNum = this.config.chainCommon.nextHardforkBlockOrTimestamp()
-    if (nextHFBlockNum !== null) {
-      const remaining = nextHFBlockNum - last
-      if (remaining <= BigInt(10000)) {
-        const nextHF = this.config.chainCommon.getHardforkBy({ blockNumber: nextHFBlockNum })
-        attentionHF = `${nextHF} HF in ${remaining} blocks`
-      }
-    }
 
     this.config.logger?.info(
       `Imported blocks count=${
         blocks.length
-      } first=${first} last=${last} hash=${hash} ${baseFeeAdd}hardfork=${this.config.chainCommon.hardfork()} peers=${
+      } first=${first} last=${last} hash=${hash} hardfork=${this.config.chainCommon.hardfork()} peers=${
         this.pool.size
       }`,
-      { attentionHF },
     )
 
     this.txPool.removeNewBlockTxs(blocks)
 
     if (!this.running) return
-    this.txPool.checkRunState()
+    this.checkTxPoolState()
     return true
   }
 

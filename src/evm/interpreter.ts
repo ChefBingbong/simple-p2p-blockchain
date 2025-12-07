@@ -83,7 +83,6 @@ export interface Env {
   codeAddress: Address /* Different than address for DELEGATECALL and CALLCODE */
   gasRefund: bigint /* Current value (at begin of the frame) of the gas refund */
   eof?: EOFEnv /* Optional EOF environment in case of EOF execution */
-  blobVersionedHashes: PrefixedHexString[] /** Versioned hashes for blob transactions */
   createdAddresses?: Set<string>
   accessWitness?: BinaryTreeAccessWitnessInterface
   chargeCodeAccesses?: boolean
@@ -859,12 +858,8 @@ export class Interpreter {
    * Returns the block's beneficiary address.
    */
   getBlockCoinbase(): bigint {
-    let coinbase: Address
-    if (this.common.consensusAlgorithm() === ConsensusAlgorithm.Clique) {
-      coinbase = this._evm['_optsCached'].cliqueSigner!(this._env.block.header)
-    } else {
-      coinbase = this._env.block.header.coinbase
-    }
+    // PoW only - use block header coinbase directly
+    const coinbase = this._env.block.header.coinbase
     return bytesToBigInt(coinbase.toBytes())
   }
 
@@ -883,41 +878,10 @@ export class Interpreter {
   }
 
   /**
-   * Returns the block's prevRandao field.
-   */
-  getBlockPrevRandao(): bigint {
-    return bytesToBigInt(this._env.block.header.prevRandao)
-  }
-
-  /**
    * Returns the block's gas limit.
    */
   getBlockGasLimit(): bigint {
     return this._env.block.header.gasLimit
-  }
-
-  /**
-   * Returns the Base Fee of the block as proposed in [EIP-3198](https://eips.ethereum.org/EIPS/eip-3198)
-   */
-  getBlockBaseFee(): bigint {
-    const baseFee = this._env.block.header.baseFeePerGas
-    if (baseFee === undefined) {
-      // Sanity check
-      throw EthereumJSErrorWithoutCode('Block has no Base Fee')
-    }
-    return baseFee
-  }
-
-  /**
-   * Returns the Blob Base Fee of the block as proposed in [EIP-7516](https://eips.ethereum.org/EIPS/eip-7516)
-   */
-  getBlobBaseFee(): bigint {
-    const blobBaseFee = this._env.block.header.getBlobGasPrice()
-    if (blobBaseFee === undefined) {
-      // Sanity check
-      throw EthereumJSErrorWithoutCode('Block has no Blob Base Fee')
-    }
-    return blobBaseFee
   }
 
   /**
@@ -940,7 +904,6 @@ export class Interpreter {
       data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
-      blobVersionedHashes: this._env.blobVersionedHashes,
       accessWitness: this._env.accessWitness,
     })
 
@@ -965,7 +928,6 @@ export class Interpreter {
       data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
-      blobVersionedHashes: this._env.blobVersionedHashes,
       accessWitness: this._env.accessWitness,
     })
 
@@ -991,7 +953,6 @@ export class Interpreter {
       data,
       isStatic: true,
       depth: this._env.depth + 1,
-      blobVersionedHashes: this._env.blobVersionedHashes,
       accessWitness: this._env.accessWitness,
     })
 
@@ -1018,7 +979,6 @@ export class Interpreter {
       isStatic: this._env.isStatic,
       delegatecall: true,
       depth: this._env.depth + 1,
-      blobVersionedHashes: this._env.blobVersionedHashes,
       accessWitness: this._env.accessWitness,
     })
 
@@ -1141,7 +1101,6 @@ export class Interpreter {
       depth,
       selfdestruct,
       gasRefund: this._runState.gasRefund,
-      blobVersionedHashes: this._env.blobVersionedHashes,
       accessWitness: this._env.accessWitness,
     })
 

@@ -10,5 +10,5 @@ export interface PrecompileInput {
   gasLimit: bigint
   common: Common
   _EVM: EVMInterface
-  _debug?: debug.Debugger
+  _debug?: (...args: any[]) => void
 }

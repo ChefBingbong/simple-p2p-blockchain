@@ -192,18 +192,7 @@ export class Journal {
    * Also cleanups any other internal fields
    */
   async cleanup(): Promise<void> {
-    if (this.common.gteHardfork(Hardfork.SpuriousDragon)) {
-      for (const addressHex of this.touched) {
-        const address = new Address(hexToBytes(`0x${addressHex}`))
-        const account = await this.stateManager.getAccount(address)
-        if (account === undefined || account.isEmpty()) {
-          await this.deleteAccount(address)
-          if (this.DEBUG) {
-            this._debug(`Cleanup touched account address=${address} (>= SpuriousDragon)`)
-          }
-        }
-      }
-    }
+    // Frontier: no EIP-161 state trie cleanup (came in SpuriousDragon)
     this.cleanJournal()
     delete this.accessList
     delete this.preimages

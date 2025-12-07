@@ -1,9 +1,11 @@
 import type { ChainConfig } from './types.ts'
 
+// All chains simplified to only Chainstart hardfork with PoW consensus
+
 export const Mainnet: ChainConfig = {
   name: 'mainnet',
   chainId: 1,
-  defaultHardfork: 'prague',
+  defaultHardfork: 'chainstart',
   consensus: {
     type: 'pow',
     algorithm: 'ethash',
@@ -17,125 +19,11 @@ export const Mainnet: ChainConfig = {
     nonce: '0x0000000000000042',
     extraData: '0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa',
   },
-  depositContractAddress: '0x00000000219ab540356cBB839Cbe05303d7705Fa',
   hardforks: [
     {
       name: 'chainstart',
       block: 0,
       forkHash: '0xfc64ec04',
-    },
-    {
-      name: 'homestead',
-      block: 1150000,
-      forkHash: '0x97c2c34c',
-    },
-    {
-      name: 'dao',
-      block: 1920000,
-      forkHash: '0x91d1f948',
-    },
-    {
-      name: 'tangerineWhistle',
-      block: 2463000,
-      forkHash: '0x7a64da13',
-    },
-    {
-      name: 'spuriousDragon',
-      block: 2675000,
-      forkHash: '0x3edd5b10',
-    },
-    {
-      name: 'byzantium',
-      block: 4370000,
-      forkHash: '0xa00bc324',
-    },
-    {
-      name: 'constantinople',
-      block: 7280000,
-      forkHash: '0x668db0af',
-    },
-    {
-      name: 'petersburg',
-      block: 7280000,
-      forkHash: '0x668db0af',
-    },
-    {
-      name: 'istanbul',
-      block: 9069000,
-      forkHash: '0x879d6e30',
-    },
-    {
-      name: 'muirGlacier',
-      block: 9200000,
-      forkHash: '0xe029e991',
-    },
-    {
-      name: 'berlin',
-      block: 12244000,
-      forkHash: '0x0eb440f6',
-    },
-    {
-      name: 'london',
-      block: 12965000,
-      forkHash: '0xb715077d',
-    },
-    {
-      name: 'arrowGlacier',
-      block: 13773000,
-      forkHash: '0x20c327fc',
-    },
-    {
-      name: 'grayGlacier',
-      block: 15050000,
-      forkHash: '0xf0afd0e3',
-    },
-    {
-      // The forkHash will remain same as mergeNetsplitBlock is post merge
-      // terminal block: https://etherscan.io/block/15537393
-      name: 'paris',
-      block: 15537394,
-      forkHash: '0xf0afd0e3',
-    },
-    {
-      name: 'mergeNetsplitBlock',
-      block: null,
-      forkHash: null,
-    },
-    {
-      name: 'shanghai',
-      block: null,
-      timestamp: '1681338455',
-      forkHash: '0xdce96c2d',
-    },
-    {
-      name: 'cancun',
-      block: null,
-      timestamp: '1710338135',
-      forkHash: '0x9f3d2254',
-    },
-    {
-      name: 'prague',
-      block: null,
-      timestamp: '1746612311',
-      forkHash: '0xc376cf8b',
-    },
-    {
-      name: 'osaka',
-      block: null,
-      timestamp: '1764798551',
-      forkHash: '0x5167e2a6',
-    },
-    {
-      name: 'bpo1',
-      block: null,
-      timestamp: '1765290071',
-      forkHash: '0xcba2a1c0',
-    },
-    {
-      name: 'bpo2',
-      block: null,
-      timestamp: '1767747671',
-      forkHash: '0x07c9462e',
     },
   ],
   bootstrapNodes: [
@@ -176,13 +64,13 @@ export const Mainnet: ChainConfig = {
 export const Sepolia: ChainConfig = {
   name: 'sepolia',
   chainId: 11155111,
-  defaultHardfork: 'prague',
+  defaultHardfork: 'chainstart',
   consensus: {
     type: 'pow',
     algorithm: 'ethash',
     ethash: {},
   },
-  comment: 'PoW test network to replace Ropsten',
+  comment: 'PoW test network',
   url: 'https://github.com/ethereum/go-ethereum/pull/23730',
   genesis: {
     timestamp: '0x6159af19',
@@ -191,110 +79,11 @@ export const Sepolia: ChainConfig = {
     nonce: '0x0000000000000000',
     extraData: '0x5365706f6c69612c20417468656e732c204174746963612c2047726565636521',
   },
-  depositContractAddress: '0x7f02c3e3c98b133055b8b348b2ac625669ed295d',
   hardforks: [
     {
       name: 'chainstart',
       block: 0,
       forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'homestead',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'tangerineWhistle',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'spuriousDragon',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'byzantium',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'constantinople',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'petersburg',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'istanbul',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'muirGlacier',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'berlin',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'london',
-      block: 0,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      // The forkHash will remain same as mergeNetsplitBlock is post merge,
-      // terminal block: https://sepolia.etherscan.io/block/1450408
-      name: 'paris',
-      block: 1450409,
-      forkHash: '0xfe3366e7',
-    },
-    {
-      name: 'mergeNetsplitBlock',
-      block: 1735371,
-      forkHash: '0xb96cbd13',
-    },
-    {
-      name: 'shanghai',
-      block: null,
-      timestamp: '1677557088',
-      forkHash: '0xf7f9bc08',
-    },
-    {
-      name: 'cancun',
-      block: null,
-      timestamp: '1706655072',
-      forkHash: '0x88cf81d9',
-    },
-    {
-      name: 'prague',
-      block: null,
-      timestamp: '1741159776',
-      forkHash: '0xed88b5fd',
-    },
-    {
-      name: 'osaka',
-      block: null,
-      timestamp: '1760427360',
-      forkHash: '0xe2ae4999',
-    },
-    {
-      name: 'bpo1',
-      block: null,
-      timestamp: '1761017184',
-      forkHash: '0x56078a1e',
-    },
-    {
-      name: 'bpo2',
-      block: null,
-      timestamp: '1761607008',
-      forkHash: '0x268956b6',
     },
   ],
   bootstrapNodes: [
@@ -335,123 +124,26 @@ export const Sepolia: ChainConfig = {
 export const Holesky: ChainConfig = {
   name: 'holesky',
   chainId: 17000,
-  defaultHardfork: 'prague',
+  defaultHardfork: 'chainstart',
   consensus: {
-    type: 'pos',
-    algorithm: 'casper',
+    type: 'pow',
+    algorithm: 'ethash',
+    ethash: {},
   },
-  comment: 'PoS test network to replace Goerli',
+  comment: 'PoW test network',
   url: 'https://github.com/eth-clients/holesky/',
   genesis: {
-    baseFeePerGas: '0x3B9ACA00',
     difficulty: '0x01',
     extraData: '0x',
     gasLimit: '0x17D7840',
     nonce: '0x0000000000001234',
     timestamp: '0x65156994',
   },
-  depositContractAddress: '0x4242424242424242424242424242424242424242',
   hardforks: [
     {
       name: 'chainstart',
       block: 0,
       forkHash: '0xc61a6098',
-    },
-    {
-      name: 'homestead',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'tangerineWhistle',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'spuriousDragon',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'byzantium',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'constantinople',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'petersburg',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'istanbul',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'muirGlacier',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'berlin',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'london',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'paris',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'mergeNetsplitBlock',
-      block: 0,
-      forkHash: '0xc61a6098',
-    },
-    {
-      name: 'shanghai',
-      block: null,
-      timestamp: '1696000704',
-      forkHash: '0xfd4f016b',
-    },
-    {
-      name: 'cancun',
-      block: null,
-      timestamp: '1707305664',
-      forkHash: '0x9b192ad0',
-    },
-    {
-      name: 'prague',
-      block: null,
-      timestamp: '1740434112',
-      forkHash: '0xdfbd9bed',
-    },
-    {
-      name: 'osaka',
-      block: null,
-      timestamp: '1759308480',
-      forkHash: '0x783def52',
-    },
-    {
-      name: 'bpo1',
-      block: null,
-      timestamp: '1759800000',
-      forkHash: '0xa280a45c',
-    },
-    {
-      name: 'bpo2',
-      block: null,
-      timestamp: '1760389824',
-      forkHash: '0x9bc6cb31',
     },
   ],
   bootstrapNodes: [
@@ -478,123 +170,26 @@ export const Holesky: ChainConfig = {
 export const Hoodi: ChainConfig = {
   name: 'hoodi',
   chainId: 560048,
-  defaultHardfork: 'prague',
+  defaultHardfork: 'chainstart',
   consensus: {
-    type: 'pos',
-    algorithm: 'casper',
+    type: 'pow',
+    algorithm: 'ethash',
+    ethash: {},
   },
-  comment: 'PoS test network to replace Holesky',
+  comment: 'PoW test network',
   url: 'https://github.com/eth-clients/hoodi',
   genesis: {
-    baseFeePerGas: '0x3B9ACA00',
     difficulty: '0x01',
     extraData: '0x',
     gasLimit: '0x2255100',
     nonce: '0x0000000000001234',
     timestamp: '0x67d80ec0',
   },
-  depositContractAddress: '0x00000000219ab540356cBB839Cbe05303d7705Fa',
   hardforks: [
     {
       name: 'chainstart',
       block: 0,
       forkHash: '0xbef71d30',
-    },
-    {
-      name: 'homestead',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'tangerineWhistle',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'spuriousDragon',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'byzantium',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'constantinople',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'petersburg',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'istanbul',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'muirGlacier',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'berlin',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'london',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'paris',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'mergeNetsplitBlock',
-      block: 0,
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'shanghai',
-      block: null,
-      timestamp: '0',
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'cancun',
-      block: null,
-      timestamp: '0',
-      forkHash: '0xbef71d30',
-    },
-    {
-      name: 'prague',
-      block: null,
-      timestamp: '1742999832',
-      forkHash: '0x0929e24e',
-    },
-    {
-      name: 'osaka',
-      block: null,
-      timestamp: '1761677592',
-      forkHash: '0xe7e0e7ff',
-    },
-    {
-      name: 'bpo1',
-      block: null,
-      timestamp: '1762365720',
-      forkHash: '0x3893353e',
-    },
-    {
-      name: 'bpo2',
-      block: null,
-      timestamp: '1762955544',
-      forkHash: '0x23aa1351',
     },
   ],
   bootstrapNodes: [

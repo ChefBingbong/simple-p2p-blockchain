@@ -120,7 +120,6 @@ export async function createBlockchainFromBlocksData(
 	for (const blockData of blocksData) {
 		const block = createBlock(blockData, {
 			common: blockchain.common,
-			setHardfork: true,
 		});
 		await blockchain.putBlock(block);
 	}
