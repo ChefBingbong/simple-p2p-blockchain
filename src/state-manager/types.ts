@@ -1,9 +1,8 @@
-import { type PrefixedHexString } from '../utils'
-
 import type { Caches } from '.'
-import type { BinaryTree } from '../binary-tree'
 import type { Common } from '../chain-config'
 import type { MerklePatriciaTrie } from '../mpt'
+import type { PrefixedHexString } from '../utils'
+
 /**
  * Basic state manager options (not to be used directly)
  */
@@ -27,37 +26,17 @@ export interface RPCStateManagerOpts extends BaseStateManagerOpts {
 }
 
 /**
- * Options for constructing a {@link StateManager}.
+ * Options for constructing a {@link MerkleStateManager}.
  */
 export interface MerkleStateManagerOpts extends BaseStateManagerOpts {
   /**
    * A {@link MerklePatriciaTrie} instance
    */
   trie?: MerklePatriciaTrie
-  /**
-   * Option to prefix codehashes in the database. This defaults to `true`.
-   * If this is disabled, note that it is possible to corrupt the trie, by deploying code
-   * which code is equal to the preimage of a trie-node.
-   * E.g. by putting the code `0x80` into the empty trie, will lead to a corrupted trie.
-   */
-  prefixCodeHashes?: boolean
 
   /**
-   * Option to prefix the keys for the storage tries with the first 7 bytes from the
-   * associated account address. Activating this option gives a noticeable performance
-   * boost for storage DB reads when operating on larger tries.
-   *
-   * Note: Activating/deactivating this option causes continued state reads to be
-   * incompatible with existing databases.
-   *
-   * Default: false (for backwards compatibility reasons)
-   */
-  prefixStorageTrieKeys?: boolean
-
-  /**
-   * Options to enable and configure the use of a cache account, code and storage
+   * Options to enable and configure the use of an account cache.
    * This can be useful for speeding up reads, especially when the trie is large.
-   * The cache is only used for reading from the trie and is not used for writing to the trie.
    *
    * Default: false
    */
@@ -65,33 +44,8 @@ export interface MerkleStateManagerOpts extends BaseStateManagerOpts {
 }
 
 /**
- * Options dictionary.
+ * Proof type for account proofs.
  */
-export interface StatelessVerkleStateManagerOpts extends BaseStateManagerOpts {
-  common: Common // Common required since it provides verkleCrypto through customCrypto
-  caches?: Caches
-}
-
-export interface StatefulBinaryTreeStateManagerOpts extends BaseStateManagerOpts {
-  hashFunction?: (data: Uint8Array) => Uint8Array
-  tree?: BinaryTree
-  caches?: Caches
-}
-
-export interface BinaryTreeState {
-  [key: PrefixedHexString]: PrefixedHexString | null
-}
-
-export interface EncodedBinaryTreeState {
-  [key: PrefixedHexString]: PrefixedHexString | null
-}
-
-export type StorageProof = {
-  key: PrefixedHexString
-  proof: PrefixedHexString[]
-  value: PrefixedHexString
-}
-
 export type Proof = {
   address: PrefixedHexString
   balance: PrefixedHexString
@@ -99,5 +53,4 @@ export type Proof = {
   nonce: PrefixedHexString
   storageHash: PrefixedHexString
   accountProof: PrefixedHexString[]
-  storageProof: StorageProof[]
 }

@@ -2,7 +2,7 @@ import { EthereumJSErrorWithoutCode, Lock } from '../../../utils'
 
 import { Event } from '../../types.ts'
 
-    import type { BlockBodyBytes, BlockHeader } from '../../../block'
+import type { BlockBodyBytes, BlockHeader } from '../../../block'
 import type { TypedTransaction } from '../../../tx'
 import type { TxReceipt } from '../../../vm'
 import type { Config } from '../../config.ts'
@@ -10,7 +10,6 @@ import type { Peer } from '../peer/peer.ts'
 import type { EthProtocolMethods } from './ethprotocol.ts'
 import type { Message, Protocol } from './protocol.ts'
 import type { Sender } from './sender.ts'
-import type { AccountData, SnapProtocolMethods, StorageData } from './snapprotocol.ts'
 
 export interface BoundProtocolOptions {
   /* Config */
@@ -112,8 +111,8 @@ export class BoundProtocol {
       return
     }
 
-    let data
-    let error
+    let data: unknown
+    let error: Error | undefined
     try {
       data = this.protocol.decode(message, incoming.payload)
     } catch (e: any) {
@@ -176,7 +175,7 @@ export class BoundProtocol {
    */
   async request(name: string, args: any): Promise<any> {
     const message = this.send(name, args)
-    let lock
+    let lock: Lock | undefined
     if (
       typeof message.response === 'number' &&
       this.resolvers.get(message.response) !== undefined
@@ -214,7 +213,7 @@ export class BoundProtocol {
 }
 
 export class BoundEthProtocol extends BoundProtocol implements EthProtocolMethods {
-  name = 'eth' // public name: string
+  name = 'eth'
 
   constructor(options: BoundProtocolOptions) {
     super(options)
@@ -255,65 +254,6 @@ export class BoundEthProtocol extends BoundProtocol implements EthProtocolMethod
     hashes: Uint8Array[]
   }): Promise<[bigint, TxReceipt[]]> {
     return this.request('GetReceipts', opts).catch((error: Error) => {
-      this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
-      return undefined
-    })
-  }
-}
-
-export class BoundSnapProtocol extends BoundProtocol implements SnapProtocolMethods {
-  name = 'snap' // public name: string
-
-  constructor(options: BoundProtocolOptions) {
-    super(options)
-  }
-  async getAccountRange(opts: {
-    reqId?: bigint | undefined
-    root: Uint8Array
-    origin: Uint8Array
-    limit: Uint8Array
-    bytes: bigint
-  }): Promise<{ reqId: bigint; accounts: AccountData[]; proof: Uint8Array[] }> {
-    return this.request('GetAccountRange', opts).catch((error: Error) => {
-      this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
-      return undefined
-    })
-  }
-  async getStorageRanges(opts: {
-    reqId?: bigint | undefined
-    root: Uint8Array
-    accounts: Uint8Array[]
-    origin: Uint8Array
-    limit: Uint8Array
-    bytes: bigint
-  }): Promise<{
-    reqId: bigint
-    slots: StorageData[][]
-    proof: Uint8Array[]
-  }> {
-    return this.request('GetStorageRanges', opts).catch((error: Error) => {
-      this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
-      return undefined
-    })
-  }
-  async getByteCodes(opts: {
-    reqId?: bigint | undefined
-    hashes: Uint8Array[]
-    bytes: bigint
-  }): Promise<{ reqId: bigint; codes: Uint8Array[] }> {
-    return this.request('GetByteCodes', opts).catch((error: Error) => {
-      this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
-      return undefined
-    })
-  }
-  async getTrieNodes(opts: {
-    reqId?: bigint | undefined // so this adds a guard here if something goes wrong
-    // so this adds a guard here if something goes wrong
-    root: Uint8Array
-    paths: Uint8Array[][]
-    bytes: bigint
-  }): Promise<{ reqId: bigint; nodes: Uint8Array[] }> {
-    return this.request('GetTrieNodes', opts).catch((error: Error) => {
       this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
       return undefined
     })

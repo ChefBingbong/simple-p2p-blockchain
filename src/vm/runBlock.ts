@@ -14,6 +14,7 @@ import {
   KECCAK256_RLP,
   bytesToHex,
   equalsBytes,
+  intToBytes,
   short,
 } from '../utils'
 
@@ -26,6 +27,7 @@ import type { PrefixedHexString } from '../utils'
 import type {
   AfterBlockEvent,
   ApplyBlockResult,
+  PostByzantiumTxReceipt,
   PreByzantiumTxReceipt,
   RunBlockOpts,
   RunBlockResult,
@@ -422,11 +424,16 @@ async function _genTxTrie(block: Block) {
 
 /**
  * Encode receipt for trie.
- * Pre-Byzantium (Frontier) receipts include stateRoot.
+ * Handles both Pre-Byzantium (stateRoot) and Post-Byzantium (status) receipts.
  */
 export function encodeReceipt(receipt: TxReceipt, txType: TransactionType): Uint8Array {
+  // Check for Pre-Byzantium (stateRoot) vs Post-Byzantium (status)
+  const postStateOrStatus = 'stateRoot' in receipt 
+    ? (receipt as PreByzantiumTxReceipt).stateRoot 
+    : intToBytes((receipt as PostByzantiumTxReceipt).status)
+  
   const encoded = RLP.encode([
-    (receipt as PreByzantiumTxReceipt).stateRoot,
+    postStateOrStatus,
     receipt.cumulativeBlockGasUsed,
     receipt.bitvector,
     receipt.logs,

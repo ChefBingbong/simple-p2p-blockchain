@@ -1,6 +1,6 @@
-import { Account, EthereumJSErrorWithoutCode, bytesToHex } from '../utils'
+import { EthereumJSErrorWithoutCode } from '../utils'
+import type { Account } from '../utils'
 
-import { OriginalStorageCache } from './cache/originalStorageCache.ts'
 import { modifyAccountFields } from './util.ts'
 
 import type { SimpleStateManagerOpts } from '.'
@@ -11,43 +11,24 @@ import type { Address, PrefixedHexString } from '../utils'
  * Simple and dependency-free state manager for basic state access use cases
  * where a merkle-patricia or binary tree backed state manager is too heavy-weight.
  *
+ * This state manager only supports value transfers - no smart contracts.
+ *
  * This state manager comes with the basic state access logic for
- * accounts, storage and code (put* and get* methods) as well as a simple
- * implementation of checkpointing but lacks methods implementations of
- * state root related logic as well as some other non-core functions.
- *
- * Functionality provided is sufficient to be used for simple EVM use
- * cases and the state manager is used as default there.
- *
- * For a more full fledged and MPT-backed state manager implementation
- * have a look at the [`../../statemanager` package docs](https://github.com/ethereumjs/ethereumjs-monorepo/blob/master/packages/statemanager/docs/README.md).
+ * accounts as well as a simple implementation of checkpointing but lacks
+ * methods implementations of state root related logic.
  */
 export class SimpleStateManager implements StateManagerInterface {
   public accountStack: Map<PrefixedHexString, Account | undefined>[] = []
-  public codeStack: Map<PrefixedHexString, Uint8Array>[] = []
-  public storageStack: Map<string, Uint8Array>[] = []
-
-  originalStorageCache: {
-    get(address: Address, key: Uint8Array): Promise<Uint8Array>
-    clear(): void
-  }
 
   public readonly common?: Common
 
   constructor(opts: SimpleStateManagerOpts = {}) {
     this.checkpointSync()
-    this.originalStorageCache = new OriginalStorageCache(this.getStorage.bind(this))
     this.common = opts.common
   }
 
   protected topAccountStack() {
     return this.accountStack[this.accountStack.length - 1]
-  }
-  protected topCodeStack() {
-    return this.codeStack[this.codeStack.length - 1]
-  }
-  protected topStorageStack() {
-    return this.storageStack[this.storageStack.length - 1]
   }
 
   // Synchronous version of checkpoint() to allow to call from constructor
@@ -61,8 +42,6 @@ export class SimpleStateManager implements StateManagerInterface {
       newTopA.set(address, accountCopy)
     }
     this.accountStack.push(newTopA)
-    this.codeStack.push(new Map(this.topCodeStack()))
-    this.storageStack.push(new Map(this.topStorageStack()))
   }
 
   async getAccount(address: Address): Promise<Account | undefined> {
@@ -81,59 +60,16 @@ export class SimpleStateManager implements StateManagerInterface {
     await modifyAccountFields(this, address, accountFields)
   }
 
-  /**
-   * getCode always returns empty bytes - this blockchain only supports value transfers.
-   * @param _address - Address (ignored)
-   * @returns Empty Uint8Array
-   */
-  async getCode(_address: Address): Promise<Uint8Array> {
-    return new Uint8Array(0)
-  }
-
-  /**
-   * putCode is not supported - this blockchain only supports value transfers.
-   * This method is a no-op for compatibility.
-   * @param _address - Address (ignored)
-   * @param _value - Code value (ignored)
-   */
-  async putCode(_address: Address, _value: Uint8Array): Promise<void> {
-    // No-op: Contract code storage is not supported in value-transfer-only mode
-  }
-
-  /**
-   * getCodeSize always returns 0 - this blockchain only supports value transfers.
-   * @param _address - Address (ignored)
-   * @returns 0
-   */
-  async getCodeSize(_address: Address): Promise<number> {
-    return 0
-  }
-
-  async getStorage(address: Address, key: Uint8Array): Promise<Uint8Array> {
-    return (
-      this.topStorageStack().get(`${address.toString()}_${bytesToHex(key)}`) ?? new Uint8Array(0)
-    )
-  }
-
-  async putStorage(address: Address, key: Uint8Array, value: Uint8Array): Promise<void> {
-    this.topStorageStack().set(`${address.toString()}_${bytesToHex(key)}`, value)
-  }
-
-  async clearStorage(): Promise<void> {}
-
   async checkpoint(): Promise<void> {
     this.checkpointSync()
   }
+
   async commit(): Promise<void> {
     this.accountStack.splice(-2, 1)
-    this.codeStack.splice(-2, 1)
-    this.storageStack.splice(-2, 1)
   }
 
   async revert(): Promise<void> {
     this.accountStack.pop()
-    this.codeStack.pop()
-    this.storageStack.pop()
   }
 
   async flush(): Promise<void> {}
@@ -143,8 +79,6 @@ export class SimpleStateManager implements StateManagerInterface {
     const copy = new SimpleStateManager({ common: this.common })
     for (let i = 0; i < this.accountStack.length; i++) {
       copy.accountStack.push(new Map(this.accountStack[i]))
-      copy.codeStack.push(new Map(this.codeStack[i]))
-      copy.storageStack.push(new Map(this.storageStack[i]))
     }
     return copy
   }

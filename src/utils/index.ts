@@ -59,10 +59,6 @@ export * from "./tasks.ts";
  * Helpful TypeScript types
  */
 export * from "./types.ts";
-/**
- * Withdrawal type
- */
-export * from "./withdrawal.ts";
 
 /**
  * Provider
