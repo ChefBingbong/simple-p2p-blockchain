@@ -80,8 +80,6 @@ export async function runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
       debug(`tx checkpoint reverted`)
     }
     throw e
-  } finally {
-    vm.evm.stateManager.originalStorageCache.clear()
   }
 }
 
@@ -311,7 +309,6 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
 
   await vm.evm.journal.cleanup()
-  state.originalStorageCache.clear()
 
   // Generate the tx receipt
   const gasUsed = opts.blockGasUsed ?? block?.header.gasUsed ?? DEFAULT_HEADER.gasUsed

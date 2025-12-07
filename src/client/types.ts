@@ -2,7 +2,6 @@ import type { Multiaddr } from '@multiformats/multiaddr'
 import type * as promClient from 'prom-client'
 import type { SyncMode } from '.'
 import type { Block, BlockHeader } from '../block'
-import type { MerkleStateManager } from '../state-manager'
 import type { Address } from '../utils'
 import type { Peer } from './net/peer'
 import type { Server } from './net/server'
@@ -21,7 +20,6 @@ export const Event = {
   SYNC_SYNCHRONIZED: 'sync:synchronized',
   SYNC_ERROR: 'sync:error',
   SYNC_FETCHER_ERROR: 'sync:fetcher:error',
-  SYNC_SNAPSYNC_COMPLETE: 'sync:snapsync:complete',
   PEER_CONNECTED: 'peer:connected',
   PEER_DISCONNECTED: 'peer:disconnected',
   PEER_ERROR: 'peer:error',
@@ -33,6 +31,7 @@ export const Event = {
   PROTOCOL_ERROR: 'protocol:error',
   PROTOCOL_MESSAGE: 'protocol:message',
 } as const
+
 export interface EventParams {
   [Event.CHAIN_UPDATED]: []
   [Event.CLIENT_SHUTDOWN]: []
@@ -40,9 +39,8 @@ export interface EventParams {
   [Event.SYNC_FETCHED_BLOCKS]: [blocks: Block[]]
   [Event.SYNC_FETCHED_HEADERS]: [headers: BlockHeader[]]
   [Event.SYNC_SYNCHRONIZED]: [chainHeight: bigint]
-  [Event.SYNC_SNAPSYNC_COMPLETE]: [stateRoot: Uint8Array, stateManager: MerkleStateManager]
   [Event.SYNC_ERROR]: [syncError: Error]
-  [Event.SYNC_FETCHER_ERROR]: [fetchError: Error, task: any, peer: Peer | null | undefined]
+  [Event.SYNC_FETCHER_ERROR]: [fetchError: Error, task: unknown, peer: Peer | null | undefined]
   [Event.PEER_CONNECTED]: [connectedPeer: Peer]
   [Event.PEER_DISCONNECTED]: [disconnectedPeer: Peer]
   [Event.PEER_ERROR]: [error: Error, peerCausingError: Peer]
@@ -52,7 +50,7 @@ export interface EventParams {
   [Event.POOL_PEER_REMOVED]: [removedPeer: Peer]
   [Event.POOL_PEER_BANNED]: [bannedPeer: Peer]
   [Event.PROTOCOL_ERROR]: [boundProtocolError: Error, peerCausingError: Peer]
-  [Event.PROTOCOL_MESSAGE]: [messageDetails: any, protocolName: string, sendingPeer: Peer]
+  [Event.PROTOCOL_MESSAGE]: [messageDetails: unknown, protocolName: string, sendingPeer: Peer]
 }
 
 /**
@@ -89,13 +87,6 @@ export interface ClientOpts {
   ws?: boolean
   wsPort?: number
   wsAddr?: string
-  rpcEngine?: boolean
-  rpcEnginePort?: number
-  rpcEngineAddr?: string
-  wsEnginePort?: number
-  wsEngineAddr?: string
-  rpcEngineAuth?: boolean
-  jwtSecret?: string
   helpRPC?: boolean
   logLevel?: string
   logFile?: boolean | string
@@ -129,7 +120,6 @@ export interface ClientOpts {
   minerCoinbase?: Address
   saveReceipts?: boolean
   prefixStorageTrieKeys?: boolean
-  snap?: boolean
   useStringValueTrieDB?: boolean
   txLookupLimit?: number
   startBlock?: number
@@ -139,15 +129,13 @@ export interface ClientOpts {
   loadBlocksFromRlp?: string[]
   pruneEngineCache?: boolean
   savePreimages?: boolean
-  engineNewpayloadMaxExecute?: number
-  skipEngineExec?: boolean
   useJsCrypto?: boolean
 }
 
+/**
+ * Prometheus metrics for transaction tracking.
+ * Only legacy transactions are supported in this value-transfer-only blockchain.
+ */
 export type PrometheusMetrics = {
   legacyTxGauge: promClient.Gauge<string>
-  accessListEIP2930TxGauge: promClient.Gauge<string>
-  feeMarketEIP1559TxGauge: promClient.Gauge<string>
-  blobEIP4844TxGauge: promClient.Gauge<string>
-  blobEIP7594TxGauge: promClient.Gauge<string>
 }

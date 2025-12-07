@@ -5,7 +5,6 @@ import { SyncMode } from '../config.ts'
 import { VMExecution } from '../execution'
 import { Miner } from '../miner'
 import { EthProtocol } from '../net/protocol/ethprotocol.ts'
-import { SnapProtocol } from '../net/protocol/snapprotocol.ts'
 import { FullSynchronizer } from '../sync'
 import { Event } from '../types.ts'
 
@@ -179,12 +178,6 @@ export class FullEthereumService extends Service {
         config: this.config,
         chain: this.chain,
         timeout: this.timeout,
-      }),
-      new SnapProtocol({
-        config: this.config,
-        chain: this.chain,
-        timeout: this.timeout,
-        convertSlimBody: true,
       }),
     ]
     return protocols

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'eventemitter3'
 import { BIGINT_0, EthereumJSErrorWithoutCode, short } from '../../../utils'
 
-import { BoundEthProtocol, BoundSnapProtocol } from '../protocol'
+import { BoundEthProtocol } from '../protocol'
 
 import type { BlockHeader } from '../../../block'
 import type { Config } from '../../config.ts'
@@ -46,9 +46,7 @@ export abstract class Peer extends EventEmitter {
   protected boundProtocols: BoundProtocol[] = []
   private _idle: boolean
 
-  // TODO check if this should be moved into RlpxPeer
   public eth?: BoundEthProtocol
-  public snap?: BoundSnapProtocol
 
   /*
     If the peer is in the PeerPool.
@@ -159,7 +157,7 @@ export abstract class Peer extends EventEmitter {
   async addProtocol(sender: Sender, protocol: Protocol): Promise<void> {
     let bound: BoundProtocol
     const boundOpts = {
-      config: protocol.config, // TODO: why cant we use `this.config`?
+      config: protocol.config,
       protocol,
       peer: this,
       sender,
@@ -167,15 +165,8 @@ export abstract class Peer extends EventEmitter {
 
     if (protocol.name === 'eth') {
       bound = new BoundEthProtocol(boundOpts)
-
       await bound!.handshake(sender)
-
       this.eth = bound as BoundEthProtocol
-    } else if (protocol.name === 'snap') {
-      bound = new BoundSnapProtocol(boundOpts)
-      if (sender.status === undefined) throw Error('Snap can only be bound on handshaked peer')
-
-      this.snap = bound as BoundSnapProtocol
     } else {
       throw EthereumJSErrorWithoutCode(`addProtocol: ${protocol.name} protocol not supported`)
     }

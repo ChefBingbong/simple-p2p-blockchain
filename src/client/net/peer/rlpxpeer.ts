@@ -1,4 +1,4 @@
-import { ETH as Devp2pETH, RLPx as Devp2pRLPx, SNAP as Devp2pSNAP } from '../../../devp2p'
+import { ETH as Devp2pETH, RLPx as Devp2pRLPx } from '../../../devp2p'
 import { randomBytes, unprefixedHexToBytes } from '../../../utils'
 
 import { Event } from '../../types.ts'
@@ -10,8 +10,8 @@ import type { Capabilities as Devp2pCapabilities, Peer as Devp2pRlpxPeer } from 
 import type { Protocol } from '../protocol'
 import type { RlpxServer } from '../server'
 import type { PeerOptions } from './peer.ts'
+
 const devp2pCapabilities = {
-  snap1: Devp2pSNAP.snap,
   eth66: Devp2pETH.eth66,
   eth67: Devp2pETH.eth67,
   eth68: Devp2pETH.eth68,
@@ -156,28 +156,11 @@ export class RlpxPeer extends Peer {
       rlpxPeer.getProtocols().map((rlpxProtocol) => {
         const name = rlpxProtocol.constructor.name.toLowerCase()
         const protocol = this.protocols.find((p) => p.name === name)
-        // Since snap is running atop/besides eth, it doesn't need a separate sender
-        // handshake, and can just use the eth handshake
-        if (protocol && name !== 'snap') {
-          const sender = new RlpxSender(rlpxProtocol as Devp2pETH | Devp2pSNAP)
-          return this.addProtocol(sender, protocol).then(() => {
-            if (name === 'eth') {
-              const snapRlpxProtocol = rlpxPeer
-                .getProtocols()
-                .filter((p) => p.constructor.name.toLowerCase() === 'snap')[0]
-              const snapProtocol =
-                snapRlpxProtocol !== undefined
-                  ? this.protocols.find(
-                      (p) => p.name === snapRlpxProtocol?.constructor.name.toLowerCase(),
-                    )
-                  : undefined
-              if (snapProtocol !== undefined) {
-                const snapSender = new RlpxSender(snapRlpxProtocol as Devp2pETH | Devp2pSNAP)
-                return this.addProtocol(snapSender, snapProtocol)
-              }
-            }
-          })
+        if (protocol) {
+          const sender = new RlpxSender(rlpxProtocol as Devp2pETH)
+          return this.addProtocol(sender, protocol)
         }
+        return undefined
       }),
     )
     this.connected = true

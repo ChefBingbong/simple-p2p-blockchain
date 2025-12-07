@@ -9,7 +9,7 @@ export interface CacheOpts {
   /**
    * Size of the cache (only for LRU cache)
    *
-   * Default: 100000 (account cache) / 20000 (storage cache) / 20000 (code cache)
+   * Default: 100000 (account cache)
    *
    * Note: the cache/trie interplay mechanism is designed in a way that
    * the theoretical number of max modified accounts between two flush operations
@@ -33,6 +33,4 @@ export interface CacheOpts {
 
 export interface CachesStateManagerOpts {
   account?: Partial<CacheOpts>
-  code?: Partial<CacheOpts>
-  storage?: Partial<CacheOpts>
 }

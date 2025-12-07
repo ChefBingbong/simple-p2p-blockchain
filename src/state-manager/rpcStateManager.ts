@@ -6,7 +6,6 @@ import {
   Account,
   EthereumJSErrorWithoutCode,
   bigIntToHex,
-  bytesToHex,
   createAccount,
   createAccountFromRLP,
   equalsBytes,
@@ -16,24 +15,27 @@ import {
   toBytes,
 } from '../utils'
 
-import { Caches, OriginalStorageCache } from './cache'
+import { Caches } from './cache'
 import { modifyAccountFields } from './util.ts'
 
 import type { Debugger } from 'debug'
 import type { RPCStateManagerOpts } from '.'
-import type { AccountFields, StateManagerInterface, StorageDump } from '../chain-config'
+import type { AccountFields, StateManagerInterface } from '../chain-config'
 import type { Address } from '../utils'
 
 const KECCAK256_RLP_EMPTY_ACCOUNT = RLP.encode(new Account().serialize()).slice(2)
 
+/**
+ * RPC-backed state manager for reading account state from an external provider.
+ * This implementation only supports value transfers - no smart contracts.
+ */
 export class RPCStateManager implements StateManagerInterface {
   protected _provider: string
   protected _caches: Caches
   protected _blockTag: string
-  originalStorageCache: OriginalStorageCache
   protected _debug: Debugger
   protected DEBUG: boolean
-  private keccakFunction: Function
+  private keccakFunction: (msg: Uint8Array) => Uint8Array
   public readonly common: Common
 
   constructor(opts: RPCStateManagerOpts) {
@@ -52,9 +54,8 @@ export class RPCStateManager implements StateManagerInterface {
 
     this._blockTag = opts.blockTag === 'earliest' ? opts.blockTag : bigIntToHex(opts.blockTag)
 
-    this._caches = new Caches({ storage: { size: 100000 }, code: { size: 100000 } })
+    this._caches = new Caches({ account: { size: 100000 } })
 
-    this.originalStorageCache = new OriginalStorageCache(this.getStorage.bind(this))
     this.common = opts.common ?? new Common({ chain: Mainnet })
     this.keccakFunction = opts.common?.customCrypto.keccak256 ?? keccak256
   }
@@ -69,7 +70,7 @@ export class RPCStateManager implements StateManagerInterface {
       provider: this._provider,
       blockTag: BigInt(this._blockTag),
     })
-    newState._caches = new Caches({ storage: { size: 100000 } })
+    newState._caches = new Caches({ account: { size: 100000 } })
 
     return newState
   }
@@ -86,115 +87,10 @@ export class RPCStateManager implements StateManagerInterface {
   }
 
   /**
-   * Clears the internal cache so all accounts, contract code, and storage slots will
-   * initially be retrieved from the provider
+   * Clears the internal cache so all accounts will initially be retrieved from the provider
    */
   clearCaches(): void {
     this._caches.clear()
-  }
-
-  /**
-   * Gets the code corresponding to the provided `address`.
-   * @param address - Address to get the `code` for
-   * @returns {Promise<Uint8Array>} - Resolves with the code corresponding to the provided address.
-   * Returns an empty `Uint8Array` if the account has no associated code.
-   */
-  async getCode(address: Address): Promise<Uint8Array> {
-    let codeBytes = this._caches.code?.get(address)?.code
-    if (codeBytes !== undefined) return codeBytes
-    const code = await fetchFromProvider(this._provider, {
-      method: 'eth_getCode',
-      params: [address.toString(), this._blockTag],
-    })
-    codeBytes = toBytes(code)
-    this._caches.code?.put(address, codeBytes)
-    return codeBytes
-  }
-
-  async getCodeSize(address: Address): Promise<number> {
-    const contractCode = await this.getCode(address)
-    return contractCode.length
-  }
-
-  /**
-   * Adds `value` to the state trie as code, and sets `codeHash` on the account
-   * corresponding to `address` to reference this.
-   * @param address - Address of the `account` to add the `code` for
-   * @param value - The value of the `code`
-   */
-  async putCode(address: Address, value: Uint8Array): Promise<void> {
-    // Store contract code in the cache
-    this._caches.code?.put(address, value)
-  }
-
-  /**
-   * Gets the storage value associated with the provided `address` and `key`. This method returns
-   * the shortest representation of the stored value.
-   * @param address - Address of the account to get the storage for
-   * @param key - Key in the account's storage to get the value for. Must be 32 bytes long.
-   * @returns {Uint8Array} - The storage value for the account
-   * corresponding to the provided address at the provided key.
-   * If this does not exist an empty `Uint8Array` is returned.
-   */
-  async getStorage(address: Address, key: Uint8Array): Promise<Uint8Array> {
-    // Check storage slot in cache
-    if (key.length !== 32) {
-      throw EthereumJSErrorWithoutCode('Storage key must be 32 bytes long')
-    }
-
-    let value = this._caches.storage?.get(address, key)
-    if (value !== undefined) {
-      return value
-    }
-
-    // Retrieve storage slot from provider if not found in cache
-    const storage = await fetchFromProvider(this._provider, {
-      method: 'eth_getStorageAt',
-      params: [address.toString(), bytesToHex(key), this._blockTag],
-    })
-    value = toBytes(storage)
-
-    await this.putStorage(address, key, value)
-    return value
-  }
-
-  /**
-   * Adds value to the cache for the `account`
-   * corresponding to `address` at the provided `key`.
-   * @param address - Address to set a storage value for
-   * @param key - Key to set the value at. Must be 32 bytes long.
-   * @param value - Value to set at `key` for account corresponding to `address`.
-   * Cannot be more than 32 bytes. Leading zeros are stripped.
-   * If it is empty or filled with zeros, deletes the value.
-   */
-  async putStorage(address: Address, key: Uint8Array, value: Uint8Array): Promise<void> {
-    this._caches.storage?.put(address, key, value)
-  }
-
-  /**
-   * Clears all storage entries for the account corresponding to `address`.
-   * @param address - Address to clear the storage of
-   */
-  async clearStorage(address: Address): Promise<void> {
-    this._caches.storage?.clearStorage(address)
-  }
-
-  /**
-   * Dumps the RLP-encoded storage values for an `account` specified by `address`.
-   * @param address - The address of the `account` to return storage for
-   * @returns {Promise<StorageDump>} - The state of the account as an `Object` map.
-   * Keys are the storage keys, values are the storage values as strings.
-   * Both are represented as `0x` prefixed hex strings.
-   */
-  dumpStorage(address: Address): Promise<StorageDump> {
-    const storageMap = this._caches.storage?.dump(address)
-    const dump: StorageDump = {}
-    if (storageMap !== undefined) {
-      for (const slot of storageMap) {
-        dump[slot[0]] = bytesToHex(slot[1])
-      }
-    }
-    return Promise.resolve(dump)
   }
 
   /**
@@ -228,7 +124,7 @@ export class RPCStateManager implements StateManagerInterface {
     if (this.DEBUG) this._debug(`retrieving account data from ${address.toString()} from provider`)
     const accountData = await fetchFromProvider(this._provider, {
       method: 'eth_getProof',
-      params: [address.toString(), [] as any, this._blockTag],
+      params: [address.toString(), [] as string[], this._blockTag],
     })
     const account = createAccount({
       balance: BigInt(accountData.balance),
@@ -249,9 +145,7 @@ export class RPCStateManager implements StateManagerInterface {
       this._debug(
         `Save account address=${address} nonce=${account?.nonce} balance=${
           account?.balance
-        } contract=${account && account.isContract() ? 'yes' : 'no'} empty=${
-          account && account.isEmpty() ? 'yes' : 'no'
-        }`,
+        } empty=${account?.isEmpty() ? 'yes' : 'no'}`,
       )
     }
     if (account !== undefined) {
@@ -318,19 +212,14 @@ export class RPCStateManager implements StateManagerInterface {
   /**
    * Commits the current change-set to the instance since the
    * last call to checkpoint.
-   *
-   * Partial implementation, called from the subclass.
    */
   async commit(): Promise<void> {
-    // setup cache checkpointing
     this._caches.account?.commit()
   }
 
   /**
    * Reverts the current change-set to the instance since the
    * last call to checkpoint.
-   *
-   * Partial implementation , called from the subclass.
    */
   async revert(): Promise<void> {
     this._caches.revert()

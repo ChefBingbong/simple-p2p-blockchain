@@ -1,80 +1,46 @@
 import debugDefault from 'debug'
-import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { Common, Mainnet } from '../chain-config'
 import { MerklePatriciaTrie } from '../mpt'
-import * as RLP from '../rlp'
 import {
-  Account,
   EthereumJSErrorWithoutCode,
-  bytesToUnprefixedHex,
-  concatBytes,
   createAccount,
   createAccountFromRLP,
   createAddressFromString,
   equalsBytes,
-  hexToBytes,
-  short,
-  toBytes,
-  unpadBytes,
   unprefixedHexToBytes,
-  utf8ToBytes,
 } from '../utils'
+import type { Account } from '../utils'
 
 import type { Caches, MerkleStateManagerOpts } from '.'
-import { OriginalStorageCache } from './cache'
 import { modifyAccountFields } from './util.ts'
 
 import type { Debugger } from 'debug'
 import type {
   AccountFields,
   StateManagerInterface,
-  StorageDump,
-  StorageRange,
 } from '../chain-config'
-import type { Address, DB } from '../utils'
-
-/**
- * Prefix to distinguish between a contract deployed with code `0x80`
- * and `RLP([])` (also having the value `0x80`).
- *
- * Otherwise the creation of the code hash for the `0x80` contract
- * will be the same as the hash of the empty trie which leads to
- * misbehaviour in the underlying trie library.
- */
-export const CODEHASH_PREFIX = utf8ToBytes('c')
+import type { Address } from '../utils'
 
 /**
  * Default StateManager implementation for the VM.
  *
  * The state manager abstracts from the underlying data store
- * by providing higher level access to accounts, contract code
- * and storage slots.
+ * by providing higher level access to accounts.
+ *
+ * This implementation only supports value transfers - no smart contracts.
  *
  * The default state manager implementation uses a
  * `../../mpt` trie as a data backend.
- *
- * Note that there is a `SimpleStateManager` dependency-free state
- * manager implementation available shipped with the `../../statemanager`
- * package which might be an alternative to this implementation
- * for many basic use cases.
  */
 export class MerkleStateManager implements StateManagerInterface {
   protected _debug: Debugger
   protected _caches?: Caches
 
-  originalStorageCache: OriginalStorageCache
-
   protected _trie: MerklePatriciaTrie
-  protected _storageTries: { [key: string]: MerklePatriciaTrie }
-
-  protected readonly _prefixCodeHashes: boolean
-  protected readonly _prefixStorageTrieKeys: boolean
 
   public readonly common: Common
 
   protected _checkpointCount: number
-
-  private keccakFunction: Function
 
   /**
    * StateManager is run in DEBUG mode (default: false)
@@ -103,14 +69,6 @@ export class MerkleStateManager implements StateManagerInterface {
     this._checkpointCount = 0
 
     this._trie = opts.trie ?? new MerklePatriciaTrie({ useKeyHashing: true, common: this.common })
-    this._storageTries = {}
-
-    this.keccakFunction = opts.common?.customCrypto.keccak256 ?? keccak256
-
-    this.originalStorageCache = new OriginalStorageCache(this.getStorage.bind(this))
-
-    this._prefixCodeHashes = opts.prefixCodeHashes ?? true
-    this._prefixStorageTrieKeys = opts.prefixStorageTrieKeys ?? false
 
     this._caches = opts.caches
   }
@@ -144,9 +102,7 @@ export class MerkleStateManager implements StateManagerInterface {
       this._debug(
         `Save account address=${address} nonce=${account?.nonce} balance=${
           account?.balance
-        } contract=${account && account.isContract() ? 'yes' : 'no'} empty=${
-          account && account.isEmpty() ? 'yes' : 'no'
-        }`,
+        } empty=${account?.isEmpty() ? 'yes' : 'no'}`,
       )
     }
     if (this._caches?.account === undefined) {
@@ -193,223 +149,6 @@ export class MerkleStateManager implements StateManagerInterface {
   }
 
   /**
-   * putCode is not supported - this blockchain only supports value transfers.
-   * This method is a no-op for compatibility.
-   * @param _address - Address (ignored)
-   * @param _value - Code value (ignored)
-   */
-  async putCode(_address: Address, _value: Uint8Array): Promise<void> {
-    // No-op: Contract code storage is not supported in value-transfer-only mode
-    if (this.DEBUG) {
-      this._debug(`putCode called but ignored - contracts not supported`)
-    }
-  }
-
-  /**
-   * getCode always returns empty bytes - this blockchain only supports value transfers.
-   * @param _address - Address (ignored)
-   * @returns Empty Uint8Array
-   */
-  async getCode(_address: Address): Promise<Uint8Array> {
-    // Always return empty - no contracts supported
-    return new Uint8Array(0)
-  }
-
-  /**
-   * getCodeSize always returns 0 - this blockchain only supports value transfers.
-   * @param _address - Address (ignored)
-   * @returns 0
-   */
-  async getCodeSize(_address: Address): Promise<number> {
-    return 0
-  }
-
-  /**
-   * Gets the storage trie for the EVM-internal account identified by the provided address/hash.
-   * If the storage trie is not in the local cache ('this._storageTries'),
-   *   generates a new storage trie object based on a lookup (shallow copy from 'this._trie'),
-   *   applies the storage root of the provided rootAccount (or an
-   *   empty trie root if no rootAccount is provided), and stores the new entry
-   *   in the local cache.
-   * @param addressOrHash Address (or other object) with populated 'bytes', or a raw Uint8Array.
-   *   Used to identify the requested storage trie in the local cache and define the
-   *   prefix used when creating a new storage trie.
-   * @param  rootAccount (Optional) Account object whose 'storageRoot' is to be used as
-   *   the root of the new storageTrie returned when there is no pre-existing trie.
-   *   If left undefined, the EMPTY_TRIE_ROOT will be used as the root instead.
-   * @returns storage MerklePatriciaTrie object
-   * @private
-   */
-  // TODO PR: have a better interface for hashed address pull?
-  protected _getStorageTrie(
-    addressOrHash: Address | { bytes: Uint8Array } | Uint8Array,
-    rootAccount?: Account,
-  ): MerklePatriciaTrie {
-    // use hashed key for lookup from storage cache
-    const addressBytes: Uint8Array =
-      addressOrHash instanceof Uint8Array ? addressOrHash : this.keccakFunction(addressOrHash.bytes)
-    const addressHex: string = bytesToUnprefixedHex(addressBytes)
-    let storageTrie = this._storageTries[addressHex]
-    if (storageTrie === undefined) {
-      const keyPrefix = this._prefixStorageTrieKeys ? addressBytes.slice(0, 7) : undefined
-      storageTrie = this._trie.shallowCopy(false, { keyPrefix })
-      if (rootAccount !== undefined) {
-        storageTrie.root(rootAccount.storageRoot)
-      } else {
-        storageTrie.root(storageTrie.EMPTY_TRIE_ROOT)
-      }
-      storageTrie.flushCheckpoints()
-      this._storageTries[addressHex] = storageTrie
-    }
-    return storageTrie
-  }
-
-  /**
-   * Gets the storage trie for an account from the storage
-   * cache or does a lookup.
-   * @private
-   */
-  protected _getAccountTrie(): MerklePatriciaTrie {
-    return this._trie
-  }
-
-  /**
-   * Gets the storage trie for an account from the storage
-   * cache or does a lookup.
-   * @private
-   */
-  protected _getCodeDB(): DB {
-    return this._trie.database()
-  }
-
-  /**
-   * Gets the storage value associated with the provided `address` and `key`. This method returns
-   * the shortest representation of the stored value.
-   * @param address -  Address of the account to get the storage for
-   * @param key - Key in the account's storage to get the value for. Must be 32 bytes long.
-   * @returns - The storage value for the account
-   * corresponding to the provided address at the provided key.
-   * If this does not exist an empty `Uint8Array` is returned.
-   */
-  async getStorage(address: Address, key: Uint8Array): Promise<Uint8Array> {
-    if (key.length !== 32) {
-      throw EthereumJSErrorWithoutCode('Storage key must be 32 bytes long')
-    }
-    const cachedValue = this._caches?.storage?.get(address, key)
-    if (cachedValue !== undefined) {
-      const decoded = RLP.decode(cachedValue ?? new Uint8Array(0)) as Uint8Array
-      return decoded
-    }
-
-    const account = await this.getAccount(address)
-    if (!account) {
-      return new Uint8Array()
-    }
-    const trie = this._getStorageTrie(address, account)
-    const value = await trie.get(key)
-    this._caches?.storage?.put(address, key, value ?? hexToBytes('0x80'))
-    const decoded = RLP.decode(value ?? new Uint8Array(0)) as Uint8Array
-    return decoded
-  }
-
-  /**
-   * Modifies the storage trie of an account.
-   * @private
-   * @param address -  Address of the account whose storage is to be modified
-   * @param modifyTrie - Function to modify the storage trie of the account
-   */
-  protected async _modifyContractStorage(
-    address: Address,
-    account: Account,
-    modifyTrie: (storageTrie: MerklePatriciaTrie, done: Function) => void,
-  ): Promise<void> {
-    // eslint-disable-next-line no-async-promise-executor
-    return new Promise(async (resolve) => {
-      const storageTrie = this._getStorageTrie(address, account)
-
-      modifyTrie(storageTrie, async () => {
-        // update storage cache
-        const addressHex = bytesToUnprefixedHex(address.bytes)
-        this._storageTries[addressHex] = storageTrie
-
-        // update contract storageRoot
-        account.storageRoot = storageTrie.root()
-        await this.putAccount(address, account)
-        resolve()
-      })
-    })
-  }
-
-  protected async _writeContractStorage(
-    address: Address,
-    account: Account,
-    key: Uint8Array,
-    value: Uint8Array,
-  ) {
-    await this._modifyContractStorage(address, account, async (storageTrie, done) => {
-      if (value instanceof Uint8Array && value.length) {
-        // format input
-        const encodedValue = RLP.encode(value)
-        if (this.DEBUG) {
-          this._debug(`Update contract storage for account ${address} to ${short(value)}`)
-        }
-        await storageTrie.put(key, encodedValue)
-      } else {
-        // deleting a value
-        if (this.DEBUG) {
-          this._debug(`Delete contract storage for account`)
-        }
-        await storageTrie.del(key)
-      }
-      done()
-    })
-  }
-
-  /**
-   * Adds value to the state trie for the `account`
-   * corresponding to `address` at the provided `key`.
-   * @param address -  Address to set a storage value for
-   * @param key - Key to set the value at. Must be 32 bytes long.
-   * @param value - Value to set at `key` for account corresponding to `address`.
-   * Cannot be more than 32 bytes. Leading zeros are stripped.
-   * If it is a empty or filled with zeros, deletes the value.
-   */
-  async putStorage(address: Address, key: Uint8Array, value: Uint8Array): Promise<void> {
-    if (key.length !== 32) {
-      throw EthereumJSErrorWithoutCode('Storage key must be 32 bytes long')
-    }
-
-    if (value.length > 32) {
-      throw EthereumJSErrorWithoutCode('Storage value cannot be longer than 32 bytes')
-    }
-
-    const account = await this.getAccount(address)
-    if (!account) {
-      throw EthereumJSErrorWithoutCode('putStorage() called on non-existing account')
-    }
-
-    value = unpadBytes(value)
-    this._caches?.storage?.put(address, key, RLP.encode(value)) ??
-      (await this._writeContractStorage(address, account, key, value))
-  }
-
-  /**
-   * Clears all storage entries for the account corresponding to `address`.
-   * @param address - Address to clear the storage of
-   */
-  async clearStorage(address: Address): Promise<void> {
-    let account = await this.getAccount(address)
-    if (!account) {
-      account = new Account()
-    }
-    this._caches?.storage?.clearStorage(address)
-    await this._modifyContractStorage(address, account, (storageTrie, done) => {
-      storageTrie.root(storageTrie.EMPTY_TRIE_ROOT)
-      done()
-    })
-  }
-
-  /**
    * Checkpoints the current state of the StateManager instance.
    * State changes that follow can then be committed by calling
    * `commit` or `reverted` by calling rollback.
@@ -425,14 +164,12 @@ export class MerkleStateManager implements StateManagerInterface {
    * last call to checkpoint.
    */
   async commit(): Promise<void> {
-    // setup trie checkpointing
     await this._trie.commit()
     this._caches?.commit()
     this._checkpointCount--
 
     if (this._checkpointCount === 0) {
       await this.flush()
-      this.originalStorageCache.clear()
     }
 
     if (this.DEBUG) {
@@ -445,17 +182,13 @@ export class MerkleStateManager implements StateManagerInterface {
    * last call to checkpoint.
    */
   async revert(): Promise<void> {
-    // setup trie checkpointing
     await this._trie.revert()
     this._caches?.revert()
-
-    this._storageTries = {}
 
     this._checkpointCount--
 
     if (this._checkpointCount === 0) {
       await this.flush()
-      this.originalStorageCache.clear()
     }
   }
 
@@ -463,40 +196,7 @@ export class MerkleStateManager implements StateManagerInterface {
    * Writes all cache items to the trie
    */
   async flush(): Promise<void> {
-    const codeItems = this._caches?.code?.flush() ?? []
-    for (const item of codeItems) {
-      const addr = createAddressFromString(`0x${item[0]}`)
-
-      const code = item[1].code
-      if (code === undefined) {
-        continue
-      }
-
-      // update code in database
-      const codeHash = this.keccakFunction(code)
-      const key = this._prefixCodeHashes ? concatBytes(CODEHASH_PREFIX, codeHash) : codeHash
-      await this._getCodeDB().put(key, code)
-
-      // update code root of associated account
-      if ((await this.getAccount(addr)) === undefined) {
-        await this.putAccount(addr, new Account())
-      }
-      await this.modifyAccountFields(addr, { codeHash })
-    }
-    const storageItems = this._caches?.storage?.flush() ?? []
-    for (const item of storageItems) {
-      const address = createAddressFromString(`0x${item[0]}`)
-      const keyHex = item[1]
-      const keyBytes = unprefixedHexToBytes(keyHex)
-      const value = item[2]
-
-      const decoded = RLP.decode(value ?? new Uint8Array(0)) as Uint8Array
-      const account = await this.getAccount(address)
-      if (account) {
-        await this._writeContractStorage(address, account, keyBytes, decoded)
-      }
-    }
-
+    // Only flush account items - no code or storage in value-transfer-only mode
     const accountItems = this._caches?.account?.flush() ?? []
     for (const item of accountItems) {
       const addressHex = item[0]
@@ -544,67 +244,6 @@ export class MerkleStateManager implements StateManagerInterface {
     if (clearCache) {
       this._caches?.clear()
     }
-    this._storageTries = {}
-  }
-
-  /**
-   * Dumps the RLP-encoded storage values for an `account` specified by `address`.
-   * @param address - The address of the `account` to return storage for
-   * @returns {Promise<StorageDump>} - The state of the account as an `Object` map.
-   * Keys are are the storage keys, values are the storage values as strings.
-   * Both are represented as hex strings without the `0x` prefix.
-   */
-  async dumpStorage(address: Address): Promise<StorageDump> {
-    await this.flush()
-    const account = await this.getAccount(address)
-    if (!account) {
-      throw EthereumJSErrorWithoutCode(`dumpStorage f() can only be called for an existing account`)
-    }
-    const trie = this._getStorageTrie(address, account)
-
-    return trie.getValueMap().then((value) => {
-      return value.values
-    })
-  }
-
-  /**
-   Dumps a limited number of RLP-encoded storage values for an account specified by `address`,
-   starting from `startKey` or greater.
-   @param address - The address of the `account` to return storage for.
-   @param startKey - The bigint representation of the smallest storage key that will be returned.
-   @param limit - The maximum number of storage values that will be returned.
-   @returns {Promise<StorageRange>} - A {@link StorageRange} object that will contain at most `limit` entries in its `storage` field.
-   The object will also contain `nextKey`, the next (hashed) storage key after the range included in `storage`.
-   */
-  async dumpStorageRange(address: Address, startKey: bigint, limit: number): Promise<StorageRange> {
-    if (!Number.isSafeInteger(limit) || limit < 0) {
-      throw EthereumJSErrorWithoutCode(`Limit is not a proper uint.`)
-    }
-
-    await this.flush()
-    const account = await this.getAccount(address)
-    if (!account) {
-      throw EthereumJSErrorWithoutCode(`Account does not exist.`)
-    }
-
-    const trie = this._getStorageTrie(address, account)
-
-    return trie.getValueMap(startKey, limit).then((value) => {
-      const values = value.values
-      const dump = Object.create(null)
-      for (const key of Object.keys(values)) {
-        const val = values[key]
-        dump[key] = {
-          key: null,
-          value: val,
-        }
-      }
-
-      return {
-        storage: dump,
-        nextKey: value.nextKey,
-      }
-    })
   }
 
   /**
@@ -612,7 +251,7 @@ export class MerkleStateManager implements StateManagerInterface {
    * Will error if there are uncommitted checkpoints on the instance.
    * @param initState address -> balance | [balance, code, storage]
    */
-  async generateCanonicalGenesis(initState: any): Promise<void> {
+  async generateCanonicalGenesis(initState: Record<string, bigint | [bigint, unknown?, unknown?, bigint?]>): Promise<void> {
     if (this._checkpointCount !== 0) {
       throw EthereumJSErrorWithoutCode('Cannot create genesis state with uncommitted checkpoints')
     }
@@ -628,18 +267,11 @@ export class MerkleStateManager implements StateManagerInterface {
         const account = createAccount({ balance: state })
         await this.putAccount(addr, account)
       } else {
-        // New format: address -> [balance, code, storage]
-        const [balance, code, storage, nonce] = state
+        // New format: address -> [balance, code, storage, nonce]
+        // Note: code and storage are ignored in value-transfer-only mode
+        const [balance, _code, _storage, nonce] = state
         const account = createAccount({ balance, nonce })
         await this.putAccount(addr, account)
-        if (code !== undefined) {
-          await this.putCode(addr, toBytes(code))
-        }
-        if (storage !== undefined) {
-          for (const [key, value] of storage) {
-            await this.putStorage(addr, toBytes(key), toBytes(value))
-          }
-        }
       }
     }
     await this.flush()
@@ -659,20 +291,6 @@ export class MerkleStateManager implements StateManagerInterface {
    *
    * Caches are downleveled (so: adopted for short-term usage)
    * by default.
-   *
-   * This means in particular:
-   * 1. For caches instantiated as an LRU cache type
-   * the copy() method will instantiate with an ORDERED_MAP cache
-   * instead, since copied instances are mostly used in
-   * short-term usage contexts and LRU cache instantiation would create
-   * a large overhead here.
-   * 2. The underlying trie object is initialized with 0 cache size
-   *
-   * Both adoptions can be deactivated by setting `downlevelCaches` to
-   * `false`.
-   *
-   * Cache values are generally not copied along regardless of the
-   * `downlevelCaches` setting.
    */
   shallowCopy(downlevelCaches = true): MerkleStateManager {
     const common = this.common.copy()
@@ -680,14 +298,10 @@ export class MerkleStateManager implements StateManagerInterface {
 
     const cacheSize = !downlevelCaches ? this._trie['_opts']['cacheSize'] : 0
     const trie = this._trie.shallowCopy(false, { cacheSize })
-    const prefixCodeHashes = this._prefixCodeHashes
-    const prefixStorageTrieKeys = this._prefixStorageTrieKeys
 
     return new MerkleStateManager({
       common,
       trie,
-      prefixStorageTrieKeys,
-      prefixCodeHashes,
       caches: this._caches?.shallowCopy(downlevelCaches),
     })
   }

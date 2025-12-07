@@ -118,7 +118,7 @@ export class EVM implements EVMInterface {
 
     this.common.updateParams(opts.params ?? paramsEVM)
 
-    this.journal = new Journal(this.stateManager, this.common)
+    this.journal = new Journal(this.stateManager)
 
     this._emit = async (topic: string, data: Message | EVMResult): Promise<void> => {
       const listeners = this.events.listeners(topic as keyof EVMEvent)
