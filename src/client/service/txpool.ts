@@ -1,12 +1,5 @@
 import {
-  Blob4844Tx,
-  Capability,
-  FeeMarket1559Tx,
   LegacyTx,
-  NetworkWrapperType,
-  isAccessList2930Tx,
-  isBlob4844Tx,
-  isFeeMarket1559Tx,
   isLegacyTx,
   type TypedTransaction,
 } from '../../tx'
@@ -14,8 +7,6 @@ import {
   Account,
   Address,
   BIGINT_0,
-  BIGINT_2,
-  CELLS_PER_EXT_BLOB,
   EthereumJSErrorWithoutCode,
   bytesToHex,
   bytesToUnprefixedHex,
@@ -98,26 +89,11 @@ export class TxPool {
   private _logInterval: NodeJS.Timeout | undefined
 
   /**
-   * List of pending tx hashes to avoid double requests
-   */
-  private pending: UnprefixedHash[] = []
-
-  /**
    * The central pool dataset.
    *
    * Maps an address to a `TxPoolObject`
    */
   public pool: Map<UnprefixedAddress, TxPoolObject[]>
-  // EIP 4844 network wrapper blobs
-  public blobAndProofByHash: Map<
-    PrefixedHexString,
-    { blob: PrefixedHexString; proof: PrefixedHexString }
-  >
-  // EIP 7594 network wrapper blobs
-  public blobAndProofsByHash: Map<
-    PrefixedHexString,
-    { blob: PrefixedHexString; proofs: PrefixedHexString[] }
-  >
 
   /**
    * The number of txs currently in the pool
@@ -129,22 +105,20 @@ export class TxPool {
    * (have been added to the pool at some point)
    *
    * This is meant to be a superset of the tx pool
-   * so at any point it time containing minimally
-   * all txs from the pool.
+   * so at any point it should be at least as large as the pool
    */
   private handled: Map<UnprefixedHash, HandledObject>
 
   /**
-   * Map for tx hashes a peer is already aware of
-   * (so no need to re-broadcast)
+   * Map for tx hashes a peer is known to have
    */
   private knownByPeer: Map<PeerId, SentObject[]>
 
   /**
    * Activate before chain head is reached to start
-   * tx pool preparation (sorting out included txs)
+   * temporary tx pool serving (default: -1)
    */
-  public BLOCKS_BEFORE_TARGET_HEIGHT_ACTIVATION = 20
+  public BLOCKS_BEFORE_TARGET_HEIGHT_ACTIVATION = -1
 
   /**
    * Max number of txs to request
@@ -163,16 +137,19 @@ export class TxPool {
   public HANDLED_CLEANUP_TIME_LIMIT = 60
 
   /**
-   * Rebroadcast full txs and new blocks to a fraction
-   * of peers by doing
-   * `max(1, floor(NUM_PEERS/NUM_PEERS_REBROADCAST_QUOTIENT))`
+   * Rebroadcast full txs and new tx hashes
    */
-  public NUM_PEERS_REBROADCAST_QUOTIENT = 4
+  private REBROADCAST_INTERVAL = 60 * 1000
 
   /**
    * Log pool statistics on the given interval
    */
-  private LOG_STATISTICS_INTERVAL = 100000 // ms
+  private LOG_STATISTICS_INTERVAL = 20000 // ms
+
+  /**
+   * Transactions waiting for retrieval
+   */
+  private pending: UnprefixedHash[] = []
 
   /**
    * Create new tx pool
@@ -183,14 +160,6 @@ export class TxPool {
     this.service = options.service
 
     this.pool = new Map<UnprefixedAddress, TxPoolObject[]>()
-    this.blobAndProofByHash = new Map<
-      PrefixedHexString,
-      { blob: PrefixedHexString; proof: PrefixedHexString }
-    >()
-    this.blobAndProofsByHash = new Map<
-      PrefixedHexString,
-      { blob: PrefixedHexString; proofs: PrefixedHexString[] }
-    >()
     this.txsInPool = 0
     this.handled = new Map<UnprefixedHash, HandledObject>()
     this.knownByPeer = new Map<PeerId, SentObject[]>()
@@ -207,7 +176,6 @@ export class TxPool {
       return false
     }
     this.opened = true
-
     return true
   }
 
@@ -222,30 +190,18 @@ export class TxPool {
       this.cleanup.bind(this),
       this.POOLED_STORAGE_TIME_LIMIT * 1000 * 60,
     )
-
-    if (this.config.logger?.isInfoEnabled() === true) {
-      // Only turn on txPool stats calculator if log level is info or above
-      // since all stats calculator does is print `info` logs
-      this._logInterval = setInterval(this._logPoolStats.bind(this), this.LOG_STATISTICS_INTERVAL)
-    }
+    this._logInterval = setInterval(this._logPoolStats.bind(this), this.LOG_STATISTICS_INTERVAL)
     this.running = true
-    this.config.superMsg('TxPool started.')
+    this.config.logger?.info('TxPool started.')
     return true
   }
 
   /**
-   * Checks if tx pool should be started
+   * Check if txpool should start based on sync state
    */
-  checkRunState() {
-    if (this.running || !this.config.synchronized) {
-      return
-    }
-    // If height gte target, we are close enough to the
-    // head of the chain that the tx pool can be started
-    const target =
-      (this.config.syncTargetHeight ?? BIGINT_0) -
-      BigInt(this.BLOCKS_BEFORE_TARGET_HEIGHT_ACTIVATION)
-    if (this.service.chain.headers.height >= target) {
+  checkRunState(): void {
+    // Start txpool if not already running
+    if (!this.running) {
       this.start()
     }
   }
@@ -264,17 +220,6 @@ export class TxPool {
       throw EthereumJSErrorWithoutCode(
         `replacement gas too low, got tip ${newGasPrice.tip}, min: ${minTipCap}, got fee ${newGasPrice.maxFee}, min: ${minFeeCap}`,
       )
-    }
-
-    if (addedTx instanceof Blob4844Tx && existingTx instanceof Blob4844Tx) {
-      const minblobGasFee =
-        existingTx.maxFeePerBlobGas +
-        (existingTx.maxFeePerBlobGas * BigInt(MIN_GAS_PRICE_BUMP_PERCENT)) / BigInt(100)
-      if (addedTx.maxFeePerBlobGas < minblobGasFee) {
-        throw EthereumJSErrorWithoutCode(
-          `replacement blob gas too low, got: ${addedTx.maxFeePerBlobGas}, min: ${minblobGasFee}`,
-        )
-      }
     }
   }
 
@@ -328,27 +273,10 @@ export class TxPool {
       }
     }
     const block = await this.service.chain.getCanonicalHeadHeader()
-    if (typeof block.baseFeePerGas === 'bigint' && block.baseFeePerGas !== BIGINT_0) {
-      if (currentGasPrice.maxFee < block.baseFeePerGas / BIGINT_2 && !isLocalTransaction) {
-        throw EthereumJSErrorWithoutCode(
-          `Tx cannot pay basefee of ${block.baseFeePerGas}, have ${currentGasPrice.maxFee} (not within 50% range of current basefee)`,
-        )
-      }
-    }
     if (tx.gasLimit > block.gasLimit) {
       throw EthereumJSErrorWithoutCode(
         `Tx gaslimit of ${tx.gasLimit} exceeds block gas limit of ${block.gasLimit} (exceeds last block gas limit)`,
       )
-    }
-
-    // EIP-7825: Transaction Gas Limit Cap
-    if (tx.common.isActivatedEIP(7825)) {
-      const maxGasLimit = tx.common.param('maxTransactionGasLimit')
-      if (tx.gasLimit > maxGasLimit) {
-        throw EthereumJSErrorWithoutCode(
-          `Transaction gas limit ${tx.gasLimit} exceeds the maximum allowed by EIP-7825 (${maxGasLimit})`,
-        )
-      }
     }
 
     // Copy VM in order to not overwrite the state root of the VMExecution module which may be concurrently running blocks
@@ -402,87 +330,28 @@ export class TxPool {
       if (isLegacyTx(tx)) {
         this.config.metrics?.legacyTxGauge?.inc()
       }
-      if (isAccessList2930Tx(tx)) {
-        this.config.metrics?.accessListEIP2930TxGauge?.inc()
-      }
-      if (isFeeMarket1559Tx(tx)) {
-        this.config.metrics?.feeMarketEIP1559TxGauge?.inc()
-      }
-      if (isBlob4844Tx(tx)) {
-        // add to blobs and proofs cache
-        if (tx.blobs !== undefined && tx.kzgProofs !== undefined) {
-          for (const [i, versionedHash] of tx.blobVersionedHashes.entries()) {
-            const blob = tx.blobs![i]
-
-            if (tx.networkWrapperVersion === NetworkWrapperType.EIP4844) {
-              const proof = tx.kzgProofs![i]
-              this.blobAndProofByHash.set(versionedHash, { blob, proof })
-              this.config.metrics?.blobEIP4844TxGauge?.inc()
-            } else if (tx.networkWrapperVersion === NetworkWrapperType.EIP7594) {
-              const proofs = tx.kzgProofs!.slice(
-                i * CELLS_PER_EXT_BLOB,
-                (i + 1) * CELLS_PER_EXT_BLOB,
-              )
-              this.blobAndProofsByHash.set(versionedHash, { blob, proofs })
-              this.config.metrics?.blobEIP7594TxGauge?.inc()
-            } else {
-              throw EthereumJSErrorWithoutCode(
-                `Invalid networkWrapperVersion=${tx.networkWrapperVersion}`,
-              )
-            }
-          }
-          this.pruneBlobsAndProofsCache()
-        }
-      }
     } catch (e) {
       this.handled.set(hash, { address, added, error: e as Error })
       throw e
     }
   }
 
-  pruneBlobsAndProofsCache() {
-    const blobGasLimit = this.config.chainCommon.param('maxBlobGasPerBlock')
-    const blobGasPerBlob = this.config.chainCommon.param('blobGasPerBlob')
-    const allowedBlobsPerBlock = Number(blobGasLimit / blobGasPerBlob)
-
-    let pruneLength =
-      this.blobAndProofByHash.size - allowedBlobsPerBlock * this.config.blobsAndProofsCacheBlocks
-    let pruned = 0
-    // since keys() is sorted by insertion order this prunes the oldest data in cache
-    for (const versionedHash of this.blobAndProofByHash.keys()) {
-      if (pruned >= pruneLength) {
-        break
-      }
-      this.blobAndProofByHash.delete(versionedHash)
-      pruned++
-    }
-
-    pruneLength =
-      this.blobAndProofsByHash.size - allowedBlobsPerBlock * this.config.blobsAndProofsCacheBlocks
-    pruned = 0
-    for (const versionedHash of this.blobAndProofsByHash.keys()) {
-      if (pruned >= pruneLength) {
-        break
-      }
-      this.blobAndProofsByHash.delete(versionedHash)
-      pruned++
-    }
-  }
-
   /**
    * Returns the available txs from the pool
    * @param txHashes
-   * @returns Array with tx objects
+   * @returns Array of tx objects
    */
   getByHash(txHashes: Uint8Array[]): TypedTransaction[] {
-    const found = []
+    const found: TypedTransaction[] = []
     for (const txHash of txHashes) {
       const txHashStr = bytesToUnprefixedHex(txHash)
       const handled = this.handled.get(txHashStr)
-      if (!handled) continue
-      const inPool = this.pool.get(handled.address)?.filter((poolObj) => poolObj.hash === txHashStr)
-      if (inPool && inPool.length === 1) {
-        found.push(inPool[0].tx)
+      if (!handled || handled.error !== undefined) continue
+      const inPool = this.pool.get(handled.address)
+      if (!inPool) continue
+      const match = inPool.find((poolObj) => poolObj.hash === txHashStr)
+      if (match) {
+        found.push(match.tx)
       }
     }
     return found
@@ -491,34 +360,15 @@ export class TxPool {
   /**
    * Removes the given tx from the pool
    * @param txHash Hash of the transaction
-   * @param tx Optional, the transaction object itself can be included for collecting metrics
    */
-  removeByHash(txHash: UnprefixedHash, tx?: any) {
+  removeByHash(txHash: UnprefixedHash, tx: TypedTransaction) {
     const handled = this.handled.get(txHash)
     if (!handled) return
     const { address } = handled
     const poolObjects = this.pool.get(address)
     if (!poolObjects) return
     const newPoolObjects = poolObjects.filter((poolObj) => poolObj.hash !== txHash)
-
     this.txsInPool--
-    if (isLegacyTx(tx)) {
-      this.config.metrics?.legacyTxGauge?.dec()
-    }
-    if (isAccessList2930Tx(tx)) {
-      this.config.metrics?.accessListEIP2930TxGauge?.dec()
-    }
-    if (isFeeMarket1559Tx(tx)) {
-      this.config.metrics?.feeMarketEIP1559TxGauge?.dec()
-    }
-    if (isBlob4844Tx(tx)) {
-      if (tx.networkWrapperVersion === NetworkWrapperType.EIP4844) {
-        this.config.metrics?.blobEIP4844TxGauge?.dec()
-      } else {
-        this.config.metrics?.blobEIP7594TxGauge?.dec()
-      }
-    }
-
     if (newPoolObjects.length === 0) {
       // List of txs for address is now empty, can delete
       this.pool.delete(address)
@@ -526,176 +376,97 @@ export class TxPool {
       // There are more txs from this address
       this.pool.set(address, newPoolObjects)
     }
-  }
 
-  /**
-   * Adds passed in txs to the map keeping track
-   * of tx hashes known by a peer.
-   * @param txHashes
-   * @param peer
-   * @returns Array with txs which are new to the list
-   */
-  addToKnownByPeer(txHashes: Uint8Array[], peer: Peer): Uint8Array[] {
-    // Make sure data structure is initialized
-    if (!this.knownByPeer.has(peer.id)) {
-      this.knownByPeer.set(peer.id, [])
-    }
-
-    const newHashes: Uint8Array[] = []
-    for (const hash of txHashes) {
-      const inSent = this.knownByPeer
-        .get(peer.id)!
-        .filter((sentObject) => sentObject.hash === bytesToUnprefixedHex(hash)).length
-      if (inSent === 0) {
-        const added = Date.now()
-        const add = {
-          hash: bytesToUnprefixedHex(hash),
-          added,
-        }
-        this.knownByPeer.get(peer.id)!.push(add)
-        newHashes.push(hash)
-      }
-    }
-    return newHashes
-  }
-
-  /**
-   * Send (broadcast) tx hashes from the pool to connected
-   * peers.
-   *
-   * Double sending is avoided by compare towards the
-   * `SentTxHashes` map.
-   * @param txHashes Array with transactions to send
-   * @param peers
-   */
-  sendNewTxHashes(txs: [number[], number[], Uint8Array[]], peers: Peer[]) {
-    const txHashes = txs[2]
-    for (const peer of peers) {
-      // Make sure data structure is initialized
-      if (!this.knownByPeer.has(peer.id)) {
-        this.knownByPeer.set(peer.id, [])
-      }
-      // Add to known tx hashes and get hashes still to send to peer
-      const hashesToSend = this.addToKnownByPeer(txHashes, peer)
-
-      // Broadcast to peer if at least 1 new tx hash to announce
-      if (hashesToSend.length > 0) {
-        if (
-          peer.eth !== undefined &&
-          peer.eth['versions'] !== undefined &&
-          peer.eth['versions'].includes(68)
-        ) {
-          // If peer supports eth/68, send eth/68 formatted message (tx_types[], tx_sizes[], hashes[])
-          const txsToSend: [number[], number[], Uint8Array[]] = [[], [], []]
-          for (const hash of hashesToSend) {
-            const index = txs[2].findIndex((el) => equalsBytes(el, hash))
-            txsToSend[0].push(txs[0][index])
-            txsToSend[1].push(txs[1][index])
-            txsToSend[2].push(hash)
-          }
-
-          try {
-            peer.eth?.send('NewPooledTransactionHashes', txsToSend.slice(0, 4096))
-          } catch (e) {
-            this.markFailedSends(peer, hashesToSend, e as Error)
-          }
-        }
-        // If peer doesn't support eth/68, just send tx hashes
-        else
-          try {
-            // We `send` this directly instead of using devp2p's async `request` since NewPooledTransactionHashes has no response and is just sent to peers
-            // and this requires no tracking of a peer's response
-            peer.eth?.send('NewPooledTransactionHashes', hashesToSend.slice(0, 4096))
-          } catch (e) {
-            this.markFailedSends(peer, hashesToSend, e as Error)
-          }
-      }
+    if (isLegacyTx(tx)) {
+      this.config.metrics?.legacyTxGauge?.dec()
     }
   }
 
   /**
-   * Send transactions to other peers in the peer pool
-   *
-   * Note that there is currently no data structure to avoid
-   * double sending to a peer, so this has to be made sure
-   * by checking on the context the sending is performed.
-   * @param txs Array with transactions to send
-   * @param peers
+   * Broadcast transactions to peers
    */
   sendTransactions(txs: TypedTransaction[], peers: Peer[]) {
-    if (txs.length > 0) {
-      const hashes = txs.map((tx) => tx.hash())
-      for (const peer of peers) {
-        // This is used to avoid re-sending along pooledTxHashes
-        // announcements/re-broadcasts
-        const newHashes = this.addToKnownByPeer(hashes, peer)
-        const newHashesHex = newHashes.map((txHash) => bytesToUnprefixedHex(txHash))
-        const newTxs = txs.filter((tx) => newHashesHex.includes(bytesToUnprefixedHex(tx.hash())))
-        peer.eth?.request('Transactions', newTxs).catch((e) => {
-          this.markFailedSends(peer, newHashes, e as Error)
-        })
-      }
-    }
-  }
+    if (txs.length === 0 || !this.running) return
 
-  private markFailedSends(peer: Peer, failedHashes: Uint8Array[], e: Error): void {
-    for (const txHash of failedHashes) {
-      const sendobject = this.knownByPeer
-        .get(peer.id)
-        ?.filter((sendObject) => sendObject.hash === bytesToUnprefixedHex(txHash))[0]
-      if (sendobject) {
-        sendobject.error = e
+    // Serialize legacy txs
+    const sendable = txs.filter((tx) => isLegacyTx(tx))
+
+    for (const peer of peers) {
+      // Make sure this is a peer with an `eth` sub-protocol
+      if (!peer.eth) continue
+
+      const added = Date.now()
+      const toSend: TypedTransaction[] = []
+      for (const tx of sendable) {
+        const hash: UnprefixedHash = bytesToUnprefixedHex(tx.hash())
+        if (this.knownByPeer.get(peer.id)?.find((o) => o.hash === hash) !== undefined) {
+          continue
+        }
+        toSend.push(tx)
+        const newKnown: SentObject = { hash, added }
+        const newKnownByPeer = this.knownByPeer.get(peer.id) ?? []
+        newKnownByPeer.push(newKnown)
+        this.knownByPeer.set(peer.id, newKnownByPeer)
+      }
+      if (toSend.length > 0) {
+        peer.eth.send('Transactions', toSend)
       }
     }
   }
 
   /**
-   * Include new announced txs in the pool
-   * and re-broadcast to other peers
-   * @param txs
-   * @param peer Announcing peer
-   * @param peerPool Reference to the {@link PeerPool}
+   * Broadcast new tx hashes to peers
    */
-  async handleAnnouncedTxs(txs: TypedTransaction[], peer: Peer, peerPool: PeerPool) {
-    if (!this.running || txs.length === 0) return
-    this.config.logger?.debug(`TxPool: received new transactions number=${txs.length}`)
-    this.addToKnownByPeer(
-      txs.map((tx) => tx.hash()),
-      peer,
-    )
+  sendNewTxHashes(
+    newTxHashes: [types: number[], sizes: number[], hashes: Uint8Array[]],
+    peers: Peer[],
+  ) {
+    if (!this.running) return
 
-    const newTxHashes: [number[], number[], Uint8Array[]] = [] as any
-    for (const tx of txs) {
-      try {
-        await this.add(tx)
-        newTxHashes[0].push(tx.type)
-        newTxHashes[1].push(tx.serialize().byteLength)
-        newTxHashes[2].push(tx.hash())
-      } catch (error: any) {
-        this.config.logger?.debug(
-          `Error adding tx to TxPool: ${error.message} (tx hash: ${bytesToHex(tx.hash())})`,
-        )
+    for (const peer of peers) {
+      // Make sure this is a peer with an `eth` sub-protocol
+      if (!peer.eth) continue
+
+      const added = Date.now()
+      const types: number[] = []
+      const sizes: number[] = []
+      const hashes: Uint8Array[] = []
+
+      for (const [idx, txHash] of newTxHashes[2].entries()) {
+        const hash: UnprefixedHash = bytesToUnprefixedHex(txHash)
+        if (this.knownByPeer.get(peer.id)?.find((o) => o.hash === hash) !== undefined) {
+          continue
+        }
+        types.push(newTxHashes[0][idx])
+        sizes.push(newTxHashes[1][idx])
+        hashes.push(txHash)
+        const newKnown: SentObject = { hash, added }
+        const newKnownByPeer = this.knownByPeer.get(peer.id) ?? []
+        newKnownByPeer.push(newKnown)
+        this.knownByPeer.set(peer.id, newKnownByPeer)
+      }
+      if (hashes.length > 0) {
+        if ((peer.eth as any).versions?.includes(68)) {
+          peer.eth.send('NewPooledTransactionHashes', [types, sizes, hashes])
+        } else {
+          peer.eth.send('NewPooledTransactionHashes', hashes)
+        }
       }
     }
-    const peers = peerPool.peers
-    const numPeers = peers.length
-    const sendFull = Math.max(1, Math.floor(numPeers / this.NUM_PEERS_REBROADCAST_QUOTIENT))
-    this.sendTransactions(txs, peers.slice(0, sendFull))
-    this.sendNewTxHashes(newTxHashes, peers.slice(sendFull))
   }
 
   /**
-   * Request new pooled txs from tx hashes announced and include them in the pool
-   * and re-broadcast to other peers
-   * @param txHashes new tx hashes announced
-   * @param peer Announcing peer
-   * @param peerPool Reference to the peer pool
+   * Handle new tx hashes
    */
-  async handleAnnouncedTxHashes(txHashes: Uint8Array[], peer: Peer, peerPool: PeerPool) {
-    if (!this.running || txHashes === undefined || txHashes.length === 0) return
-    this.addToKnownByPeer(txHashes, peer)
-
-    const reqHashes = []
+  async handleNewTxHashes(
+    data: Uint8Array[] | [types: Uint8Array, sizes: bigint[], hashes: Uint8Array[]],
+    peer: Peer,
+    peerPool: PeerPool,
+  ) {
+    if (!this.running || !this.config.synchronized) return
+    const reqHashes: Uint8Array[] = []
+    // eth68 params [type[], sizes[], hashes[]]
+    const txHashes = Array.isArray(data) && Array.isArray(data[2]) ? data[2] : (data as Uint8Array[])
     for (const txHash of txHashes) {
       const txHashStr: UnprefixedHash = bytesToUnprefixedHex(txHash)
       if (this.pending.includes(txHashStr) || this.handled.has(txHashStr)) {
@@ -787,28 +558,14 @@ export class TxPool {
 
   /**
    * Helper to return a normalized gas price across different
-   * transaction types. Providing the baseFee param returns the
-   * priority tip, and omitting it returns the max total fee.
+   * transaction types. For legacy transactions, this is the gas price.
    * @param tx The tx
-   * @param baseFee Provide a baseFee to subtract from the legacy
-   * gasPrice to determine the leftover priority tip.
+   * @param baseFee Unused for legacy transactions
    */
   private normalizedGasPrice(tx: TypedTransaction, baseFee?: bigint) {
-    const supports1559 = tx.supports(Capability.EIP1559FeeMarket)
-    if (typeof baseFee === 'bigint' && baseFee !== BIGINT_0) {
-      if (supports1559) {
-        return (tx as FeeMarket1559Tx).maxPriorityFeePerGas
-      } else {
-        return (tx as LegacyTx).gasPrice - baseFee
-      }
-    } else {
-      if (supports1559) {
-        return (tx as FeeMarket1559Tx).maxFeePerGas
-      } else {
-        return (tx as LegacyTx).gasPrice
-      }
-    }
+    return (tx as LegacyTx).gasPrice
   }
+
   /**
    * Returns the GasPrice object to provide information of the tx' gas prices
    * @param tx Tx to use
@@ -822,38 +579,14 @@ export class TxPool {
       }
     }
 
-    if (isAccessList2930Tx(tx)) {
-      return {
-        maxFee: tx.gasPrice,
-        tip: tx.gasPrice,
-      }
-    }
-
-    if (isFeeMarket1559Tx(tx) || isBlob4844Tx(tx)) {
-      return {
-        maxFee: tx.maxFeePerGas,
-        tip: tx.maxPriorityFeePerGas,
-      }
-    } else {
-      throw EthereumJSErrorWithoutCode(`tx of type ${(tx as TypedTransaction).type} unknown`)
-    }
+    throw EthereumJSErrorWithoutCode(`tx of type ${(tx as TypedTransaction).type} unknown`)
   }
 
   /**
    * Returns eligible txs to be mined sorted by price in such a way that the
    * nonce orderings within a single account are maintained.
    *
-   * Note, this is not as trivial as it seems from the first look as there are three
-   * different criteria that need to be taken into account (price, nonce, account
-   * match), which cannot be done with any plain sorting method, as certain items
-   * cannot be compared without context.
-   *
-   * This method first sorts the separates the list of transactions into individual
-   * sender accounts and sorts them by nonce. After the account nonce ordering is
-   * satisfied, the results are merged back together by price, always comparing only
-   * the head transaction from each account. This is done via a heap to keep it fast.
-   *
-   * @param baseFee Provide a baseFee to exclude txs with a lower gasPrice
+   * @param baseFee Unused for legacy transactions
    */
   async txsByPriceAndNonce(
     vm: VM,
@@ -862,23 +595,7 @@ export class TxPool {
     const txs: TypedTransaction[] = []
     // Separate the transactions by account and sort by nonce
     const byNonce = new Map<string, TypedTransaction[]>()
-    const skippedStats = { byNonce: 0, byPrice: 0, byBlobsLimit: 0, byFutureFork: 0 }
-
-    if (vm.common.isActivatedEIP(7594)) {
-      const oldFormatBlobTxs = []
-      for (const [_address, poolObjects] of this.pool) {
-        for (const txObj of poolObjects) {
-          const tx = txObj.tx
-          if (isBlob4844Tx(tx) && tx.networkWrapperVersion === NetworkWrapperType.EIP4844) {
-            oldFormatBlobTxs.push(tx)
-          }
-        }
-      }
-      if (oldFormatBlobTxs.length > 0) {
-        oldFormatBlobTxs.map((tx) => this.removeByHash(bytesToUnprefixedHex(tx.hash()), tx))
-        this.config.logger?.info(`removed old 4844 network format txs=${oldFormatBlobTxs.length}`)
-      }
-    }
+    const skippedStats = { byNonce: 0, byPrice: 0 }
 
     for (const [address, poolObjects] of this.pool) {
       let txsSortedByNonce = poolObjects
@@ -897,15 +614,6 @@ export class TxPool {
         skippedStats.byNonce += txsSortedByNonce.length
         continue
       }
-      if (typeof baseFee === 'bigint' && baseFee !== BIGINT_0) {
-        // If any tx has an insufficient gasPrice,
-        // remove all txs after that since they cannot be executed
-        const found = txsSortedByNonce.findIndex((tx) => this.normalizedGasPrice(tx) < baseFee)
-        if (found > -1) {
-          skippedStats.byPrice += found + 1
-          txsSortedByNonce = txsSortedByNonce.slice(0, found)
-        }
-      }
       byNonce.set(address, txsSortedByNonce)
     }
     // Initialize a price based heap with the head transactions
@@ -918,7 +626,6 @@ export class TxPool {
       byNonce.set(address, txs.slice(1))
     }
     // Merge by replacing the best with the next from the same account
-    let blobsCount = 0
     while (byPrice.length > 0) {
       // Retrieve the next best transaction by price
       const best = byPrice.remove()
@@ -928,44 +635,15 @@ export class TxPool {
       const address = best.getSenderAddress().toString().slice(2)
       const accTxs = byNonce.get(address)!
 
-      // Skip the best tx into byPrice if
-      //   i) this is a blob tx,
-      //   ii) and there is blobs limit provided
-      //   iii) and blobs would exceed limit if this best tx's blobs are included
-      if (
-        best instanceof Blob4844Tx &&
-        allowedBlobs !== undefined &&
-        ((best as Blob4844Tx).blobs ?? []).length + blobsCount > allowedBlobs
-      ) {
-        // Since no more blobs can fit in the block, not only skip inserting in byPrice but also remove all other
-        // txs (blobs or not) of this sender address from further consideration
-        skippedStats.byBlobsLimit += 1 + accTxs.length
-        byNonce.set(address, [])
-        continue
-      }
-      // Skip the best tx if this is a future 7594 blob tx
-      else if (
-        best instanceof Blob4844Tx &&
-        best.networkWrapperVersion === NetworkWrapperType.EIP7594 &&
-        !vm.common.isActivatedEIP(7594)
-      ) {
-        skippedStats.byFutureFork += 1 + accTxs.length
-        byNonce.set(address, [])
-        continue
-      }
-
       if (accTxs.length > 0) {
         byPrice.insert(accTxs[0])
         byNonce.set(address, accTxs.slice(1))
       }
-      // Accumulate the best priced transaction and increment blobs count
+      // Accumulate the best priced transaction
       txs.push(best)
-      if (best instanceof Blob4844Tx) {
-        blobsCount += ((best as Blob4844Tx).blobs ?? []).length
-      }
     }
     this.config.logger?.info(
-      `txsByPriceAndNonce selected txs=${txs.length}, skipped byNonce=${skippedStats.byNonce} byPrice=${skippedStats.byPrice} byBlobsLimit=${skippedStats.byBlobsLimit} byFutureFork=${skippedStats.byFutureFork}`,
+      `txsByPriceAndNonce selected txs=${txs.length}, skipped byNonce=${skippedStats.byNonce} byPrice=${skippedStats.byPrice}`,
     )
     return txs
   }

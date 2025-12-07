@@ -1,6 +1,4 @@
-import { Hardfork } from '../../chain-config'
-import { Blob4844Tx, TransactionType } from '../../tx'
-import { concatBytes, hexToBytes } from '../../utils'
+import { concatBytes } from '../../utils'
 import { encodeReceipt } from '../../vm'
 
 import { SyncMode } from '../config.ts'
@@ -8,7 +6,7 @@ import { VMExecution } from '../execution'
 import { Miner } from '../miner'
 import { EthProtocol } from '../net/protocol/ethprotocol.ts'
 import { SnapProtocol } from '../net/protocol/snapprotocol.ts'
-import { BeaconSynchronizer, FullSynchronizer, SnapSynchronizer } from '../sync'
+import { FullSynchronizer } from '../sync'
 import { Event } from '../types.ts'
 
 import { Service } from './service.ts'
@@ -26,16 +24,14 @@ import type { ServiceOptions } from './service.ts'
  */
 export class FullEthereumService extends Service {
   /* synchronizer for syncing the chain */
-  public declare synchronizer?: BeaconSynchronizer | FullSynchronizer
+  public declare synchronizer?: FullSynchronizer
   public miner: Miner | undefined
   public txPool: TxPool
   public skeleton?: Skeleton
 
-  // objects dealing with state
-  public snapsync?: SnapSynchronizer
   public execution: VMExecution
 
-  /** building head state via snapsync or vmexecution */
+  /** building head state via vmexecution */
   private building = false
 
   /**
@@ -62,96 +58,34 @@ export class FullEthereumService extends Service {
       chain: this.chain,
     })
 
-    this.snapsync = this.config.enableSnapSync
-      ? new SnapSynchronizer({
-          config: this.config,
-          pool: this.pool,
-          chain: this.chain,
-          interval: this.interval,
-          skeleton: this.skeleton,
-          execution: this.execution,
-        })
-      : undefined
-
     this.txPool = new TxPool({
       config: this.config,
       service: this,
     })
 
     if (this.config.syncmode === SyncMode.Full) {
-      if (this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-        // skip opening the beacon synchronizer before everything else (chain, execution etc)
-        // as it resets and messes up the entire chain
-        //
-        // also with skipOpen this call is a sync call as no async operation is executed
-        // as good as creating the synchronizer here
-        void this.switchToBeaconSync(true)
-        this.config.logger?.info(`Post-merge 🐼 client mode: run with CL client.`)
-      } else {
-        this.synchronizer = new FullSynchronizer({
-          config: this.config,
-          pool: this.pool,
-          chain: this.chain,
-          txPool: this.txPool,
-          execution: this.execution,
-          interval: this.interval,
-        })
-
-        if (this.config.mine) {
-          this.miner = new Miner({
-            config: this.config,
-            service: this,
-          })
-        }
-      }
-    }
-  }
-
-  /**
-   * Public accessor for {@link BeaconSynchronizer}. Returns undefined if unavailable.
-   */
-  get beaconSync() {
-    if (this.synchronizer instanceof BeaconSynchronizer) {
-      return this.synchronizer
-    }
-    return undefined
-  }
-
-  /**
-   * Helper to switch to {@link BeaconSynchronizer}
-   */
-  async switchToBeaconSync(skipOpen: boolean = false) {
-    if (this.synchronizer instanceof FullSynchronizer) {
-      await this.synchronizer.stop()
-      await this.synchronizer.close()
-      this.miner?.stop()
-      this.config.superMsg(`Transitioning to beacon sync`)
-    }
-
-    if (this.config.syncmode !== SyncMode.None && this.beaconSync === undefined) {
-      this.synchronizer = new BeaconSynchronizer({
+      // PoW-only mode - use full synchronizer
+      this.synchronizer = new FullSynchronizer({
         config: this.config,
         pool: this.pool,
         chain: this.chain,
-        interval: this.interval,
+        txPool: this.txPool,
         execution: this.execution,
-        skeleton: this.skeleton!,
+        interval: this.interval,
       })
-      if (!skipOpen) {
-        await this.synchronizer.open()
+
+      if (this.config.mine) {
+        this.miner = new Miner({
+          config: this.config,
+          service: this,
+        })
       }
     }
   }
 
   override async open() {
     if (this.synchronizer !== undefined) {
-      this.config.logger?.info(
-        `Preparing for sync using FullEthereumService with ${
-          this.synchronizer instanceof BeaconSynchronizer
-            ? 'BeaconSynchronizer'
-            : 'FullSynchronizer'
-        }.`,
-      )
+      this.config.logger?.info('Preparing for sync using FullEthereumService with FullSynchronizer.')
     } else {
       this.config.logger?.info('Starting FullEthereumService with no syncing.')
     }
@@ -163,12 +97,8 @@ export class FullEthereumService extends Service {
         for (const tx of addr[1]) {
           const rawTx = tx.tx
           txs[0].push(rawTx.type)
-          if (rawTx.type !== TransactionType.BlobEIP4844) {
-            txs[1].push(rawTx.serialize().byteLength)
-          } else {
-            txs[1].push((rawTx as Blob4844Tx).serializeNetworkWrapper().byteLength)
-          }
-          txs[2].push(hexToBytes(`0x${tx.hash}`))
+          txs[1].push(rawTx.serialize().byteLength)
+          txs[2].push(new Uint8Array(Buffer.from(tx.hash, 'hex')))
         }
       }
       if (txs[0].length > 0) this.txPool.sendNewTxHashes(txs, [peer])
@@ -179,20 +109,7 @@ export class FullEthereumService extends Service {
     await this.skeleton?.open()
     await super.open()
 
-    // open snapsync instead of execution if instantiated
-    // it will open execution when done (or if doesn't need to snap sync)
-    if (this.snapsync !== undefined) {
-      // set up execution vm to avoid undefined error in syncWithPeer when vm is being passed to accountfetcher
-      this.execution.config.logger?.info(
-        `Initializing VM merkle statemanager genesis hardfork=${this.execution.hardfork}`,
-      )
-      await this.execution.setupMerkleVM()
-      this.execution.vm = this.execution.merkleVM!
-
-      await this.snapsync.open()
-    } else {
-      await this.execution.open()
-    }
+    await this.execution.open()
 
     this.txPool.open()
     if (this.config.mine) {
@@ -211,15 +128,13 @@ export class FullEthereumService extends Service {
     }
     await super.start()
     this.miner?.start()
-    if (this.snapsync === undefined) {
-      await this.execution.start()
-    }
+    await this.execution.start()
     void this.buildHeadState()
     return true
   }
 
   /**
-   * if the vm head is not recent enough, trigger building a recent state by snapsync or by running
+   * if the vm head is not recent enough, trigger building a recent state by running
    * vm execution
    */
   async buildHeadState(): Promise<void> {
@@ -229,25 +144,9 @@ export class FullEthereumService extends Service {
     try {
       if (this.execution.started && this.synchronizer !== undefined) {
         await this.synchronizer.runExecution()
-      } else if (this.snapsync !== undefined) {
-        if (this.config.synchronized === true || this.skeleton?.synchronized === true) {
-          const syncResult = await this.snapsync.checkAndSync()
-          if (syncResult !== null) {
-            const transition = await this.skeleton?.setVmHead(syncResult)
-            if (transition === true) {
-              this.config.superMsg('Snapsync completed, transitioning to VMExecution')
-              await this.execution.open()
-              await this.execution.start()
-            }
-          }
-        } else {
-          this.config.logger?.debug(
-            `skipping snapsync since cl (skeleton) synchronized=${this.skeleton?.synchronized}`,
-          )
-        }
       } else {
         this.config.logger?.warn(
-          'skipping building head state as neither execution is started nor snapsync is available',
+          'skipping building head state as execution is not started',
         )
       }
     } catch (error) {
@@ -268,8 +167,7 @@ export class FullEthereumService extends Service {
     this.miner?.stop()
     await this.synchronizer?.stop()
 
-    await this.snapsync?.stop()
-    // independently close execution even if it might have been opened by snapsync
+    // independently close execution
     await this.execution.stop()
 
     await super.stop()
@@ -354,27 +252,17 @@ export class FullEthereumService extends Service {
         break
       }
       case 'NewBlockHashes': {
-        if (this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-          this.config.logger?.debug(
-            `Dropping peer ${peer.id} for sending NewBlockHashes after merge (EIP-3675)`,
-          )
-          this.pool.ban(peer, 9000000)
-        } else if (this.synchronizer instanceof FullSynchronizer) {
+        if (this.synchronizer instanceof FullSynchronizer) {
           this.synchronizer.handleNewBlockHashes(message.data)
         }
         break
       }
       case 'Transactions': {
-        await this.txPool.handleAnnouncedTxs(message.data, peer, this.pool)
+        await this.txPool.handleNewTxHashes(message.data, peer, this.pool)
         break
       }
       case 'NewBlock': {
-        if (this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-          this.config.logger?.debug(
-            `Dropping peer ${peer.id} for sending NewBlock after merge (EIP-3675)`,
-          )
-          this.pool.ban(peer, 9000000)
-        } else if (this.synchronizer instanceof FullSynchronizer) {
+        if (this.synchronizer instanceof FullSynchronizer) {
           await this.synchronizer.handleNewBlock(message.data[0], peer)
         }
         break
@@ -392,7 +280,7 @@ export class FullEthereumService extends Service {
         } else {
           hashes = message.data
         }
-        await this.txPool.handleAnnouncedTxHashes(hashes, peer, this.pool)
+        await this.txPool.handleNewTxHashes(hashes, peer, this.pool)
         break
       }
       case 'GetPooledTransactions': {

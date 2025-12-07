@@ -73,32 +73,26 @@ export class BlockFetcher extends BlockFetcherBase<Block[], Block> {
         `Requested blocks=${blocksRange} from ${peerInfo} (received: ${headers.length} headers / ${bodies.length} bodies)`,
       )
     const blocks: Block[] = []
-    for (const [i, [txsData, unclesData, withdrawalsData]] of bodies.entries()) {
+    for (const [i, [txsData, unclesData]] of bodies.entries()) {
       const header = headers[i]
       if (
         (!equalsBytes(header.transactionsTrie, KECCAK256_RLP) && txsData.length === 0) ||
-        (!equalsBytes(header.uncleHash, KECCAK256_RLP_ARRAY) && unclesData.length === 0) ||
-        (header.withdrawalsRoot !== undefined &&
-          !equalsBytes(header.withdrawalsRoot, KECCAK256_RLP) &&
-          (withdrawalsData?.length ?? 0) === 0)
+        (!equalsBytes(header.uncleHash, KECCAK256_RLP_ARRAY) && unclesData.length === 0)
       ) {
         this.DEBUG &&
           this.debug(
-            `Requested block=${headers[i].number}} from peer ${peerInfo} missing non-empty txs=${txsData.length} or uncles=${unclesData.length} or withdrawals=${withdrawalsData?.length}`,
+            `Requested block=${headers[i].number}} from peer ${peerInfo} missing non-empty txs=${txsData.length} or uncles=${unclesData.length}`,
           )
         return []
       }
       const values: BlockBytes = [headers[i].raw(), txsData, unclesData]
-      if (withdrawalsData !== undefined) {
-        values.push(withdrawalsData)
-      }
       // Supply the common from the corresponding block header already set on correct fork
       const block = createBlockFromBytesArray(values, { common: headers[i].common })
       // Only validate the data integrity
       // Upon putting blocks into blockchain (for BlockFetcher), `validateData` is called again
       // In ReverseBlockFetcher we do not need to validate the entire block, since CL
       // expects us to sync with the requested chain tip header
-      await block.validateData(false, false)
+      await block.validateData(false)
       blocks.push(block)
     }
     this.DEBUG &&

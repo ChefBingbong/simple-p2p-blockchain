@@ -1,12 +1,10 @@
 import { MemoryLevel } from "memory-level";
-import { type BlockHeader, createSealedCliqueBlockHeader } from "../../block";
-import type { Blockchain, CliqueConsensus } from "../../blockchain";
-import { CliqueConfig, ConsensusType, Hardfork } from "../../chain-config";
+import type { BlockHeader } from "../../block";
+import { ConsensusType } from "../../chain-config";
 import { Ethash, Miner as EthashMiner, Solution } from "../../eth-hash";
 import {
 	BIGINT_0,
 	BIGINT_1,
-	BIGINT_2,
 	bytesToHex,
 	equalsBytes,
 } from "../../utils";
@@ -66,12 +64,9 @@ export class Miner {
 		this.running = false;
 		this.assembling = false;
 		this.skipHardForkValidation = options.skipHardForkValidation;
-		this.period =
-			((this.config.chainCommon.consensusConfig() as CliqueConfig).period ??
-				this.DEFAULT_PERIOD) * 1000; // defined in ms for setTimeout use
-		if (this.config.chainCommon.consensusType() === ConsensusType.ProofOfWork) {
-			this.ethash = new Ethash(new LevelDB(new MemoryLevel()) as any);
-		}
+		// PoW only - use default period
+		this.period = this.DEFAULT_PERIOD * 1000; // defined in ms for setTimeout use
+		this.ethash = new Ethash(new LevelDB(new MemoryLevel()) as any);
 	}
 
 	/**
@@ -92,50 +87,16 @@ export class Miner {
 			return;
 		}
 
-		// Check if the new block to be minted isn't PoS
-		const nextBlockHf = this.config.chainCommon.getHardforkBy({
-			blockNumber: this.service.chain.headers.height + BIGINT_1,
-		});
-		if (
-			this.config.chainCommon.hardforkGteHardfork(nextBlockHf, Hardfork.Paris)
-		) {
-			this.config.logger?.info("Miner: reached merge hardfork - stopping");
-			this.stop();
-			return;
-		}
-
+		// Frontier/Chainstart only - PoW mining
 		timeout = timeout ?? this.period;
-
-		if (
-			this.config.chainCommon.consensusType() === ConsensusType.ProofOfAuthority
-		) {
-			// EIP-225 spec: If the signer is out-of-turn,
-			// delay signing by rand(SIGNER_COUNT * 500ms)
-			const [signerAddress] = this.config.accounts[0];
-			const { blockchain } = this.service.chain;
-			const parentBlock = this.service.chain.blocks.latest!;
-
-			const number = parentBlock.header.number + BIGINT_1;
-			const inTurn = await (
-				blockchain.consensus as CliqueConsensus
-			).cliqueSignerInTurn(signerAddress, number);
-			if (inTurn === false) {
-				const signerCount = (
-					blockchain.consensus as CliqueConsensus
-				).cliqueActiveSigners(number).length;
-				timeout += Math.random() * signerCount * 500;
-			}
-		}
 
 		this._nextAssemblyTimeoutId = setTimeout(
 			this.assembleBlock.bind(this),
 			timeout,
 		);
 
-		if (this.config.chainCommon.consensusType() === ConsensusType.ProofOfWork) {
-			// If PoW, find next solution while waiting for next block assembly to start
-			void this.findNextSolution();
-		}
+		// PoW only - find next solution while waiting for next block assembly to start
+		void this.findNextSolution();
 	}
 
 	/**
@@ -222,33 +183,10 @@ export class Miner {
 		const number = parentBlock.header.number + BIGINT_1;
 		let { gasLimit } = parentBlock.header;
 
-		if (
-			this.config.chainCommon.consensusType() === ConsensusType.ProofOfAuthority
-		) {
-			// Abort if we have too recently signed
-			const cliqueSigner = this.config.accounts[0][1];
-			const header = createSealedCliqueBlockHeader({ number }, cliqueSigner, {
-				common: this.config.chainCommon,
-				freeze: false,
-			});
-			if (
-				(
-					this.service.chain.blockchain as any
-				).consensus.cliqueCheckRecentlySigned(header) === true
-			) {
-				this.config.logger?.info(
-					`Miner: We have too recently signed, waiting for next block`,
-				);
-				this.assembling = false;
-				return;
-			}
-		}
-
-		if (this.config.chainCommon.consensusType() === ConsensusType.ProofOfWork) {
-			while (this.nextSolution === undefined) {
-				this.config.logger?.info(`Miner: Waiting to find next PoW solution 🔨`);
-				await new Promise((r) => setTimeout(r, 1000));
-			}
+		// PoW only - wait for solution
+		while (this.nextSolution === undefined) {
+			this.config.logger?.info(`Miner: Waiting to find next PoW solution 🔨`);
+			await new Promise((r) => setTimeout(r, 1000));
 		}
 
 		// Use a copy of the vm to not modify the existing state.
@@ -265,72 +203,27 @@ export class Miner {
 		// are correct (e.g., 5 ETH pre-byzantium vs 3 ETH post-byzantium)
 		vmCopy.common.setHardforkBy({ blockNumber: number });
 
-		let difficulty;
-		let cliqueSigner;
-		let inTurn;
-		if (
-			this.config.chainCommon.consensusType() === ConsensusType.ProofOfAuthority
-		) {
-			const [signerAddress, signerPrivKey] = this.config.accounts[0];
-			cliqueSigner = signerPrivKey;
-			// Determine if signer is INTURN (2) or NOTURN (1)
-			inTurn = await (
-				(vmCopy.blockchain as Blockchain).consensus as CliqueConsensus
-			).cliqueSignerInTurn(signerAddress, number);
-			difficulty = inTurn ? 2 : 1;
-		}
-
-		let baseFeePerGas;
-		const londonHardforkBlock = this.config.chainCommon.hardforkBlock(
-			Hardfork.London,
-		);
-		if (
-			typeof londonHardforkBlock === "bigint" &&
-			londonHardforkBlock !== BIGINT_0 &&
-			number === londonHardforkBlock
-		) {
-			// Get baseFeePerGas from `paramByEIP` since 1559 not currently active on common
-			baseFeePerGas =
-				vmCopy.common.paramByEIP("initialBaseFee", 1559) ?? BIGINT_0;
-			// Set initial EIP1559 block gas limit to 2x parent gas limit per logic in `block.validateGasLimit`
-			gasLimit = gasLimit * BIGINT_2;
-		} else if (this.config.chainCommon.isActivatedEIP(1559)) {
-			baseFeePerGas = parentBlock.header.calcNextBaseFee();
-		}
-
-		let calcDifficultyFromHeader;
-		let coinbase;
-		if (this.config.chainCommon.consensusType() === ConsensusType.ProofOfWork) {
-			calcDifficultyFromHeader = parentBlock.header;
-			coinbase = this.config.minerCoinbase ?? this.config.accounts[0][0];
-		}
+		// PoW only - calculate difficulty from parent header
+		const calcDifficultyFromHeader = parentBlock.header;
+		const coinbase = this.config.minerCoinbase ?? this.config.accounts[0][0];
 
 		const blockBuilder = await buildBlock(vmCopy, {
 			parentBlock,
 			headerData: {
 				number,
-				difficulty,
 				gasLimit,
-				baseFeePerGas,
 				coinbase,
 			},
 			blockOpts: {
-				cliqueSigner,
-				setHardfork: true,
 				calcDifficultyFromHeader,
 				putBlockIntoBlockchain: false,
 			},
 		});
 
-		const txs = await this.service.txPool.txsByPriceAndNonce(vmCopy, {
-			baseFee: baseFeePerGas,
-		});
+		// Frontier/Chainstart - no base fee
+		const txs = await this.service.txPool.txsByPriceAndNonce(vmCopy, {});
 		this.config.logger?.info(
-			`Miner: Assembling block from ${txs.length} eligible txs ${
-				typeof baseFeePerGas === "bigint" && baseFeePerGas !== BIGINT_0
-					? `(baseFee: ${baseFeePerGas})`
-					: ""
-			}`,
+			`Miner: Assembling block from ${txs.length} eligible txs`,
 		);
 		let index = 0;
 		let blockFull = false;
@@ -379,11 +272,7 @@ export class Miner {
 			);
 		}
 		this.config.logger?.info(
-			`Miner: Sealed block with ${block.transactions.length} txs ${
-				this.config.chainCommon.consensusType() === ConsensusType.ProofOfWork
-					? `(difficulty: ${block.header.difficulty})`
-					: `(${inTurn === true ? "in turn" : "not in turn"})`
-			}`,
+			`Miner: Sealed block with ${block.transactions.length} txs (difficulty: ${block.header.difficulty})`,
 		);
 		this.assembling = false;
 		if (interrupt) return;

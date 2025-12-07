@@ -46,13 +46,6 @@ export interface ConfigOptions {
   syncmode?: SyncMode
 
   /**
-   * Whether to enable and run snapSync, currently experimental
-   *
-   * Default: false
-   */
-  enableSnapSync?: boolean
-
-  /**
    * A temporary option to offer backward compatibility with already-synced databases that are
    * using non-prefixed keys for storage tries
    *
@@ -437,8 +430,6 @@ export class Config {
   public readonly snapTransitionSafeDepth: bigint
 
   public readonly prefixStorageTrieKeys: boolean
-  // Defaulting to false as experimental as of now
-  public readonly enableSnapSync: boolean
   public readonly useStringValueTrieDB: boolean
   public readonly savePreimages: boolean
 
@@ -527,7 +518,6 @@ export class Config {
       options.snapTransitionSafeDepth ?? Config.SNAP_TRANSITION_SAFE_DEPTH
 
     this.prefixStorageTrieKeys = options.prefixStorageTrieKeys ?? true
-    this.enableSnapSync = options.enableSnapSync ?? false
     this.useStringValueTrieDB = options.useStringValueTrieDB ?? false
 
     this.metrics = options.prometheusMetrics

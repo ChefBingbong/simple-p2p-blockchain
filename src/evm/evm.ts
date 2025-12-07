@@ -28,7 +28,7 @@ import { EVMPerformanceLogger } from './logger.ts'
 import { Message } from './message.ts'
 import { getOpcodesForHF } from './opcodes'
 import { paramsEVM } from './params.ts'
-import { NobleBLS, getActivePrecompiles, getPrecompileName } from './precompiles'
+import { getActivePrecompiles, getPrecompileName } from './precompiles'
 import { TransientStorage } from './transientStorage.ts'
 import {
     type Block,
@@ -143,10 +143,7 @@ export function defaultBlock(): Block {
       coinbase: createZeroAddress(),
       timestamp: BIGINT_0,
       difficulty: BIGINT_0,
-      prevRandao: new Uint8Array(32),
       gasLimit: BIGINT_0,
-      baseFeePerGas: undefined,
-      getBlobGasPrice: () => undefined,
     },
   }
 }
@@ -161,30 +158,6 @@ export function defaultBlock(): Block {
 export class EVM implements EVMInterface {
   protected static supportedHardforks = [
     Hardfork.Chainstart,
-    Hardfork.Homestead,
-    Hardfork.Dao,
-    Hardfork.TangerineWhistle,
-    Hardfork.SpuriousDragon,
-    Hardfork.Byzantium,
-    Hardfork.Constantinople,
-    Hardfork.Petersburg,
-    Hardfork.Istanbul,
-    Hardfork.MuirGlacier,
-    Hardfork.Berlin,
-    Hardfork.London,
-    Hardfork.ArrowGlacier,
-    Hardfork.GrayGlacier,
-    Hardfork.MergeNetsplitBlock,
-    Hardfork.Paris,
-    Hardfork.Shanghai,
-    Hardfork.Cancun,
-    Hardfork.Prague,
-    Hardfork.Osaka,
-    Hardfork.Bpo1,
-    Hardfork.Bpo2,
-    Hardfork.Bpo3,
-    Hardfork.Bpo4,
-    Hardfork.Bpo5,
   ]
   protected _tx?: {
     gasPrice: bigint
@@ -317,10 +290,7 @@ export class EVM implements EVMInterface {
     this._precompiles = getActivePrecompiles(this.common, this._customPrecompiles)
 
     // Precompile crypto libraries
-    if (this.common.isActivatedEIP(2537)) {
-      this._bls = opts.bls ?? new NobleBLS()
-      this._bls.init?.()
-    }
+    // (No additional crypto libraries needed for Frontier)
 
     this._bn254 = opts.bn254!
 
@@ -623,10 +593,7 @@ export class EVM implements EVMInterface {
     if (!toAccount) {
       toAccount = new Account()
     }
-    // EIP-161 on account creation and CREATE execution
-    if (this.common.gteHardfork(Hardfork.SpuriousDragon)) {
-      toAccount.nonce += BIGINT_1
-    }
+    // Frontier: no nonce increment on account creation (EIP-161 came later in SpuriousDragon)
 
     // Add tx value to the `to` account
     let errorMessage
@@ -705,15 +672,8 @@ export class EVM implements EVMInterface {
       }
     }
 
-    // Check for SpuriousDragon EIP-170 code size limit
-    let allowedCodeSize = true
-    if (
-      !result.exceptionError &&
-      this.common.gteHardfork(Hardfork.SpuriousDragon) &&
-      result.returnValue.length > Number(this.common.param('maxCodeSize'))
-    ) {
-      allowedCodeSize = false
-    }
+    // Frontier: no code size limit (EIP-170 came in SpuriousDragon)
+    const allowedCodeSize = true
 
     // If enough gas and allowed code size
     let CodestoreOOG = false
@@ -739,36 +699,21 @@ export class EVM implements EVMInterface {
         result.executionGasUsed = totalGas
       }
     } else {
-      if (this.common.gteHardfork(Hardfork.Homestead)) {
-        if (!allowedCodeSize) {
-          if (this.DEBUG) {
-            debug(`Code size exceeds maximum code size (>= SpuriousDragon)`)
-          }
-          result = { ...result, ...CodesizeExceedsMaximumError(message.gasLimit) }
-        } else {
-          if (this.DEBUG) {
-            debug(`Contract creation: out of gas`)
-          }
-          message.accessWitness?.revert()
-          result = { ...result, ...OOGResult(message.gasLimit) }
+      // Frontier: out of gas or cannot pay the code deposit fee
+      if (totalGas - returnFee <= message.gasLimit) {
+        // we cannot pay the code deposit fee (but the deposit code actually did run)
+        if (this.DEBUG) {
+          debug(`Not enough gas to pay the code deposit fee (Frontier)`)
         }
+        message.accessWitness?.revert()
+        result = { ...result, ...COOGResult(totalGas - returnFee) }
+        CodestoreOOG = true
       } else {
-        // we are in Frontier
-        if (totalGas - returnFee <= message.gasLimit) {
-          // we cannot pay the code deposit fee (but the deposit code actually did run)
-          if (this.DEBUG) {
-            debug(`Not enough gas to pay the code deposit fee (Frontier)`)
-          }
-          message.accessWitness?.revert()
-          result = { ...result, ...COOGResult(totalGas - returnFee) }
-          CodestoreOOG = true
-        } else {
-          if (this.DEBUG) {
-            debug(`Contract creation: out of gas`)
-          }
-          message.accessWitness?.revert()
-          result = { ...result, ...OOGResult(message.gasLimit) }
+        if (this.DEBUG) {
+          debug(`Contract creation: out of gas`)
         }
+        message.accessWitness?.revert()
+        result = { ...result, ...OOGResult(message.gasLimit) }
       }
     }
 
@@ -830,15 +775,12 @@ export class EVM implements EVMInterface {
         debug(`Code saved on new contract creation`)
       }
     } else if (CodestoreOOG) {
-      // This only happens at Frontier. But, let's do a sanity check;
-      if (!this.common.gteHardfork(Hardfork.Homestead)) {
-        // Pre-Homestead behavior; put an empty contract.
-        // This contract would be considered "DEAD" in later hard forks.
-        // It is thus an unnecessary default item, which we have to save to disk
-        // It does change the state root, but it only wastes storage.
-        const account = await this.stateManager.getAccount(message.to)
-        await this.journal.putAccount(message.to, account ?? new Account())
-      }
+      // Frontier: put an empty contract when code deposit fee cannot be paid.
+      // This contract would be considered "DEAD" in later hard forks.
+      // It is thus an unnecessary default item, which we have to save to disk
+      // It does change the state root, but it only wastes storage.
+      const account = await this.stateManager.getAccount(message.to)
+      await this.journal.putAccount(message.to, account ?? new Account())
     }
 
     if (message.depth === 0) {
@@ -879,7 +821,6 @@ export class EVM implements EVMInterface {
       codeAddress: message.codeAddress,
       gasRefund: message.gasRefund,
       chargeCodeAccesses: message.chargeCodeAccesses,
-      blobVersionedHashes: message.blobVersionedHashes ?? [],
       accessWitness: message.accessWitness,
       createdAddresses: message.createdAddresses,
     }
@@ -988,7 +929,6 @@ export class EVM implements EVMInterface {
         selfdestruct: opts.selfdestruct ?? new Set(),
         createdAddresses: opts.createdAddresses ?? new Set(),
         delegatecall: opts.delegatecall,
-        blobVersionedHashes: opts.blobVersionedHashes,
       })
     }
 
@@ -1111,7 +1051,6 @@ export class EVM implements EVMInterface {
       depth: opts.depth,
       selfdestruct: opts.selfdestruct ?? new Set(),
       isStatic: opts.isStatic,
-      blobVersionedHashes: opts.blobVersionedHashes,
     })
 
     return this.runInterpreter(message, { pc: opts.pc })
@@ -1241,7 +1180,6 @@ export class EVM implements EVMInterface {
       common,
       stateManager: this.stateManager.shallowCopy(),
     }
-    // @ts-expect-error -- Assigning a StateManager property that is absent from the interface
     opts.stateManager['common'] = common
     return new EVM(opts)
   }

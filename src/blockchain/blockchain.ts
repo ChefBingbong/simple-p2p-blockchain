@@ -23,7 +23,7 @@ import {
   equalsBytes,
 } from '../utils'
 
-import { CasperConsensus } from './consensus/casper.ts'
+// PoW/Ethash only - no Casper or Clique consensus
 import {
   DBOp,
   DBSaveLookups,
@@ -36,7 +36,7 @@ import { DBTarget } from './db/operation.ts'
 
 import type { Debugger } from 'debug'
 import type { HeaderData } from '../block'
-import type { CliqueConfig, GenesisState } from '../chain-config'
+import type { GenesisState } from '../chain-config'
 import type { BigIntLike, DB, DBObject } from '../utils'
 import type {
   BlockchainEvent,
@@ -142,10 +142,9 @@ export class Blockchain implements BlockchainInterface {
     this.events = new EventEmitter<BlockchainEvent>()
 
     this._consensusDict = {}
-    this._consensusDict[ConsensusAlgorithm.Casper] = new CasperConsensus()
-
+    // Only Ethash consensus is supported
     if (opts.consensusDict !== undefined) {
-      this._consensusDict = { ...this._consensusDict, ...opts.consensusDict }
+      this._consensusDict = { ...opts.consensusDict }
     }
     this._consensusCheck()
 
@@ -394,7 +393,7 @@ export class Blockchain implements BlockchainInterface {
       try {
         const block =
           item instanceof BlockHeader
-            ? new Block(item, undefined, undefined, undefined, { common: item.common })
+            ? new Block(item, undefined, undefined, { common: item.common })
             : item
         const isGenesis = block.isGenesis()
 
@@ -454,11 +453,8 @@ export class Blockchain implements BlockchainInterface {
         let commonAncestor: undefined | BlockHeader
         let ancestorHeaders: undefined | BlockHeader[]
         // if total difficulty is higher than current, add it to canonical chain
-        if (
-          block.isGenesis() ||
-          td > currentTd.header ||
-          block.common.consensusType() === ConsensusType.ProofOfStake
-        ) {
+        // For PoW, accept block if TD is higher than current or it's genesis
+        if (block.isGenesis() || td > currentTd.header) {
           const foundCommon = await this.findCommonAncestor(header)
           commonAncestor = foundCommon.commonAncestor
           ancestorHeaders = foundCommon.ancestorHeaders
@@ -544,17 +540,8 @@ export class Blockchain implements BlockchainInterface {
       throw Error(`invalid timestamp ${header.errorStr()}`)
     }
 
-    if (!(header.common.consensusType() === 'pos')) await this.consensus?.validateDifficulty(header)
-
-    if (this.common.consensusAlgorithm() === ConsensusAlgorithm.Clique) {
-      const period = (this.common.consensusConfig() as CliqueConfig).period
-      // Timestamp diff between blocks is lower than PERIOD (clique)
-      if (parentHeader.timestamp + BigInt(period) > header.timestamp) {
-        throw Error(
-          `invalid timestamp diff (lower than period) ${header.errorStr()}`,
-        )
-      }
-    }
+    // Validate difficulty for PoW
+    await this.consensus?.validateDifficulty(header)
 
     header.validateGasLimit(parentHeader)
 
@@ -568,37 +555,7 @@ export class Blockchain implements BlockchainInterface {
       }
     }
 
-    // check blockchain dependent EIP1559 values
-    if (header.common.isActivatedEIP(1559)) {
-      // check if the base fee is correct
-      let expectedBaseFee
-      const londonHfBlock = this.common.hardforkBlock(Hardfork.London)
-      const isInitialEIP1559Block = number === londonHfBlock
-      if (isInitialEIP1559Block) {
-        expectedBaseFee = header.common.param('initialBaseFee')
-      } else {
-        expectedBaseFee = parentHeader.calcNextBaseFee()
-      }
-
-      if (header.baseFeePerGas! !== expectedBaseFee) {
-        throw Error(`Invalid block: base fee not correct ${header.errorStr()}`)
-      }
-    }
-
-    if (header.common.isActivatedEIP(4844)) {
-      const expectedExcessBlobGas = parentHeader.calcNextExcessBlobGas(header.common)
-      if (header.excessBlobGas !== expectedExcessBlobGas) {
-        throw Error(
-          `expected blob gas: ${expectedExcessBlobGas}, got: ${header.excessBlobGas}`,
-        )
-      }
-    }
-
-    if (header.common.isActivatedEIP(7685)) {
-      if (header.requestsHash === undefined) {
-        throw Error(`requestsHash must be provided when EIP-7685 is active`)
-      }
-    }
+    // Frontier/Chainstart only - no EIP-specific validation needed
   }
 
   /**
@@ -610,10 +567,7 @@ export class Blockchain implements BlockchainInterface {
     await this.validateHeader(block.header)
     await this._validateUncleHeaders(block)
     await block.validateData(false)
-    // TODO: Rethink how validateHeader vs validateBlobTransactions works since the parentHeader is retrieved multiple times
-    // (one for each uncle header and then for validateBlobTxs).
-    const parentBlock = await this.getBlock(block.header.parentHash)
-    block.validateBlobTransactions(parentBlock.header)
+    // Frontier/Chainstart only - no blob transaction validation
   }
   /**
    * The following rules are checked in this method:
@@ -663,7 +617,7 @@ export class Blockchain implements BlockchainInterface {
       canonicalChainHashes[bytesToUnprefixedHex(parentBlock.hash())] = true
 
       // for each of the uncles, mark the uncle as included
-      parentBlock.uncleHeaders.map((uh) => {
+      parentBlock.uncleHeaders.forEach((uh) => {
         includedUncles[bytesToUnprefixedHex(uh.hash())] = true
       })
 
@@ -675,7 +629,7 @@ export class Blockchain implements BlockchainInterface {
     // Uncle Header is not already included as uncle in another block.
     // Uncle Header has a parentHash which points to the canonical chain.
 
-    uncleHeaders.map((uh) => {
+    uncleHeaders.forEach((uh) => {
       const uncleHash = bytesToUnprefixedHex(uh.hash())
       const parentHash = bytesToUnprefixedHex(uh.parentHash)
 
@@ -1321,33 +1275,15 @@ export class Blockchain implements BlockchainInterface {
    */
   createGenesisBlock(stateRoot: Uint8Array): Block {
     const common = this.common.copy()
-    common.setHardforkBy({
-      blockNumber: 0,
-      timestamp: common.genesis().timestamp,
-    })
 
     const header: HeaderData = {
       ...common.genesis(),
       number: 0,
       stateRoot,
-      withdrawalsRoot: common.isActivatedEIP(4895) ? KECCAK256_RLP : undefined,
-      requestsHash: common.isActivatedEIP(7685) ? SHA256_NULL : undefined,
-    }
-    if (common.consensusType() === 'poa') {
-      if (common.genesis().extraData) {
-        // Ensure extra data is populated from genesis data if provided
-        header.extraData = common.genesis().extraData
-      } else {
-        // Add required extraData (32 bytes vanity + 65 bytes filled with zeroes
-        header.extraData = concatBytes(new Uint8Array(32), new Uint8Array(65))
-      }
     }
 
     return createBlock(
-      {
-        header,
-        withdrawals: common.isActivatedEIP(4895) ? [] : undefined,
-      },
+      { header },
       { common },
     )
   }

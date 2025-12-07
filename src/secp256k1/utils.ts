@@ -24,12 +24,12 @@ export async function generateSecp256k1KeyPair() {
 }
 
 export function compressSecp256k1PublicKey(key: Uint8Array): Uint8Array {
-	const point = secp.ProjectivePoint.fromHex(key).toRawBytes(true);
+	const point = secp.Point.fromBytes(key).toBytes();
 	return point;
 }
 
 export function decompressSecp256k1PublicKey(key: Uint8Array): Uint8Array {
-	const point = secp.ProjectivePoint.fromHex(key).toRawBytes(false);
+	const point = secp.Point.fromBytes(key).toBytes()
 	return point;
 }
 
@@ -40,7 +40,7 @@ export function validateSecp256k1PrivateKey(key: Uint8Array): Uint8Array {
 }
 
 export function validateSecp256k1PublicKey(key: Uint8Array): Uint8Array {
-	secp.ProjectivePoint.fromHex(key);
+	secp.Point.fromBytes(key);
 
 	return key;
 }
@@ -50,7 +50,7 @@ export function computeSecp256k1PublicKey(privateKey: Uint8Array): Uint8Array {
 }
 
 export function generateSecp256k1PrivateKey(): Uint8Array {
-	return secp.utils.randomPrivateKey();
+	return secp.utils.randomSecretKey();
 }
 
 export function generateSecp256k1KeyPrivPubPair(

@@ -1,14 +1,8 @@
 import { Block, type BlockBodyBytes, type BlockBytes, type BlockHeader, type BlockHeaderBytes, createBlockFromBytesArray, createBlockHeaderFromBytesArray } from '../../../block'
 import * as RLP from '../../../rlp'
 import {
-  Blob4844Tx,
-  createBlob4844TxFromSerializedNetworkWrapper,
   createTxFromBlockBodyData,
   createTxFromRLP,
-  isAccessList2930Tx,
-  isBlob4844Tx,
-  isEOACode7702Tx,
-  isFeeMarket1559Tx,
   isLegacyTx,
   type TypedTransaction,
 } from '../../../tx'
@@ -83,10 +77,6 @@ export interface EthProtocolMethods {
   getReceipts: (opts: GetReceiptsOpts) => Promise<[bigint, TxReceipt[]]>
 }
 
-function exhaustiveTypeGuard(_value: never, errorMsg: string): never {
-  throw EthereumJSErrorWithoutCode(errorMsg)
-}
-
 /**
  * Implements eth/66 protocol
  * @memberof module:net/protocol
@@ -108,8 +98,6 @@ export class EthProtocol extends Protocol {
       encode: (txs: TypedTransaction[]) => {
         const serializedTxs = []
         for (const tx of txs) {
-          // Don't automatically broadcast blob transactions - they should only be announced using NewPooledTransactionHashes
-          if (tx instanceof Blob4844Tx) continue
           serializedTxs.push(tx.serialize())
         }
         return serializedTxs
@@ -117,14 +105,6 @@ export class EthProtocol extends Protocol {
       decode: (txs: Uint8Array[]) => {
         if (!this.config.synchronized) return
         const common = this.config.chainCommon.copy()
-        common.setHardforkBy({
-          blockNumber:
-            this.chain.headers.latest?.number ?? // Use latest header number if available OR
-            this.config.syncTargetHeight ?? // Use sync target height if available OR
-            common.hardforkBlock(common.hardfork()) ?? // Use current hardfork block number OR
-            BIGINT_0, // Use chainstart,
-          timestamp: this.chain.headers.latest?.timestamp ?? Math.floor(Date.now() / 1000),
-        })
         return txs.map((txData) => createTxFromRLP(txData, { common }))
       },
     },
@@ -160,7 +140,7 @@ export class EthProtocol extends Protocol {
         bytesToBigInt(reqId),
         headers.map((h) => {
           const common = this.config.chainCommon
-          const header = createBlockHeaderFromBytesArray(h, { common, setHardfork: true })
+          const header = createBlockHeaderFromBytesArray(h, { common })
           return header
         }),
       ],
@@ -194,7 +174,6 @@ export class EthProtocol extends Protocol {
       decode: ([block, td]: [BlockBytes, Uint8Array]) => [
         createBlockFromBytesArray(block, {
           common: this.config.chainCommon,
-          setHardfork: true,
         }),
         td,
       ],
@@ -244,18 +223,9 @@ export class EthProtocol extends Protocol {
       encode: ({ reqId, txs }: { reqId: bigint; txs: TypedTransaction[] }) => {
         const serializedTxs = []
         for (const tx of txs) {
-          // serialize txs as per type
-          if (isBlob4844Tx(tx)) {
-            serializedTxs.push(tx.serializeNetworkWrapper())
-          } else if (isFeeMarket1559Tx(tx) || isAccessList2930Tx(tx) || isEOACode7702Tx(tx)) {
-            serializedTxs.push(tx.serialize())
-          } else if (isLegacyTx(tx)) {
+          // Only legacy transactions supported
+          if (isLegacyTx(tx)) {
             serializedTxs.push(tx.raw())
-          } else {
-            // Dual use for this typeguard:
-            // 1. to enable typescript to throw build errors if any tx is missing above
-            // 2. to throw error in runtime if some corruption happens
-            exhaustiveTypeGuard(tx, `Invalid transaction type=${(tx as TypedTransaction).type}`)
           }
         }
 
@@ -263,23 +233,10 @@ export class EthProtocol extends Protocol {
       },
       decode: ([reqId, txs]: [Uint8Array, any[]]) => {
         const common = this.config.chainCommon.copy()
-        common.setHardforkBy({
-          blockNumber:
-            this.chain.headers.latest?.number ?? // Use latest header number if available OR
-            this.config.syncTargetHeight ?? // Use sync target height if available OR
-            common.hardforkBlock(common.hardfork()) ?? // Use current hardfork block number OR
-            BIGINT_0, // Use chainstart,
-          timestamp: this.chain.headers.latest?.timestamp ?? Math.floor(Date.now() / 1000),
-        })
         return [
           bytesToBigInt(reqId),
           txs.map((txData) => {
-            // Blob transactions are deserialized with network wrapper
-            if (txData[0] === 3) {
-              return createBlob4844TxFromSerializedNetworkWrapper(txData, { common })
-            } else {
-              return createTxFromBlockBodyData(txData, { common })
-            }
+            return createTxFromBlockBodyData(txData, { common })
           }),
         ]
       },
@@ -347,28 +304,28 @@ export class EthProtocol extends Protocol {
   /**
    * Name of protocol
    */
-  get name() {
+  override get name() {
     return 'eth'
   }
 
   /**
    * Protocol versions supported
    */
-  get versions() {
+  override get versions() {
     return [66, 67, 68]
   }
 
   /**
    * Messages defined by this protocol
    */
-  get messages() {
+  override get messages() {
     return this.protocolMessages
   }
 
   /**
    * Opens protocol and any associated dependencies
    */
-  async open(): Promise<boolean | void> {
+  override async open(): Promise<boolean | void> {
     if (this.opened) {
       return false
     }
@@ -379,7 +336,7 @@ export class EthProtocol extends Protocol {
   /**
    * Encodes status into ETH status message payload
    */
-  encodeStatus(): any {
+  override encodeStatus(): any {
     return {
       chainId: bigIntToUnpaddedBytes(this.chain.chainId),
       td: bigIntToUnpaddedBytes(this.chain.blocks.td),
@@ -393,7 +350,7 @@ export class EthProtocol extends Protocol {
    * Decodes ETH status message payload into a status object
    * @param status status message payload
    */
-  decodeStatus(status: any): any {
+  override decodeStatus(status: any): any {
     return {
       chainId: bytesToBigInt(status.chainId),
       td: bytesToBigInt(status.td),

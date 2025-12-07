@@ -1,13 +1,8 @@
 import { createBlock } from '../../../block/index.ts'
-import { Hardfork } from '../../../chain-config/index.ts'
 import { MerkleStateManager, getMerkleStateProof } from '../../../state-manager/index.ts'
 import {
-  Capability,
-  FeeMarket1559Tx,
   LegacyTx,
-  NetworkWrapperType,
   TypedTransaction,
-  createBlob4844TxFromSerializedNetworkWrapper,
   createTx,
   createTxFromRLP,
 } from '../../../tx/index.ts'
@@ -15,8 +10,6 @@ import {
   Address,
   BIGINT_0,
   BIGINT_1,
-  BIGINT_100,
-  BIGINT_NEG1,
   EthereumJSErrorWithoutCode,
   PrefixedHexString,
   TypeOutput,
@@ -33,7 +26,6 @@ import {
   toType,
 } from '../../../utils/index.ts'
 import {
-  type EIP4844BlobTxReceipt,
   type PostByzantiumTxReceipt,
   type PreByzantiumTxReceipt,
   type TxReceipt,
@@ -49,7 +41,7 @@ import { middleware, validators } from '../validation.ts'
 import type { EthereumClient } from '../..'
 import type { Block, JSONRPCBlock } from '../../../block/index.ts'
 import type { Proof } from '../../../state-manager/index.ts'
-import type { Log } from '../../../vm/index.ts'
+import type { Log } from '../../../evm'
 import type { Chain } from '../../blockchain'
 import type { ReceiptsManager } from '../../execution/receipt.ts'
 import type { TxIndex } from '../../execution/txIndex.ts'
@@ -88,8 +80,6 @@ type JSONRPCReceipt = {
   // It also returns either:
   root?: string // DATA, 32 bytes of post-transaction stateroot (pre Byzantium)
   status?: string // QUANTITY, either 1 (success) or 0 (failure)
-  blobGasUsed?: string // QUANTITY, blob gas consumed by transaction (if blob transaction)
-  blobGasPrice?: string // QUAntity, blob gas price for block including this transaction (if blob transaction)
   type: string // QUANTITY, transaction type
 }
 type JSONRPCLog = {
@@ -120,13 +110,6 @@ const toJSONRPCBlock = async (
   const transactions = block.transactions.map((tx, txIndex) =>
     includeTransactions ? toJSONRPCTx(tx, block, txIndex) : bytesToHex(tx.hash()),
   )
-  const withdrawalsAttr =
-    header.withdrawalsRoot !== undefined
-      ? {
-          withdrawalsRoot: header.withdrawalsRoot!,
-          withdrawals: json.withdrawals,
-        }
-      : {}
   const td = await chain.getTd(block.hash(), block.header.number)
   return {
     number: header.number!,
@@ -149,12 +132,6 @@ const toJSONRPCBlock = async (
     timestamp: header.timestamp!,
     transactions,
     uncles: block.uncleHeaders.map((uh) => bytesToHex(uh.hash())),
-    baseFeePerGas: header.baseFeePerGas,
-    ...withdrawalsAttr,
-    blobGasUsed: header.blobGasUsed,
-    excessBlobGas: header.excessBlobGas,
-    parentBeaconBlockRoot: header.parentBeaconBlockRoot,
-    requestsHash: header.requestsHash,
   }
 }
 
@@ -192,8 +169,6 @@ const toJSONRPCReceipt = async (
   txIndex: number,
   logIndex: number,
   contractAddress?: Address,
-  blobGasUsed?: bigint,
-  blobGasPrice?: bigint,
 ): Promise<JSONRPCReceipt> => ({
   transactionHash: bytesToHex(tx.hash()),
   transactionIndex: intToHex(txIndex),
@@ -217,78 +192,8 @@ const toJSONRPCReceipt = async (
     (receipt as PostByzantiumTxReceipt).status !== undefined
       ? intToHex((receipt as PostByzantiumTxReceipt).status)
       : undefined,
-  blobGasUsed: blobGasUsed !== undefined ? bigIntToHex(blobGasUsed) : undefined,
-  blobGasPrice: blobGasPrice !== undefined ? bigIntToHex(blobGasPrice) : undefined,
   type: intToHex(tx.type),
 })
-
-const calculateRewards = async (
-  block: Block,
-  receiptsManager: ReceiptsManager,
-  priorityFeePercentiles: number[],
-) => {
-  if (priorityFeePercentiles.length === 0) {
-    return []
-  }
-  if (block.transactions.length === 0) {
-    return Array.from({ length: priorityFeePercentiles.length }, () => BIGINT_0)
-  }
-
-  const blockRewards: bigint[] = []
-  const txGasUsed: bigint[] = []
-  const baseFee = block.header.baseFeePerGas
-  const receipts = await receiptsManager.getReceipts(block.hash())
-
-  if (receipts.length > 0) {
-    txGasUsed.push(receipts[0].cumulativeBlockGasUsed)
-    for (let i = 1; i < receipts.length; i++) {
-      txGasUsed.push(receipts[i].cumulativeBlockGasUsed - receipts[i - 1].cumulativeBlockGasUsed)
-    }
-  }
-
-  const txs = block.transactions
-  const txsWithGasUsed = txs.map((tx, i) => ({
-    txGasUsed: txGasUsed[i],
-    // Can assume baseFee exists, since if EIP1559/EIP4844 txs are included, this is a post-EIP-1559 block.
-    effectivePriorityFee: tx.getEffectivePriorityFee(baseFee!),
-  }))
-
-  // Sort array based upon the effectivePriorityFee
-  txsWithGasUsed.sort((a, b) => Number(a.effectivePriorityFee - b.effectivePriorityFee))
-
-  let priorityFeeIndex = 0
-  // Loop over all txs ...
-  let targetCumulativeGasUsed =
-    (block.header.gasUsed * BigInt(priorityFeePercentiles[0])) / BIGINT_100
-  let cumulativeGasUsed = BIGINT_0
-  for (let txIndex = 0; txIndex < txsWithGasUsed.length; txIndex++) {
-    cumulativeGasUsed += txsWithGasUsed[txIndex].txGasUsed
-    while (
-      cumulativeGasUsed >= targetCumulativeGasUsed &&
-      priorityFeeIndex < priorityFeePercentiles.length
-    ) {
-      /*
-            Idea: keep adding the premium fee to the priority fee percentile until we actually get above the threshold
-            For instance, take the priority fees [0,1,2,100]
-            The gas used in the block is 1.05 million
-            The first tx takes 1 million gas with prio fee A, the second the remainder over 0.05M with prio fee B
-            Then it is clear that the priority fees should be [A,A,A,B]
-            -> So A should be added three times
-            Note: in this case A < B so the priority fees were "sorted" by default
-          */
-      blockRewards.push(txsWithGasUsed[txIndex].effectivePriorityFee)
-      priorityFeeIndex++
-      if (priorityFeeIndex >= priorityFeePercentiles.length) {
-        // prevent out-of-bounds read
-        break
-      }
-      const priorityFeePercentile = priorityFeePercentiles[priorityFeeIndex]
-      targetCumulativeGasUsed = (block.header.gasUsed * BigInt(priorityFeePercentile)) / BIGINT_100
-    }
-  }
-
-  return blockRewards
-}
 
 /**
  * eth_* RPC module
@@ -328,11 +233,6 @@ export class Eth {
     ])
 
     this.chainId = callWithStackTrace(this.chainId.bind(this), this._rpcDebug)
-
-    this.maxPriorityFeePerGas = callWithStackTrace(
-      this.maxPriorityFeePerGas.bind(this),
-      this._rpcDebug,
-    )
 
     this.estimateGas = middleware(
       callWithStackTrace(this.estimateGas.bind(this), this._rpcDebug),
@@ -467,18 +367,6 @@ export class Eth {
     )
 
     this.gasPrice = callWithStackTrace(this.gasPrice.bind(this), this._rpcDebug)
-
-    this.feeHistory = middleware(
-      callWithStackTrace(this.feeHistory.bind(this), this._rpcDebug),
-      2,
-      [
-        [validators.either(validators.hex, validators.integer)],
-        [validators.either(validators.hex, validators.blockOption)],
-        [validators.rewardPercentiles],
-      ],
-    )
-
-    this.blobBaseFee = callWithStackTrace(this.blobBaseFee.bind(this), this._rpcDebug)
   }
 
   /**
@@ -546,78 +434,6 @@ export class Eth {
   }
 
   /**
-   * Returns an estimate for max priority fee per gas for a tx to be included in a block.
-   * @returns The max priority fee per gas.
-   */
-  async maxPriorityFeePerGas() {
-    const DEFAULT_MAX_PRIORITY_FEE_PER_GAS = '0x3B9ACA00' // 1 Gwei, 10^9 Wei
-
-    if (!this.client.config.synchronized) {
-      throw {
-        code: INTERNAL_ERROR,
-        message: `client is not aware of the current chain height yet (give sync some more time)`,
-      }
-    }
-    const latest = await this._chain.getCanonicalHeadBlock()
-    // This ends up with a forward-sorted list of blocks
-    const blocks = (await this._chain.getBlocks(latest.hash(), 10, 0, true)).reverse()
-
-    // Store per-block medians
-    const blockMedians: bigint[] = []
-    let numSamples = 0
-
-    for (const block of blocks) {
-      // Array to collect all maxPriorityFeePerGas values
-      const priorityFees: bigint[] = []
-
-      for (const tx of block.transactions) {
-        // Only EIP-1559 transactions have maxPriorityFeePerGas
-        if (tx.supports(Capability.EIP1559FeeMarket) === true) {
-          priorityFees.push((tx as FeeMarket1559Tx).maxPriorityFeePerGas)
-          numSamples += 1
-        }
-      }
-
-      // Calculate median for this block
-      if (priorityFees.length > 0) {
-        priorityFees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-        const mid = Math.floor(priorityFees.length / 2)
-        let median: bigint
-        if (priorityFees.length % 2 === 0) {
-          median = (priorityFees[mid - 1] + priorityFees[mid]) / BigInt(2)
-        } else {
-          median = priorityFees[mid]
-        }
-        blockMedians.push(median)
-      }
-    }
-
-    if (numSamples === 0) {
-      return DEFAULT_MAX_PRIORITY_FEE_PER_GAS
-    }
-
-    // Linear regression to extrapolate next median value
-    function linearRegression(y: bigint[]): number {
-      const n = y.length
-      if (n === 0) return 0
-      const x = Array.from({ length: n }, (_, i) => i)
-      const meanX = x.reduce((a, b) => a + b, 0) / n
-      const meanY = y.reduce((a, b) => a + Number(b), 0) / n
-      let num = 0,
-        den = 0
-      for (let i = 0; i < n; i++) {
-        num += (x[i] - meanX) * (Number(y[i]) - meanY)
-        den += (x[i] - meanX) ** 2
-      }
-      const a = den === 0 ? 0 : num / den
-      const b = meanY - a * meanX
-      return a * n + b // predict next (n-th) value
-    }
-    const nextMedianRegression = BigInt(Math.round(linearRegression(blockMedians)))
-    return bigIntToHex(nextMedianRegression)
-  }
-
-  /**
    * Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
    * The transaction will not be added to the blockchain.
    * Note that the estimate may be significantly more than the amount of gas actually used by the transaction,
@@ -649,15 +465,6 @@ export class Eth {
       transaction.gas = latest.gasLimit as any
     }
 
-    if (transaction.gasPrice === undefined && transaction.maxFeePerGas === undefined) {
-      // If no gas price or maxFeePerGas provided, set maxFeePerGas to the next base fee
-      if (transaction.type !== undefined && parseInt(transaction.type) === 2) {
-        transaction.maxFeePerGas = `0x${block.header.calcNextBaseFee()?.toString(16)}`
-      } else if (block.header.baseFeePerGas !== undefined) {
-        transaction.gasPrice = `0x${block.header.calcNextBaseFee()?.toString(16)}`
-      }
-    }
-
     const txData = {
       ...transaction,
       gasLimit: transaction.gas,
@@ -669,18 +476,10 @@ export class Eth {
           parentHash: block.hash(),
           number: block.header.number + BIGINT_1,
           timestamp: block.header.timestamp + BIGINT_1,
-          baseFeePerGas: block.common.isActivatedEIP(1559)
-            ? block.header.calcNextBaseFee()
-            : undefined,
         },
       },
-      { common: vm.common, setHardfork: true },
+      { common: vm.common },
     )
-
-    vm.common.setHardforkBy({
-      timestamp: blockToRunOn.header.timestamp,
-      blockNumber: blockToRunOn.header.number,
-    })
 
     const tx = createTx(txData, { common: vm.common, freeze: false })
 
@@ -1031,16 +830,7 @@ export class Eth {
       result.map(async (r, i) => {
         const tx = block.transactions[i]
         const { totalGasSpent, createdAddress } = runBlockResult.results[i]
-        const { blobGasPrice, blobGasUsed } = runBlockResult.receipts[i] as EIP4844BlobTxReceipt
-        const effectiveGasPrice =
-          tx.supports(Capability.EIP1559FeeMarket) === true
-            ? (tx as FeeMarket1559Tx).maxPriorityFeePerGas <
-              (tx as FeeMarket1559Tx).maxFeePerGas - block.header.baseFeePerGas!
-              ? (tx as FeeMarket1559Tx).maxPriorityFeePerGas
-              : (tx as FeeMarket1559Tx).maxFeePerGas -
-                block.header.baseFeePerGas! +
-                block.header.baseFeePerGas!
-            : (tx as LegacyTx).gasPrice
+        const effectiveGasPrice = (tx as LegacyTx).gasPrice
 
         return toJSONRPCReceipt(
           r,
@@ -1051,8 +841,6 @@ export class Eth {
           i,
           i,
           createdAddress,
-          blobGasUsed,
-          blobGasPrice,
         )
       }),
     )
@@ -1087,14 +875,7 @@ export class Eth {
 
     const parentBlock = await this._chain.getBlock(block.header.parentHash)
     const tx = block.transactions[txIndex]
-    const effectiveGasPrice = tx.supports(Capability.EIP1559FeeMarket)
-      ? (tx as FeeMarket1559Tx).maxPriorityFeePerGas <
-        (tx as FeeMarket1559Tx).maxFeePerGas - block.header.baseFeePerGas!
-        ? (tx as FeeMarket1559Tx).maxPriorityFeePerGas
-        : (tx as FeeMarket1559Tx).maxFeePerGas -
-          block.header.baseFeePerGas! +
-          block.header.baseFeePerGas!
-      : (tx as LegacyTx).gasPrice
+    const effectiveGasPrice = (tx as LegacyTx).gasPrice
 
     const vmCopy = await this._vm!.shallowCopy()
     vmCopy.common.setHardfork(tx.common.hardfork())
@@ -1106,7 +887,6 @@ export class Eth {
     })
 
     const { totalGasSpent, createdAddress } = runBlockResult.results[txIndex]
-    const { blobGasPrice, blobGasUsed } = runBlockResult.receipts[txIndex] as EIP4844BlobTxReceipt
     return toJSONRPCReceipt(
       receipt,
       totalGasSpent,
@@ -1116,8 +896,6 @@ export class Eth {
       txIndex,
       logIndex,
       createdAddress,
-      blobGasUsed,
-      blobGasPrice,
     )
   }
 
@@ -1228,45 +1006,11 @@ export class Eth {
       }
     }
     const common = this.client.config.chainCommon.copy()
-    const chainHeight = this.client.chain.headers.height
-    let txTargetHeight = syncTargetHeight ?? BIGINT_0
-    // Following step makes sure txTargetHeight > 0
-    if (txTargetHeight <= chainHeight) {
-      txTargetHeight = chainHeight + BIGINT_1
-    }
-    common.setHardforkBy({
-      blockNumber: txTargetHeight,
-      timestamp: Math.floor(Date.now() / 1000),
-    })
 
     let tx
     try {
       const txBuf = hexToBytes(serializedTx)
-      if (txBuf[0] === 0x03) {
-        // Blob Transactions sent over RPC are expected to be in Network Wrapper format
-        tx = createBlob4844TxFromSerializedNetworkWrapper(txBuf, { common })
-        if (
-          common.isActivatedEIP(7594) &&
-          tx.networkWrapperVersion !== NetworkWrapperType.EIP7594
-        ) {
-          throw Error(
-            `tx with networkWrapperVersion=${tx.networkWrapperVersion} sent for EIP-7594 activated hardfork=${common.hardfork()}`,
-          )
-        }
-
-        const blobGasLimit = tx.common.param('maxBlobGasPerBlock')
-        const blobGasPerBlob = tx.common.param('blobGasPerBlob')
-
-        if (BigInt((tx.blobs ?? []).length) * blobGasPerBlob > blobGasLimit) {
-          throw Error(
-            `tx blobs=${(tx.blobs ?? []).length} exceeds block limit=${
-              blobGasLimit / blobGasPerBlob
-            }`,
-          )
-        }
-      } else {
-        tx = createTxFromRLP(txBuf, { common })
-      }
+      tx = createTxFromRLP(txBuf, { common })
     } catch (e: any) {
       throw {
         code: PARSE_ERROR,
@@ -1414,151 +1158,33 @@ export class Eth {
    * @returns a hex code of an integer representing the suggested gas price in wei.
    */
   async gasPrice() {
-    // TODO: going more strict on parameter accesses in Common (PR #3532) revealed that this line had
-    // absolutely no effect by accessing a non-present gas parameter. Someone familiar with the RPC method
-    // implementation should look over it and recall what was meant to be accomplished here.
-    const minGasPrice = BIGINT_0 //: bigint = this._chain.config.chainCommon.param('minPrice')
+    const minGasPrice = BIGINT_0
     let gasPrice = BIGINT_0
     const latest = await this._chain.getCanonicalHeadHeader()
-    if (this._vm !== undefined && this._vm.common.isActivatedEIP(1559)) {
-      const baseFee = latest.calcNextBaseFee()
-      let priorityFee = BIGINT_0
-      const block = await this._chain.getBlock(latest.number)
+
+    // For PoW chains, iterate over the last 20 blocks to get an average gas price
+    const blockIterations = 20 < latest.number ? 20 : latest.number
+    let txCount = BIGINT_0
+    for (let i = 0; i < blockIterations; i++) {
+      const block = await this._chain.getBlock(latest.number - BigInt(i))
+      if (block.transactions.length === 0) {
+        continue
+      }
+
       for (const tx of block.transactions) {
-        const maxPriorityFeePerGas = (tx as FeeMarket1559Tx).maxPriorityFeePerGas
-        priorityFee += maxPriorityFeePerGas
+        const txGasPrice = (tx as LegacyTx).gasPrice
+        gasPrice += txGasPrice
+        txCount++
       }
+    }
 
-      priorityFee =
-        priorityFee !== BIGINT_0 ? priorityFee / BigInt(block.transactions.length) : BIGINT_1
-      gasPrice = baseFee + priorityFee > minGasPrice ? baseFee + priorityFee : minGasPrice
+    if (txCount > 0) {
+      const avgGasPrice = gasPrice / txCount
+      gasPrice = avgGasPrice > minGasPrice ? avgGasPrice : minGasPrice
     } else {
-      // For chains that don't support EIP-1559 we iterate over the last 20
-      // blocks to get an average gas price.
-      const blockIterations = 20 < latest.number ? 20 : latest.number
-      let txCount = BIGINT_0
-      for (let i = 0; i < blockIterations; i++) {
-        const block = await this._chain.getBlock(latest.number - BigInt(i))
-        if (block.transactions.length === 0) {
-          continue
-        }
-
-        for (const tx of block.transactions) {
-          const txGasPrice = (tx as LegacyTx).gasPrice
-          gasPrice += txGasPrice
-          txCount++
-        }
-      }
-
-      if (txCount > 0) {
-        const avgGasPrice = gasPrice / txCount
-        gasPrice = avgGasPrice > minGasPrice ? avgGasPrice : minGasPrice
-      } else {
-        gasPrice = minGasPrice
-      }
+      gasPrice = minGasPrice
     }
 
     return bigIntToHex(gasPrice)
-  }
-
-  async feeHistory(params: [string | number | bigint, string, [number]?]) {
-    const blockCount = BigInt(params[0])
-    const [, lastBlockRequested, priorityFeePercentiles] = params
-
-    if (blockCount < 1 || blockCount > 1024) {
-      throw {
-        code: INVALID_PARAMS,
-        message: 'invalid block count',
-      }
-    }
-
-    const { number: lastRequestedBlockNumber } = (
-      await getBlockByOption(lastBlockRequested, this._chain)
-    ).header
-
-    const oldestBlockNumber = bigIntMax(lastRequestedBlockNumber - blockCount + BIGINT_1, BIGINT_0)
-
-    const requestedBlockNumbers = Array.from(
-      { length: Number(blockCount) },
-      (_, i) => oldestBlockNumber + BigInt(i),
-    )
-
-    const requestedBlocks = await Promise.all(
-      requestedBlockNumbers.map((n) => getBlockByOption(n.toString(), this._chain)),
-    )
-
-    const [baseFees, gasUsedRatios, baseFeePerBlobGas, blobGasUsedRatio] = requestedBlocks.reduce(
-      (v, b) => {
-        const [prevBaseFees, prevGasUsedRatios, prevBaseFeesPerBlobGas, prevBlobGasUsedRatio] = v
-        const { baseFeePerGas, gasUsed, gasLimit, blobGasUsed } = b.header
-
-        let baseFeePerBlobGas = BIGINT_0
-        let blobGasUsedRatio = 0
-        if (b.header.excessBlobGas !== undefined) {
-          baseFeePerBlobGas = b.header.getBlobGasPrice()
-          const max = b.common.param('maxBlobGasPerBlock')
-          blobGasUsedRatio = Number(blobGasUsed) / Number(max)
-        }
-
-        prevBaseFees.push(baseFeePerGas ?? BIGINT_0)
-        prevGasUsedRatios.push(Number(gasUsed) / Number(gasLimit))
-
-        prevBaseFeesPerBlobGas.push(baseFeePerBlobGas)
-        prevBlobGasUsedRatio.push(blobGasUsedRatio)
-
-        return [prevBaseFees, prevGasUsedRatios, prevBaseFeesPerBlobGas, prevBlobGasUsedRatio]
-      },
-      [[], [], [], []] as [bigint[], number[], bigint[], number[]],
-    )
-
-    const londonHardforkBlockNumber = this._chain.blockchain.common.hardforkBlock(Hardfork.London)!
-    const nextBaseFee =
-      lastRequestedBlockNumber - londonHardforkBlockNumber >= BIGINT_NEG1
-        ? requestedBlocks[requestedBlocks.length - 1].header.calcNextBaseFee()
-        : BIGINT_0
-    baseFees.push(nextBaseFee)
-
-    if (this._chain.blockchain.common.isActivatedEIP(4844)) {
-      baseFeePerBlobGas.push(
-        // use the last blocks common for fee estimation
-        requestedBlocks[requestedBlocks.length - 1].header.calcNextBlobGasPrice(
-          requestedBlocks[requestedBlocks.length - 1].header.common,
-        ),
-      )
-    } else {
-      // TODO (?): known bug
-      // If the next block is the first block where 4844 is returned, then
-      // BIGINT_1 should be pushed, not BIGINT_0
-      baseFeePerBlobGas.push(BIGINT_0)
-    }
-
-    let rewards: bigint[][] = []
-
-    if (this.receiptsManager && priorityFeePercentiles) {
-      rewards = await Promise.all(
-        requestedBlocks.map((b) =>
-          calculateRewards(b, this.receiptsManager!, priorityFeePercentiles),
-        ),
-      )
-    }
-
-    return {
-      baseFeePerGas: baseFees.map(bigIntToHex),
-      gasUsedRatio: gasUsedRatios,
-      baseFeePerBlobGas: baseFeePerBlobGas.map(bigIntToHex),
-      blobGasUsedRatio,
-      oldestBlock: bigIntToHex(oldestBlockNumber),
-      reward: rewards.map((r) => r.map(bigIntToHex)),
-    }
-  }
-
-  /**
-   *
-   * @returns the blob base fee for the next/pending block in wei
-   */
-  async blobBaseFee() {
-    const headBlock = await this._chain.getCanonicalHeadHeader()
-    // use headBlock's common to estimate the next blob fee
-    return bigIntToHex(headBlock.calcNextBlobGasPrice(headBlock.common))
   }
 }

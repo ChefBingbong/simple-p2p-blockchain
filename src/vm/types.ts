@@ -7,7 +7,7 @@ import type {
   EVMResult,
   Log,
 } from '../evm'
-import type { AccessList, TypedTransaction } from '../tx'
+import type { TypedTransaction } from '../tx'
 import type {
   BigIntLike,
   CLRequest,
@@ -473,7 +473,6 @@ export interface RunTxResult extends EVMResult {
   /**
    * EIP-2930 access list generated for the tx (see `reportAccessList` option)
    */
-  accessList?: AccessList
 
   /**
    * Preimages mapping of the touched accounts from the tx (see `reportPreimages` option)

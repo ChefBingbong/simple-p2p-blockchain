@@ -92,10 +92,6 @@ interface EVMRunOpts {
    * The address of the account that is executing this code (`address(this)`). Defaults to the zero address.
    */
   to?: Address
-  /**
-   * Versioned hashes for each blob in a blob transaction
-   */
-  blobVersionedHashes?: PrefixedHexString[]
 }
 
 export interface EVMRunCodeOpts extends EVMRunOpts {
@@ -474,10 +470,7 @@ export type Block = {
     coinbase: Address
     timestamp: bigint
     difficulty: bigint
-    prevRandao: Uint8Array
     gasLimit: bigint
-    baseFeePerGas?: bigint
-    getBlobGasPrice(): bigint | undefined
   }
 }
 

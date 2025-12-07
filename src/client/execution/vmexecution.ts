@@ -6,8 +6,7 @@ import {
     DBSetHashToNumber,
     DBSetTD,
 } from '../../blockchain'
-import { ConsensusType, Hardfork } from '../../chain-config'
-import { MCLBLS, RustBN254 } from '../../evm'
+import { ConsensusType } from '../../chain-config'
 import { getGenesis } from '../../genesis'
 import { createMPT } from '../../mpt'
 import { CacheType, Caches, MerkleStateManager } from '../../state-manager'
@@ -190,10 +189,6 @@ export class VMExecution extends Execution {
       common: this.config.execCommon,
       blockchain: this.chain.blockchain,
       stateManager,
-      evmOpts: {
-        bls: new MCLBLS(mcl),
-        bn254: new RustBN254(rustBN),
-      },
       profilerOpts: this.config.vmProfilerOpts,
     })
     this.vm = this.merkleVM
@@ -560,13 +555,7 @@ export class VMExecution extends Execution {
                     })
                   }
 
-                  let skipBlockValidation = false
-                  if (this.config.execCommon.consensusType() === ConsensusType.ProofOfAuthority) {
-                    // Block validation is redundant here and leads to consistency problems
-                    // on PoA clique along blockchain-including validation checks
-                    // (signer states might have moved on when sync is ahead)
-                    skipBlockValidation = true
-                  }
+                  const skipBlockValidation = false
 
                   // we are skipping header validation because the block has been picked from the
                   // blockchain and header should have already been validated while putBlock
@@ -703,20 +692,10 @@ export class VMExecution extends Execution {
               const firstHash = short(startHeadBlock.hash())
               const lastNumber = endHeadBlock.header.number
               const lastHash = short(endHeadBlock.hash())
-              const baseFeeAdd = this.config.execCommon.gteHardfork(Hardfork.London)
-                ? `baseFee=${endHeadBlock.header.baseFeePerGas} `
-                : ''
+              const tdAdd = `td=${this.chain.blocks.td} `
 
-              const tdAdd = this.config.execCommon.gteHardfork(Hardfork.Paris)
-                ? ''
-                : `td=${this.chain.blocks.td} `
-
-              const msg = `Executed blocks count=${numExecuted} first=${firstNumber} hash=${firstHash} ${tdAdd}${baseFeeAdd}hardfork=${this.hardfork} last=${lastNumber} hash=${lastHash} txs=${txCounter}`
-              if (this.config.execCommon.gteHardfork(Hardfork.Paris)) {
-                this.config.logger?.debug(msg)
-              } else {
-                this.config.logger?.info(msg)
-              }
+              const msg = `Executed blocks count=${numExecuted} first=${firstNumber} hash=${firstHash} ${tdAdd}hardfork=${this.hardfork} last=${lastNumber} hash=${lastHash} txs=${txCounter}`
+              this.config.logger?.info(msg)
 
               await this.chain.update(false)
             } else {
@@ -755,7 +734,6 @@ export class VMExecution extends Execution {
       canonicalHead.header.number
     } hardfork=${this.config.execCommon.hardfork()} execution=${this.config.execution}`
     if (
-      !this.config.execCommon.gteHardfork(Hardfork.Paris) &&
       this.config.execution &&
       vmHeadBlock.header.number < canonicalHead.header.number
     ) {

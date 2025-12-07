@@ -1,5 +1,5 @@
 import { Block, BlockHeader, createBlockFromBytesArray, createBlockHeaderFromBytesArray } from '../../block'
-import { Blockchain, CliqueConsensus, createBlockchain, type ConsensusDict } from '../../blockchain'
+import { Blockchain, createBlockchain, type ConsensusDict } from '../../blockchain'
 import { ConsensusAlgorithm, Hardfork, type GenesisState } from '../../chain-config'
 import { BIGINT_0, EthereumJSErrorWithoutCode, equalsBytes, type DB, type DBObject } from '../../utils'
 
@@ -153,21 +153,16 @@ export class Chain {
    * @param options
    */
   public static async create(options: ChainOptions) {
-    let validateConsensus = false
+    // PoW/Ethash only - no Clique consensus
     const consensusDict: ConsensusDict = {}
-    if (options.config.chainCommon.consensusAlgorithm() === ConsensusAlgorithm.Clique) {
-      consensusDict[ConsensusAlgorithm.Clique] = new CliqueConsensus()
-      validateConsensus = true
-    }
 
     options.blockchain =
       options.blockchain ??
       (await createBlockchain({
         db: new LevelDB(options.chainDB),
         common: options.config.chainCommon,
-        hardforkByHeadBlockNumber: true,
         validateBlocks: true,
-        validateConsensus,
+        validateConsensus: false,
         consensusDict,
         genesisState: options.genesisState,
         genesisStateRoot: options.genesisStateRoot,
@@ -397,26 +392,15 @@ export class Chain {
       }
     }
 
-    for (const [i, b] of newBlocks.entries()) {
-      if (!fromEngine && this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-        if (i > 0) {
-          // emitOnLast below won't be reached, so run an update here
-          await this.update(!skipUpdateEmit)
-        }
-        break
-      }
+    for (const [_i, b] of newBlocks.entries()) {
+      // Frontier/Chainstart only - PoW
 
       if (b.header.number <= this.headers.height) {
-        await this.blockchain.checkAndTransitionHardForkByNumber(
-          b.header.number,
-          b.header.timestamp,
-        )
         await this.blockchain.consensus?.setup({ blockchain: this.blockchain })
       }
 
       const block = createBlockFromBytesArray(b.raw(), {
         common: this.config.chainCommon,
-        setHardfork: true,
       })
 
       await this.blockchain.putBlock(block)
@@ -451,22 +435,15 @@ export class Chain {
    * @param mergeIncludes skip adding headers after merge
    * @returns number of headers added
    */
-  async putHeaders(headers: BlockHeader[], mergeIncludes = false): Promise<number> {
+  async putHeaders(headers: BlockHeader[]): Promise<number> {
     if (!this.opened) throw EthereumJSErrorWithoutCode('Chain closed')
     if (headers.length === 0) return 0
 
     let numAdded = 0
-    for (const [i, h] of headers.entries()) {
-      if (!mergeIncludes && this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-        if (i > 0) {
-          // emitOnLast below won't be reached, so run an update here
-          await this.update(true)
-        }
-        break
-      }
+    for (const h of headers) {
+      // Frontier/Chainstart only - PoW
       const header = createBlockHeaderFromBytesArray(h.raw(), {
         common: this.config.chainCommon,
-        setHardfork: true,
       })
       await this.blockchain.putHeader(header)
       numAdded++

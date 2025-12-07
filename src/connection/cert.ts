@@ -1,7 +1,7 @@
 // cert.mjs
 
 import { secp256k1 as secp } from "@noble/curves/secp256k1";
-import { sha256 } from "@noble/hashes/sha256";
+import { sha256 } from "@noble/hashes/sha2";
 import * as x509 from "@peculiar/x509";
 import crypto from "node:crypto";
 import { toString as uint8ArrayToString } from "uint8arrays/to-string";
@@ -44,7 +44,7 @@ export async function generateBoundCertificate(keyPair: Secp256k1PrivateKey) {
 	);
 	const digest = sha256(new Uint8Array(spkiAB));
 	const sigDer = secp.sign(digest, nodePriv);
-	const sigRS = secp.Signature.fromDER(sigDer.toDERHex()).toCompactRawBytes(); // 64-byte r||s
+	const sigRS = secp.Signature.fromBytes(sigDer).toBytes(); // 64-byte r||s
 
 	// 4) Build the custom extension carrying (nodePubCompressed, sigRS)
 	const bindingExt = new x509.Extension(

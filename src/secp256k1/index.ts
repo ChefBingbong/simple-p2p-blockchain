@@ -73,7 +73,7 @@ export function hashAndSign(
 
 	const digest = hash.digest();
 	const signature = secp.sign(digest, key);
-	return signature.toDERRawBytes();
+	return signature
 }
 
 export function hashAndVerify(

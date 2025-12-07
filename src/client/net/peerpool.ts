@@ -1,5 +1,3 @@
-import { Hardfork } from '../../chain-config'
-
 import { Event } from '../types.ts'
 
 import { type Peer, RlpxPeer } from './peer'
@@ -238,10 +236,7 @@ export class PeerPool {
    * Peer pool status check on a repeated interval
    */
   async _statusCheck() {
-    let NO_PEER_PERIOD_COUNT = 3
-    if (this.config.chainCommon.gteHardfork(Hardfork.Paris)) {
-      NO_PEER_PERIOD_COUNT = 6
-    }
+    const NO_PEER_PERIOD_COUNT = 3
     if (this.size === 0 && this.config.maxPeers > 0) {
       this.noPeerPeriods += 1
       if (this.noPeerPeriods >= NO_PEER_PERIOD_COUNT) {

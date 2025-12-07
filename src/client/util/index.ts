@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url'
  */
 import { bytesToHex } from '../../utils'
 
-export * from './inclineClient.ts'
 export * from './parse.ts'
 export * from './rpc.ts'
 // See: https://stackoverflow.com/a/50053801

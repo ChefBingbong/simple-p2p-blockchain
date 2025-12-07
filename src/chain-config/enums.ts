@@ -66,49 +66,24 @@ export const ChainGenesis: Record<Chain, GenesisState> = {
 	},
 };
 
+// Only Chainstart hardfork - no EIPs, no other hardforks
 export type Hardfork = (typeof Hardfork)[keyof typeof Hardfork];
 
 export const Hardfork = {
 	Chainstart: "chainstart",
-	Homestead: "homestead",
-	Dao: "dao",
-	TangerineWhistle: "tangerineWhistle",
-	SpuriousDragon: "spuriousDragon",
-	Byzantium: "byzantium",
-	Constantinople: "constantinople",
-	Petersburg: "petersburg",
-	Istanbul: "istanbul",
-	MuirGlacier: "muirGlacier",
-	Berlin: "berlin",
-	London: "london",
-	ArrowGlacier: "arrowGlacier",
-	GrayGlacier: "grayGlacier",
-	MergeNetsplitBlock: "mergeNetsplitBlock",
-	Paris: "paris",
-	Shanghai: "shanghai",
-	Cancun: "cancun",
-	Prague: "prague",
-	Osaka: "osaka",
-	Bpo1: "bpo1",
-	Bpo2: "bpo2",
-	Bpo3: "bpo3",
-	Bpo4: "bpo4",
-	Bpo5: "bpo5",
 } as const;
 
+// Only PoW consensus
 export type ConsensusType = (typeof ConsensusType)[keyof typeof ConsensusType];
 
 export const ConsensusType = {
-	ProofOfStake: "pos",
 	ProofOfWork: "pow",
-	ProofOfAuthority: "poa",
 } as const;
 
+// Only Ethash algorithm
 export type ConsensusAlgorithm =
 	(typeof ConsensusAlgorithm)[keyof typeof ConsensusAlgorithm];
 
 export const ConsensusAlgorithm = {
 	Ethash: "ethash",
-	Clique: "clique",
-	Casper: "casper",
 } as const;
