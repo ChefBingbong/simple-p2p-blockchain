@@ -17,6 +17,7 @@ import {
 } from "../../chain-config/index.ts";
 import { Ethash } from "../../eth-hash/index.ts";
 import {
+	Address,
 	bytesToHex,
 	bytesToUnprefixedHex,
 	createAddressFromPrivateKey,
@@ -29,7 +30,10 @@ import type { FullEthereumService } from "../service/fullethereumservice.ts";
 import { Event } from "../types.ts";
 import { setupMetrics } from "../util/metrics.ts";
 import { type RPCArgs, startRPCServers } from "./startRPC.ts";
-import type { Account } from "./utils.ts";
+
+
+export type Account = [address: Address, privateKey: Uint8Array];
+
 
 let logger: Logger | undefined;
 

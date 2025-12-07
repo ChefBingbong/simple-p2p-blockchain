@@ -1,145 +1,21 @@
-#!/usr/bin/env node
-
-/**
- * Script to interact with a deployed SimpleStorage contract
- *
- * Usage:
- *   npx tsx src/client/bin/interact-contract.ts <command> [options]
- *
- * Commands:
- *   get              Get the stored value
- *   set <value>      Set a new value
- *   balance [addr]   Get account balance
- *
- * Options:
- *   --rpc <url>      RPC endpoint (default: http://127.0.0.1:8545)
- *   --contract <addr> Contract address
- *   --account <index> Account index for signing (default: 0)
- */
-
 import { existsSync, readFileSync } from "fs";
-import { Common } from "../../chain-config/index.ts";
-import { createLegacyTx } from "../../tx/index.ts";
-import { bytesToHex, hexToBytes } from "../../utils/index.ts";
+import { Common } from "../../../chain-config/index.ts";
+import { createLegacyTx } from "../../../tx/index.ts";
+import { bytesToHex, hexToBytes } from "../../../utils/index.ts";
 
-// Import the custom chain config from test-network
-import { customChainConfig } from "./test-network.ts";
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
+import { customChainConfig } from "../test-network.ts";
+import { AccountInfo } from "../types.ts";
+import { getBalance, getTransactionCount, getGasPrice, estimateGas, sendRawTransaction, getTransactionReceipt, getBlockNumber, rpcCall, ethCall } from "./utils.ts";
 
 const ACCOUNTS_FILE = "./test-network-data/accounts.json";
 const DEFAULT_RPC = "http://127.0.0.1:8545";
 
-// Function selectors for SimpleStorage
 const FUNCTION_SELECTORS = {
 	get: "0x6d4ce63c", // get()
 	set: "0x60fe47b1", // set(uint256)
 	storedData: "0x2a1afcd9", // storedData()
 };
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface AccountInfo {
-	index: number;
-	address: string;
-	privateKey: string;
-	role: string;
-}
-
-interface RPCResponse {
-	jsonrpc: string;
-	id: number;
-	result?: any;
-	error?: { code: number; message: string };
-}
-
-// ============================================================================
-// RPC HELPERS
-// ============================================================================
-
-async function rpcCall(
-	url: string,
-	method: string,
-	params: any[] = [],
-): Promise<any> {
-	const response = await fetch(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			jsonrpc: "2.0",
-			method,
-			params,
-			id: Date.now(),
-		}),
-	});
-
-	const json = (await response.json()) as RPCResponse;
-
-	if (json.error) {
-		throw new Error(
-			`RPC Error: ${json.error.message} (code: ${json.error.code})`,
-		);
-	}
-
-	return json.result;
-}
-
-async function ethCall(rpc: string, to: string, data: string): Promise<string> {
-	return await rpcCall(rpc, "eth_call", [{ to, data }, "latest"]);
-}
-
-async function getTransactionCount(
-	rpc: string,
-	address: string,
-): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_getTransactionCount", [
-		address,
-		"latest",
-	]);
-	return BigInt(result);
-}
-
-async function getGasPrice(rpc: string): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_gasPrice", []);
-	return BigInt(result);
-}
-
-async function estimateGas(rpc: string, tx: object): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_estimateGas", [tx]);
-	return BigInt(result);
-}
-
-async function sendRawTransaction(
-	rpc: string,
-	signedTx: string,
-): Promise<string> {
-	return await rpcCall(rpc, "eth_sendRawTransaction", [signedTx]);
-}
-
-async function getTransactionReceipt(
-	rpc: string,
-	txHash: string,
-): Promise<any> {
-	return await rpcCall(rpc, "eth_getTransactionReceipt", [txHash]);
-}
-
-async function getBalance(rpc: string, address: string): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_getBalance", [address, "latest"]);
-	return BigInt(result);
-}
-
-async function getBlockNumber(rpc: string): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_blockNumber", []);
-	return BigInt(result);
-}
-
-// ============================================================================
-// CONTRACT INTERACTION
-// ============================================================================
 
 function loadAccounts(): AccountInfo[] {
 	if (!existsSync(ACCOUNTS_FILE)) {
@@ -204,18 +80,6 @@ async function setValue(
 		data,
 	});
 
-	// If estimated gas is suspiciously high, the call would likely fail
-	// SimpleStorage.set() should only need ~50k gas
-	// if (estimatedGas > 500000n) {
-	// 	console.error(
-	// 		`⚠️  Warning: Gas estimate is very high (${estimatedGas}). This usually means the call would fail.`,
-	// 	);
-	// 	console.error(`   Check that the contract exists at ${contractAddress}`);
-	// 	throw new Error(
-	// 		`Gas estimate too high - contract may not exist or call would revert`,
-	// 	);
-	// }
-
 	// Add 20% buffer
 	const gasLimit = estimatedGas;
 
@@ -241,10 +105,6 @@ async function setValue(
 	const txHash = await sendRawTransaction(rpc, serializedTx);
 	return txHash;
 }
-
-// ============================================================================
-// COMMANDS
-// ============================================================================
 
 async function cmdGet(rpc: string, contractAddress: string) {
 	console.log(`\n📖 Reading value from contract ${contractAddress}...`);
@@ -350,10 +210,6 @@ async function cmdStatus(rpc: string) {
 	}
 	console.log();
 }
-
-// ============================================================================
-// CLI ENTRY POINT
-// ============================================================================
 
 async function main() {
 	const args = process.argv.slice(2);

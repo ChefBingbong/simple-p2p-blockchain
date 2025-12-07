@@ -1,32 +1,15 @@
-#!/usr/bin/env node
-
-/**
- * Script to deploy a smart contract to the test network
- *
- * Usage:
- *   npx tsx src/client/bin/deploy-contract.ts [options]
- *
- * Options:
- *   --rpc <url>       RPC endpoint (default: http://127.0.0.1:8545)
- *   --account <index> Account index to use from accounts.json (default: 0)
- *   --bytecode <hex>  Contract bytecode to deploy (or uses default SimpleStorage)
- */
-
 import { existsSync, readFileSync } from "fs";
-import { Common } from "../../chain-config/index.ts";
-import { createLegacyTx } from "../../tx/index.ts";
+import { Common } from "../../../chain-config/index.ts";
+import { createLegacyTx } from "../../../tx/index.ts";
 import {
 	bytesToHex,
 	createAddressFromPrivateKey,
 	hexToBytes,
-} from "../../utils/index.ts";
+} from "../../../utils/index.ts";
 
-// Import the custom chain config from test-network
-import { customChainConfig } from "./test-network.ts";
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
+import { customChainConfig } from "../test-network.ts";
+import { AccountInfo } from "../types.ts";
+import { getChainId, getBalance, getTransactionCount, getGasPrice, estimateGas, sendRawTransaction, getTransactionReceipt } from "./utils.ts";
 
 const ACCOUNTS_FILE = "./test-network-data/accounts.json";
 const DEFAULT_RPC = "http://127.0.0.1:8545";
@@ -53,107 +36,9 @@ const DEFAULT_RPC = "http://127.0.0.1:8545";
 const SIMPLE_STORAGE_BYTECODE =
 	"0x608060405234801561001057600080fd5b5060405161012038038061012083398101604081905261002f91610037565b600055610050565b60006020828403121561004957600080fd5b5051919050565b60c28061005e6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80632a1afcd914604157806360fe47b114605b5780636d4ce63c146069575b600080fd5b604960005481565b60405190815260200160405180910390f35b606760663660046074565b600055565b005b60005460405190815260200160405180910390f35b600060208284031215608557600080fd5b503591905056fea264697066735822122000000000000000000000000000000000000000000000000000000000000000000064736f6c63430008130033";
 
-// Constructor argument: initial value = 42 (0x2a)
 const CONSTRUCTOR_ARG =
 	"000000000000000000000000000000000000000000000000000000000000002a";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface AccountInfo {
-	index: number;
-	address: string;
-	privateKey: string;
-	role: string;
-}
-
-interface RPCResponse {
-	jsonrpc: string;
-	id: number;
-	result?: any;
-	error?: { code: number; message: string };
-}
-
-// ============================================================================
-// RPC HELPERS
-// ============================================================================
-
-async function rpcCall(
-	url: string,
-	method: string,
-	params: any[] = [],
-): Promise<any> {
-	const response = await fetch(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			jsonrpc: "2.0",
-			method,
-			params,
-			id: Date.now(),
-		}),
-	});
-
-	const json = (await response.json()) as RPCResponse;
-
-	if (json.error) {
-		throw new Error(
-			`RPC Error: ${json.error.message} (code: ${json.error.code})`,
-		);
-	}
-
-	return json.result;
-}
-
-async function getTransactionCount(
-	rpc: string,
-	address: string,
-): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_getTransactionCount", [
-		address,
-		"latest",
-	]);
-	return BigInt(result);
-}
-
-async function getGasPrice(rpc: string): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_gasPrice", []);
-	return BigInt(result);
-}
-
-async function getChainId(rpc: string): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_chainId", []);
-	return BigInt(result);
-}
-
-async function estimateGas(rpc: string, tx: object): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_estimateGas", [tx]);
-	return BigInt(result);
-}
-
-async function sendRawTransaction(
-	rpc: string,
-	signedTx: string,
-): Promise<string> {
-	return await rpcCall(rpc, "eth_sendRawTransaction", [signedTx]);
-}
-
-async function getTransactionReceipt(
-	rpc: string,
-	txHash: string,
-): Promise<any> {
-	return await rpcCall(rpc, "eth_getTransactionReceipt", [txHash]);
-}
-
-async function getBalance(rpc: string, address: string): Promise<bigint> {
-	const result = await rpcCall(rpc, "eth_getBalance", [address, "latest"]);
-	return BigInt(result);
-}
-
-// ============================================================================
-// MAIN DEPLOY FUNCTION
-// ============================================================================
 
 async function deployContract(options: {
 	rpc: string;
@@ -323,43 +208,10 @@ async function deployContract(options: {
 	return receipt;
 }
 
-// ============================================================================
-// CLI ENTRY POINT
-// ============================================================================
-
 async function main() {
-	// Parse arguments
-	// const args = process.argv.slice(2);
 	let rpc = DEFAULT_RPC;
 	let accountIndex = 1;
 	let bytecode = SIMPLE_STORAGE_BYTECODE;
-
-	// 	for (let i = 0; i < args.length; i++) {
-	// 		switch (args[i]) {
-	// 			case "--rpc":
-	// 				rpc = args[++i];
-	// 				break;
-	// 			case "--account":
-	// 				accountIndex = parseInt(args[++i], 10);
-	// 				break;
-	// 			case "--bytecode":
-	// 				bytecode = args[++i];
-	// 				break;
-	// 			case "--help":
-	// 				console.log(`
-	// Usage: npx tsx src/client/bin/deploy-contract.ts [options]
-
-	// Options:
-	//   --rpc <url>       RPC endpoint (default: ${DEFAULT_RPC})
-	//   --account <index> Account index from accounts.json (default: 0)
-	//   --bytecode <hex>  Contract bytecode (default: SimpleStorage)
-
-	// Example:
-	//   npx tsx src/client/bin/deploy-contract.ts --rpc http://127.0.0.1:8545 --account 0
-	// `);
-	// 				process.exit(0);
-	// 		}
-	// 	}
 
 	try {
 		await deployContract({ rpc, accountIndex, bytecode });
