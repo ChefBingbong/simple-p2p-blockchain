@@ -29,7 +29,7 @@ import { getLogger, type Logger } from "../logging.ts";
 import type { FullEthereumService } from "../service/fullethereumservice.ts";
 import { Event } from "../types.ts";
 import { setupMetrics } from "../util/metrics.ts";
-import { type RPCArgs, startRPCServers } from "./startRPC.ts";
+import { type RPCArgs, startRPCServers } from "../util/rpc.ts";
 import { MemoryLevel } from "memory-level";
 
 
