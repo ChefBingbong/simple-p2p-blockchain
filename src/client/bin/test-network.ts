@@ -218,6 +218,8 @@ function cleanDataDir(port: number): void {
 async function startClient() {
 	const port = parseInt(process.env.PORT || "8000", 10);
 	const cleanStart = process.env.CLEAN === "true";
+	const isMiner = [8002, 8001].includes(port);
+
 	const isBootnode = port === BOOTNODE_PORT;
 
 	console.log("\n" + "=".repeat(60));
@@ -292,7 +294,7 @@ async function startClient() {
 		maxFetcherJobs: 100,
 		maxPeers: 25,
 		maxPerRequest: 100,
-		mine: port === BOOTNODE_PORT ? true : false, // Only bootnode mines initially
+		mine: isMiner,
 		minerCoinbase: nodeAccount[0], // Mining rewards go to this node's account
 		minPeers: 1,
 		multiaddrs: [],

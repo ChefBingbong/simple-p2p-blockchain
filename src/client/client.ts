@@ -136,6 +136,9 @@ export class EthereumClient {
     // Only call bootstrap if servers are actually started
     this.config.server && this.config.server.started && (await this.config.server.bootstrap())
 
+    setInterval(() => {
+      this.config.updateSynchronizedState(this.chain.headers.latest);
+    }, 15000)
     this.started = true
   }
 
