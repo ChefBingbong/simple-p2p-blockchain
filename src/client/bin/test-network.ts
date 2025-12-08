@@ -30,11 +30,8 @@ import type { FullEthereumService } from "../service/fullethereumservice.ts";
 import { Event } from "../types.ts";
 import { setupMetrics } from "../util/metrics.ts";
 import { type RPCArgs, startRPCServers } from "../util/rpc.ts";
-import { MemoryLevel } from "memory-level";
-
 
 export type Account = [address: Address, privateKey: Uint8Array];
-
 
 let logger: Logger | undefined;
 
@@ -70,8 +67,6 @@ export const customChainConfig: ChainConfig = {
 		type: "pow",
 		algorithm: "ethash",
 	},
-	comment: "Private test network - Frontier/Chainstart only with PoW",
-	url: "[TESTNET_URL]",
 	genesis: {
 		gasLimit: 10485760,
 		difficulty: 1,
@@ -79,9 +74,7 @@ export const customChainConfig: ChainConfig = {
 		extraData:
 			"0xcc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
-	hardforks: [
-		{ name: "chainstart", block: 0, },
-	],
+	hardforks: [{ name: "chainstart", block: 0 }],
 	bootstrapNodes: [],
 };
 
@@ -274,6 +267,14 @@ async function startClient() {
 	const common = new Common({
 		chain: customChainConfig,
 		hardfork: Hardfork.Chainstart,
+		params: {
+			minGasLimit: 5000,
+			gasLimitBoundDivisor: 1024,
+			maxExtraDataSize: 32,
+			minimumDifficulty: 250,
+			difficultyBoundDivisor: 2048,
+			durationLimit: 13,
+		},
 	});
 
 	const nodeLogger: Logger | undefined = getLogger();
@@ -335,7 +336,9 @@ async function startClient() {
 
 	// Create consensus with Ethash
 	const consensusDict: ConsensusDict = {
-		[ConsensusAlgorithm.Ethash]: new EthashConsensus(new Ethash(new LevelDB() as any)),
+		[ConsensusAlgorithm.Ethash]: new EthashConsensus(
+			new Ethash(new LevelDB() as any),
+		),
 	};
 
 	// Create blockchain with genesis state using our chainDB
@@ -350,7 +353,6 @@ async function startClient() {
 	});
 
 	// Set fork hashes for proper peer handshake
-	common.setForkHashes(blockchain.genesisBlock.hash());
 
 	console.log(
 		`⛓️  Genesis block hash: ${bytesToHex(blockchain.genesisBlock.hash())}\n`,

@@ -64,7 +64,7 @@ export class DPT {
 		this._onlyConfirmed = options.onlyConfirmed ?? false;
 		this._confirmedPeers = new Set();
 
-		this._keccakFunction = options.common?.customCrypto.keccak256 ?? keccak256;
+		this._keccakFunction = keccak256;
 
 		this._kbucket = new KBucket(this.id);
 		this._kbucket.events.on("added", (peer: PeerInfo) =>

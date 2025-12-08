@@ -10,7 +10,6 @@ import {
 } from ".";
 import type { BlockData } from "../block";
 import { createBlock } from "../block";
-import type { Chain } from "../chain-config";
 import { BIGINT_0, bytesToHex, equalsBytes } from "../utils";
 
 const DEBUG = true;
@@ -20,19 +19,12 @@ export async function createBlockchain(opts: BlockchainOptions = {}) {
 	const blockchain = new Blockchain(opts);
 	await blockchain.consensus?.setup({ blockchain });
 
-
 	let stateRoot = opts.genesisBlock?.header.stateRoot ?? opts.genesisStateRoot;
 	if (stateRoot === undefined) {
 		if (blockchain["_customGenesisState"] !== undefined) {
-			stateRoot = await genGenesisStateRoot(
-				blockchain["_customGenesisState"],
-				blockchain.common,
-			);
+			stateRoot = await genGenesisStateRoot(blockchain["_customGenesisState"]);
 		} else {
-			stateRoot = await getGenesisStateRoot(
-				Number(blockchain.common.chainId()) as Chain,
-				blockchain.common,
-			);
+			stateRoot = await getGenesisStateRoot(blockchain.common);
 		}
 	}
 
@@ -101,7 +93,6 @@ export async function createBlockchain(opts: BlockchainOptions = {}) {
 
 	DEBUG &&
 		debug(`genesis block initialized with hash ${bytesToHex(genesisHash!)}`);
-
 
 	return blockchain;
 }
