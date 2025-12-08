@@ -12,7 +12,8 @@ dist
 .env.node3
 .env.send
 
-./test-network-data
+test-network-data/
+keys/
 # code coverage
 coverage
 *.lcov
