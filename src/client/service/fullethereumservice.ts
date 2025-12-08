@@ -113,9 +113,9 @@ export class FullEthereumService extends Service {
       return false
     }
     await super.start()
-    await this.miner?.start()
+    this.miner?.start()
     await this.execution.start()
-    await this.buildHeadState()
+    void this.buildHeadState()
     return true
   }
 

@@ -147,7 +147,7 @@ export class Miner {
 	/**
 	 * Start miner
 	 */
-	async start(): Promise<boolean> {
+	start(): boolean {
 		if (!this.config.mine || this.running) {
 			return false;
 		}
@@ -158,8 +158,8 @@ export class Miner {
 			`Miner started. Assembling next block in ${this.period / 1000}s`,
 		);
 		// Pre-warm the ethash cache in the background
-		await this.warmupEthashCache();
-		await this.queueNextAssembly();
+		void this.warmupEthashCache();
+		void this.queueNextAssembly();
 		return true;
 	}
 
