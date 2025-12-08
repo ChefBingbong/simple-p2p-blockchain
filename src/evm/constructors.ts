@@ -1,10 +1,7 @@
-import { Common, Mainnet } from '../chain-config'
-import { SimpleStateManager } from '../state-manager'
-
-import { EVM } from '.'
-import { EVMMockBlockchain } from './types.ts'
-
-import type { EVMOpts } from '.'
+import type { EVMOpts } from ".";
+import { EVM } from ".";
+import { SimpleStateManager } from "../state-manager";
+import { EVMMockBlockchain } from "./types.ts";
 
 /**
  * Use this async static constructor for the initialization
@@ -14,19 +11,19 @@ import type { EVMOpts } from '.'
  * @returns A new EVM
  */
 export async function createEVM(createOpts?: EVMOpts) {
-  const opts = createOpts ?? ({} as EVMOpts)
+	const opts = createOpts ?? ({} as EVMOpts);
 
-  if (opts.common === undefined) {
-    opts.common = new Common({ chain: Mainnet })
-  }
+	// if (opts.common === undefined) {
+	//   opts.common = new Common({ chain: Mainnet })
+	// }
 
-  if (opts.blockchain === undefined) {
-    opts.blockchain = new EVMMockBlockchain()
-  }
+	if (opts.blockchain === undefined) {
+		opts.blockchain = new EVMMockBlockchain();
+	}
 
-  if (opts.stateManager === undefined) {
-    opts.stateManager = new SimpleStateManager()
-  }
+	if (opts.stateManager === undefined) {
+		opts.stateManager = new SimpleStateManager();
+	}
 
-  return new EVM(opts)
+	return new EVM(opts);
 }

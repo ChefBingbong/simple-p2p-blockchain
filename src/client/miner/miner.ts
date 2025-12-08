@@ -1,11 +1,11 @@
 import { MemoryLevel } from "memory-level";
 import type { Block, BlockHeader } from "../../block";
-import { Ethash, type Miner as EthashMiner, type Solution } from "../../eth-hash";
 import {
-	BIGINT_0,
-	BIGINT_1,
-	bytesToHex,
-} from "../../utils";
+	Ethash,
+	type Miner as EthashMiner,
+	type Solution,
+} from "../../eth-hash";
+import { BIGINT_0, BIGINT_1, bytesToHex } from "../../utils";
 import { buildBlock, type TxReceipt } from "../../vm";
 import type { Config } from "../config.ts";
 import type { VMExecution } from "../execution";
@@ -100,11 +100,15 @@ export class Miner {
 	 * Finds PoW solution for a specific block.
 	 * The solution must be computed for the actual block being mined, not the parent.
 	 */
-	private async findSolutionForBlock(block: Block): Promise<Solution | undefined> {
+	private async findSolutionForBlock(
+		block: Block,
+	): Promise<Solution | undefined> {
 		if (typeof this.ethash === "undefined") {
 			return undefined;
 		}
-		this.config.logger?.info(`Miner: Finding PoW solution for block ${block.header.number} (difficulty: ${block.header.difficulty}) 🔨`);
+		this.config.logger?.info(
+			`Miner: Finding PoW solution for block ${block.header.number} (difficulty: ${block.header.difficulty}) 🔨`,
+		);
 		const startTime = Date.now();
 		this.currentEthashMiner = this.ethash.getMiner(block);
 		const solution = await this.currentEthashMiner.iterate(-1);
@@ -137,7 +141,9 @@ export class Miner {
 	private async warmupEthashCache() {
 		if (!this.ethash) return;
 		const blockNumber = this.latestBlockHeader().number + BIGINT_1;
-		this.config.logger?.info(`Miner: Warming up ethash cache for block ${blockNumber} (this may take 1-2 minutes on first run)...`);
+		this.config.logger?.info(
+			`Miner: Warming up ethash cache for block ${blockNumber} (this may take 1-2 minutes on first run)...`,
+		);
 		const startTime = Date.now();
 		await this.ethash.loadEpoc(blockNumber);
 		const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -205,7 +211,6 @@ export class Miner {
 		// IMPORTANT: Set the hardfork for the NEW block being mined
 		// This ensures miner rewards and other hardfork-dependent parameters
 		// are correct (e.g., 5 ETH pre-byzantium vs 3 ETH post-byzantium)
-		vmCopy.common.setHardforkBy({ blockNumber: number });
 
 		// PoW only - calculate difficulty from parent header
 		const calcDifficultyFromHeader = parentBlock.header;
@@ -263,12 +268,12 @@ export class Miner {
 			index++;
 		}
 		if (interrupt) return;
-		
+
 		// Build the block first (without PoW seal)
 		const { block: unsealedBlock } = await blockBuilder.build();
-		
+
 		if (interrupt) return;
-		
+
 		// Now mine the PoW for the assembled block
 		// The PoW must be computed for THIS block's header, not the parent
 		const solution = await this.findSolutionForBlock(unsealedBlock);
@@ -277,16 +282,18 @@ export class Miner {
 			this.assembling = false;
 			return;
 		}
-		
+
 		if (interrupt) return;
-		
+
 		// Create the final sealed block with the PoW solution
 		const { createBlock } = await import("../../block");
 		const sealedBlockData = unsealedBlock.toJSON();
 		sealedBlockData.header!.nonce = bytesToHex(solution.nonce);
 		sealedBlockData.header!.mixHash = bytesToHex(solution.mixHash);
-		const block = createBlock(sealedBlockData, { common: unsealedBlock.common });
-		
+		const block = createBlock(sealedBlockData, {
+			common: unsealedBlock.common,
+		});
+
 		if (this.config.saveReceipts) {
 			await this.execution.receiptsManager?.saveReceipts(block, receipts);
 		}

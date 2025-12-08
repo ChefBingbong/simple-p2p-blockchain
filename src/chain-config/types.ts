@@ -1,6 +1,5 @@
 import type { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import type { BigIntLike, KZG, PrefixedHexString } from "../utils/index.ts";
-import type { ConsensusAlgorithm, ConsensusType, Hardfork } from "./enums.ts";
 
 export interface ChainName {
 	[chainId: string]: string;
@@ -36,11 +35,8 @@ export interface ChainConfig {
 	name: string;
 	chainId: number | string;
 	defaultHardfork?: string;
-	comment?: string;
-	url?: string;
 	genesis: GenesisBlockConfig;
 	hardforks: HardforkTransitionConfig[];
-	customHardforks?: HardforksDict;
 	bootstrapNodes: BootstrapNodeConfig[];
 	dnsNetworks?: string[];
 	consensus: ConsensusConfig;
@@ -100,18 +96,7 @@ export interface BaseOpts {
 	 * Only Chainstart is supported.
 	 */
 	hardfork?: string | Hardfork;
-	/**
-	 * EIPs - not used, only Frontier/Chainstart behavior supported
-	 */
-	eips?: number[];
-	/**
-	 * Optionally pass in an EIP params dictionary
-	 */
-	params?: ParamsDict;
-	/**
-	 * Custom crypto implementations
-	 */
-	customCrypto?: CustomCrypto;
+	params: ParamsConfig;
 }
 
 /**
@@ -156,4 +141,41 @@ export type ParamsDict = {
 
 export type HardforksDict = {
 	[key: string]: HardforkConfig;
+};
+
+export type Chain = (typeof Chain)[keyof typeof Chain];
+// Only Chainstart hardfork - no EIPs, no other hardforks
+export type Hardfork = (typeof Hardfork)[keyof typeof Hardfork];
+
+export const Hardfork = {
+	Chainstart: "chainstart",
+} as const;
+
+// Only PoW consensus
+export type ConsensusType = (typeof ConsensusType)[keyof typeof ConsensusType];
+
+export const ConsensusType = {
+	ProofOfWork: "pow",
+} as const;
+
+// Only Ethash algorithm
+export type ConsensusAlgorithm =
+	(typeof ConsensusAlgorithm)[keyof typeof ConsensusAlgorithm];
+
+export const ConsensusAlgorithm = {
+	Ethash: "ethash",
+} as const;
+
+export const Chain = {
+	Mainnet: 1,
+	Sepolia: 11155111,
+	Holesky: 17000,
+	Hoodi: 560048,
+} as const;
+export type GenesisState = {
+	name: string;
+	/* blockNumber that can be used to update and track the regenesis marker */
+	blockNumber: bigint;
+	/* stateRoot of the chain at the blockNumber */
+	stateRoot: Uint8Array;
 };
