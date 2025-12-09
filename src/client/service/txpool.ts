@@ -128,9 +128,9 @@ export class TxPool {
 	private REBROADCAST_INTERVAL = 60 * 1000;
 
 	/**
-	 * Number of peers to rebroadcast to
+	 * Minimum number of peers to send full transactions to
 	 */
-	public NUM_PEERS_REBROADCAST_QUOTIENT = 1;
+	private MIN_BROADCAST_PEERS = 2;
 
 	/**
 	 * Log pool statistics on the given interval
@@ -897,21 +897,59 @@ export class TxPool {
 	}
 
 	/**
-	 * Broadcast transactions to peers
+	 * Broadcast transactions to peers using Geth-style sqrt propagation.
+	 * Full transactions go to sqrt(n) peers, hashes to the rest.
+	 * @param txs Transactions to broadcast
+	 * @param peers Optional peer list (defaults to all connected peers)
+	 */
+	broadcastTransactions(txs: TypedTransaction[], peers?: Peer[]) {
+		if (txs.length === 0) return;
+
+		const targetPeers = peers ?? this.service.pool.peers;
+		const numPeers = targetPeers.length;
+		if (numPeers === 0) return;
+
+		// Calculate sqrt(n) peers for full tx broadcast
+		const numFullBroadcast = Math.max(
+			this.MIN_BROADCAST_PEERS,
+			Math.floor(Math.sqrt(numPeers)),
+		);
+
+		// Prepare hash announcement data
+		const txHashes: [number[], number[], Uint8Array[]] = [[], [], []];
+		for (const tx of txs) {
+			txHashes[0].push(tx.type);
+			txHashes[1].push(tx.serialize().byteLength);
+			txHashes[2].push(tx.hash());
+		}
+
+		// Send full transactions to sqrt(n) peers
+		this.sendTransactions(txs, targetPeers.slice(0, numFullBroadcast));
+
+		// Send only hashes to remaining peers
+		if (numFullBroadcast < numPeers) {
+			this.sendNewTxHashes(txHashes, targetPeers.slice(numFullBroadcast));
+		}
+	}
+
+	/**
+	 * Send full transactions to specific peers (internal use)
 	 */
 	sendTransactions(txs: TypedTransaction[], peers: Peer[]) {
-		if (txs.length > 0) {
-			const hashes = txs.map((tx) => tx.hash());
-			for (const peer of peers) {
-				// This is used to avoid re-sending along pooledTxHashes
-				// announcements/re-broadcasts
-				const newHashes = this.addToKnownByPeer(hashes, peer);
-				const newHashesHex = newHashes.map((txHash) =>
-					bytesToUnprefixedHex(txHash),
-				);
-				const newTxs = txs.filter((tx) =>
-					newHashesHex.includes(bytesToUnprefixedHex(tx.hash())),
-				);
+		if (txs.length === 0 || peers.length === 0) return;
+
+		const hashes = txs.map((tx) => tx.hash());
+		for (const peer of peers) {
+			// This is used to avoid re-sending along pooledTxHashes
+			// announcements/re-broadcasts
+			const newHashes = this.addToKnownByPeer(hashes, peer);
+			const newHashesHex = newHashes.map((txHash) =>
+				bytesToUnprefixedHex(txHash),
+			);
+			const newTxs = txs.filter((tx) =>
+				newHashesHex.includes(bytesToUnprefixedHex(tx.hash())),
+			);
+			if (newTxs.length > 0) {
 				peer.eth?.request("Transactions", newTxs).catch((e) => {
 					this.markFailedSends(peer, newHashes, e as Error);
 				});
@@ -1004,7 +1042,7 @@ export class TxPool {
 			peer,
 		);
 
-		const newTxHashes: [number[], number[], Uint8Array[]] = [] as any;
+		const newTxHashes: [number[], number[], Uint8Array[]] = [[], [], []];
 		for (const tx of txs) {
 			try {
 				await this.add(tx);
@@ -1017,14 +1055,23 @@ export class TxPool {
 				);
 			}
 		}
+
+		// Geth-style sqrt propagation:
+		// - Send full transactions to sqrt(n) peers (minimum MIN_BROADCAST_PEERS)
+		// - Send only hashes to remaining peers
 		const peers = peerPool.peers;
 		const numPeers = peers.length;
-		const sendFull = Math.max(
-			1,
-			Math.floor(numPeers / this.NUM_PEERS_REBROADCAST_QUOTIENT),
+		const numFullBroadcast = Math.max(
+			this.MIN_BROADCAST_PEERS,
+			Math.floor(Math.sqrt(numPeers)),
 		);
-		this.sendTransactions(txs, peers.slice(0, sendFull));
-		this.sendNewTxHashes(newTxHashes, peers.slice(sendFull));
+
+		// Send full transactions to sqrt(n) peers
+		this.sendTransactions(txs, peers.slice(0, numFullBroadcast));
+		// Send only hashes to remaining peers
+		if (numFullBroadcast < numPeers) {
+			this.sendNewTxHashes(newTxHashes, peers.slice(numFullBroadcast));
+		}
 	}
 
 	addToKnownByPeer(txHashes: Uint8Array[], peer: Peer): Uint8Array[] {
