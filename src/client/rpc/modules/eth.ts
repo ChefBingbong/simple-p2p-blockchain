@@ -615,11 +615,12 @@ export class Eth {
 
 		// Add pending txns to nonce if blockOpt is 'pending'
 		if (blockOpt === "pending") {
-			pendingTxsCount = BigInt(
-				(this.service as FullEthereumService).txPool.pool.get(
-					addressHex.slice(2),
-				)?.length ?? 0,
-			);
+			const txPool = (this.service as FullEthereumService).txPool;
+			const addr = addressHex.slice(2).toLowerCase();
+			// Count txs from both pending and queued pools
+			const pendingTxs = txPool.pending.get(addr)?.length ?? 0;
+			const queuedTxs = txPool.queued.get(addr)?.length ?? 0;
+			pendingTxsCount = BigInt(pendingTxs + queuedTxs);
 		}
 		return bigIntToHex(account.nonce + pendingTxsCount);
 	}
