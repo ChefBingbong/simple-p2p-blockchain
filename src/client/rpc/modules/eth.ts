@@ -776,6 +776,12 @@ export class Eth {
 				message: `client is not aware of the current chain height yet (give sync some more time)`,
 			};
 		}
+		const chainHeight = this.client.chain.headers.height;
+		let txTargetHeight = syncTargetHeight ?? BIGINT_0;
+		// Following step makes sure txTargetHeight > 0
+		if (txTargetHeight <= chainHeight) {
+			txTargetHeight = chainHeight + BIGINT_1;
+		}
 		const common = this.client.config.chainCommon.copy();
 
 		let tx;

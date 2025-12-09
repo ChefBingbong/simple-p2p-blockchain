@@ -271,7 +271,7 @@ async function startClient() {
 			minGasLimit: 5000,
 			gasLimitBoundDivisor: 1024,
 			maxExtraDataSize: 32,
-			minimumDifficulty: 250,
+			minimumDifficulty: 10,
 			difficultyBoundDivisor: 2048,
 			durationLimit: 13,
 		},

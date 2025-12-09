@@ -1,22 +1,19 @@
-import { LegacyTx, isLegacyTx, type TypedTransaction } from "../../tx";
+import type { Block } from "../../block";
+import { isLegacyTx, LegacyTx, type TypedTransaction } from "../../tx";
 import {
 	Account,
 	Address,
 	BIGINT_0,
-	EthereumJSErrorWithoutCode,
 	bytesToHex,
 	bytesToUnprefixedHex,
 	equalsBytes,
+	EthereumJSErrorWithoutCode,
 	hexToBytes,
-	type PrefixedHexString,
 } from "../../utils";
-
-import { Heap } from "../ext/qheap.ts";
-
-import type { Block } from "../../block";
 import type { VM } from "../../vm";
 import type { Config } from "../config.ts";
 import type { QHeap } from "../ext/qheap.ts";
+import { Heap } from "../ext/qheap.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import type { PeerPool } from "../net/peerpool.ts";
 import type { FullEthereumService } from "./fullethereumservice.ts";
@@ -276,10 +273,12 @@ export class TxPool {
 			);
 			if (existingTxn) {
 				if (equalsBytes(existingTxn.tx.hash(), tx.hash())) {
-					throw EthereumJSErrorWithoutCode(
-						`${bytesToHex(tx.hash())}: this transaction is already in the TxPool`,
-					);
+					// throw EthereumJSErrorWithoutCode(
+					// 	`${bytesToHex(tx.hash())}: this transaction is already in the TxPool`,
+					// );
+					this.removeByHash(bytesToUnprefixedHex(tx.hash()), tx);
 				}
+
 				this.validateTxGasBump(existingTxn.tx, tx);
 			}
 		}
@@ -405,11 +404,10 @@ export class TxPool {
 		if (txs.length === 0 || !this.running) return;
 
 		// Serialize legacy txs
-		const sendable = txs.filter((tx) => isLegacyTx(tx));
+		const sendable = txs;
 
 		for (const peer of peers) {
 			// Make sure this is a peer with an `eth` sub-protocol
-			if (!peer.eth) continue;
 
 			const added = Date.now();
 			const toSend: TypedTransaction[] = [];

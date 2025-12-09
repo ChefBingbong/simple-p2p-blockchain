@@ -206,7 +206,15 @@ export class Miner {
 
 		// Set the state root to ensure the resulting state
 		// is based on the parent block's state
-		await vmCopy.stateManager.setStateRoot(parentBlock.header.stateRoot);
+		try {
+			await vmCopy.stateManager.setStateRoot(parentBlock.header.stateRoot);
+		} catch (error) {
+			this.config.logger?.error(
+				`Miner: Failed to set state root for block ${number}: ${error}`,
+			);
+			this.assembling = false;
+			return;
+		}
 
 		// IMPORTANT: Set the hardfork for the NEW block being mined
 		// This ensures miner rewards and other hardfork-dependent parameters

@@ -16,18 +16,18 @@
  */
 
 import { existsSync, readFileSync } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import {
 	createWalletClient,
 	defineChain,
 	formatEther,
+	type Hex,
 	http,
 	parseEther,
 	publicActions,
-	type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import path from "path";
-import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -236,7 +236,7 @@ async function main() {
 			account,
 			to: toAccount.address as Hex,
 			value: amountWei,
-			gasPrice: 900000000,
+			gasPrice: 1500000000,
 			gas: 21000,
 			type: "legacy",
 		} as any);
