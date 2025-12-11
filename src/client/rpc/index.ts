@@ -1,5 +1,6 @@
-import { serve, ServerType } from "@hono/node-server";
-import { Env, Hono } from "hono";
+import { type ServerType, serve } from "@hono/node-server";
+import type { Env } from "hono";
+import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import type { EthereumClient } from "../client.ts";
 import { createRpcHandlers } from "./modules/index.ts";

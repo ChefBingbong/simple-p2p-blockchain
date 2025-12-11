@@ -1,4 +1,5 @@
 import type { EthereumClient } from "../../../client.ts";
+import { EthRpcMethods, RpcMethods } from "../types.ts";
 import { blockNumber } from "./block-number.ts";
 import { chainId } from "./chain-id.ts";
 import { coinbase } from "./coinbase.ts";
@@ -21,7 +22,9 @@ import { protocolVersion } from "./protocol-version.ts";
 import { sendRawTransaction } from "./send-raw-transaction.ts";
 import { syncing } from "./syncing.ts";
 
-export const createEthRpcMethods = (client: EthereumClient) => {
+export const createEthRpcMethods = (
+	client: EthereumClient,
+): RpcMethods<typeof EthRpcMethods> => {
 	return {
 		eth_blockNumber: blockNumber(client),
 		eth_chainId: chainId(client),

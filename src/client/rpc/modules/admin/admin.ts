@@ -1,9 +1,12 @@
 import type { EthereumClient } from "../../../client.ts";
+import { AdminRpcMethods, RpcMethods } from "../types.ts";
 import { addPeer } from "./add-peer.ts";
 import { nodeInfo } from "./node-info.ts";
 import { peers } from "./peers.ts";
 
-export const createAdminRpcMethods = (client: EthereumClient) => {
+export const createAdminRpcMethods = (
+	client: EthereumClient,
+): RpcMethods<typeof AdminRpcMethods> => {
 	const service = client.service!;
 	const dpt = client.service.pool.config.server.dpt;
 	return {
