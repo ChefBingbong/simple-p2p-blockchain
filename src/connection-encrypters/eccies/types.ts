@@ -1,11 +1,8 @@
-import * as net from "net";
-import { EncrypterResult } from "../../connection/types";
+import type { Socket } from "node:net";
+import type { SecureConnection } from "../../connection/types";
 
 export interface ConnectionEncrypter {
 	protocol: string;
-	encryptInBound(raw: net.Socket): Promise<EncrypterResult>;
-	encryptOutBound(
-		raw: net.Socket,
-		peerId?: Uint8Array,
-	): Promise<EncrypterResult>;
+	secureInBound(raw: Socket): Promise<SecureConnection>;
+	secureOutBound(raw: Socket, peerId?: Uint8Array): Promise<SecureConnection>;
 }

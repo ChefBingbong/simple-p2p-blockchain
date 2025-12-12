@@ -46,7 +46,10 @@ export type EncryptionCredentials = {
 	};
 };
 
-export type EncrypterResult = {
-	socket: TLSSocket;
-	remoteInfo: any;
+export type SecureConnection = {
+	socket: TLSSocket
+	remoteInfo: {
+		remotePublicKey: Uint8Array;
+		remoteNonce: Uint8Array;
+	};
 };

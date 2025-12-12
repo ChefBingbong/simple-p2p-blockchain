@@ -17,7 +17,7 @@ debug.enable("p2p:*,kad:*");
 
 // ============ Configuration ============
 
-const NUM_NODES = 3;
+const NUM_NODES = 2;
 const BASE_UDP_PORT = 30300; // DHT discovery (UDP)
 const BASE_TCP_PORT = 30400; // ECIES connections (TCP)
 
@@ -100,7 +100,6 @@ function createDHTTCPNode(nodeIndex: number, udpPort: number, tcpPort: number): 
 
   // Stream open handler (incoming protocol streams)
   const handleStreamOpen = (protocolId: string, stream: ProtocolStream) => {
-    log(nodeIndex, `📨 Incoming stream for protocol: ${protocolId}`);
     const handler = protocolHandlers.get(protocolId);
     if (handler) {
       handler(stream);
@@ -114,7 +113,9 @@ function createDHTTCPNode(nodeIndex: number, udpPort: number, tcpPort: number): 
   const listener = new TransportListener({
     upgrader: encrypter,
     frameHandler: handleFrame,
-    streamOpenHandler: handleStreamOpen,
+    streamOpenHandler: (protocolId, stream) => {
+        handleStreamOpen(protocolId, stream);
+    },
   });
 
   return {
@@ -144,7 +145,6 @@ function setupDHTEventHandlers(node: DHTTCPNode, allNodes: DHTTCPNode[]) {
     log(index, `🆕 DHT PEER:NEW - ${peer.address}:${peer.udpPort} | ID: ${shortId(peer.id)}`);
     
     // When we discover a new peer via DHT, try to establish TCP connection
-    console.log(peer)
     if (peer.tcpPort && peer.address && peer.id) {
       await attemptTCPConnection(node, peer);
     }
@@ -259,7 +259,7 @@ async function testPingProtocol(node: DHTTCPNode, connection: MuxedConnection, c
     });
 
     // Close stream after a short delay
-    setTimeout(() => stream.close(), 2000);
+    // setTimeout(() => stream.close(), 2000);
   } catch (err: any) {
     log(node.index, `❌ Ping protocol error: ${err.message}`);
   }

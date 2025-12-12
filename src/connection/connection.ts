@@ -213,7 +213,6 @@ export class MuxedConnection extends (EventEmitter as {
 					`[${this.remoteAddr}] attempted to write to non-writable socket`,
 				);
 			}
-			console.log("send frame", frame);
 			this.socket.write(encodeFrame(frame));
 		} catch (error) {
 			log(`[${this.remoteAddr}] failed to send frame: ${error?.message}`);

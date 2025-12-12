@@ -1,5 +1,5 @@
-export type { AckResult } from "./ack";
-export type { AuthResult } from "./auth";
-export { EcciesEncrypter } from "./eccies-encrypter";
+export { EcciesEncrypter, type EcciesEncrypterOptions } from "./eccies-encrypter";
+export * from "./handlers";
 export type { ConnectionEncrypter } from "./types";
+export * from "./utils";
 

@@ -36,14 +36,8 @@ export class TransportListener {
 			throw new Error("Server is not listening yet");
 		}
 		try {
-			// Use factory if available, otherwise fall back to shared upgrader
-
-			console.log(
-				"Upgrading inbound connection to encrypted connection",
-				this.status.listeningAddr.decapsulateCode(4),
-			);
 			const [error, upgraded] = await safeTry(() =>
-				this.context.upgrader.encryptInBound(sock, null),
+				this.context.upgrader.secureInBound(sock),
 			);
 			if (error) throw error;
 			connection = new MuxedConnection(upgraded.socket, {
@@ -55,7 +49,7 @@ export class TransportListener {
 				this.context.streamOpenHandler(protocol, stream),
 			);
 		} catch (err) {
-			console.log(err)
+			console.error(err);
 			log(`Error handling socket: ${err}`);
 			sock.destroy();
 		}
