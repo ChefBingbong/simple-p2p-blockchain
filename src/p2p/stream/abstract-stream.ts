@@ -1,11 +1,8 @@
-import debug from 'debug'
 import { pEvent } from 'p-event'
-import { AbortOptions } from '../connection/types.js'
-import { AbstractMessageStream } from './default-message-stream.js'
+import { AbortOptions } from '../connection/types'
+import { AbstractMessageStream, AbstractMessageStreamInit } from './default-message-stream'
 
-const log = debug('p2p:stream:abstract-stream')
-
-export interface AbstractStreamInit  {
+export interface AbstractStreamInit extends AbstractMessageStreamInit {
   /**
    * A unique identifier for this stream
    */
@@ -22,7 +19,10 @@ export abstract class AbstractStream extends AbstractMessageStream {
   public protocol: string
 
   constructor (init: AbstractStreamInit) {
-    super(init)
+    super({
+      ...init,
+      logNamespace: `p2p:stream:${init.id}`
+    })
 
     this.id = init.id
     this.protocol = init.protocol ?? ''
@@ -38,7 +38,7 @@ export abstract class AbstractStream extends AbstractMessageStream {
     // if we are currently sending data, wait for all the data to be written
     // into the underlying transport
     if (this.sendingData || this.writeBuffer.byteLength > 0) {
-      log('waiting for write queue to become idle before closing writable end of stream, %d unsent bytes', this.writeBuffer.byteLength)
+      this.log('waiting for write queue to become idle before closing writable end of stream, %d unsent bytes', this.writeBuffer.byteLength)
       await pEvent(this, 'idle', {
         ...options,
         rejectionEvents: [
@@ -50,21 +50,21 @@ export abstract class AbstractStream extends AbstractMessageStream {
     // now that the underlying transport has all the data, if the buffer is full
     // wait for it to be emptied
     if (this.writableNeedsDrain) {
-      log('waiting for write queue to drain before closing writable end of stream, %d unsent bytes, sending %s', this.writeBuffer.byteLength, this.sendingData)
+      this.log('waiting for write queue to drain before closing writable end of stream, %d unsent bytes, sending %s', this.writeBuffer.byteLength, this.sendingData)
       await pEvent(this, 'drain', {
         ...options,
         rejectionEvents: [
           'close'
         ]
       })
-      log('write queue drained, closing writable end of stream, %d unsent bytes, sending %s', this.writeBuffer.byteLength, this.sendingData)
+      this.log('write queue drained, closing writable end of stream, %d unsent bytes, sending %s', this.writeBuffer.byteLength, this.sendingData)
     }
 
     await this.sendCloseWrite(options)
 
     this.writeStatus = 'closed'
 
-    log('closed writable end gracefully')
+    this.log('closed writable end gracefully')
 
     if (this.remoteWriteStatus === 'closed') {
       this.onTransportClosed()
@@ -87,7 +87,7 @@ export abstract class AbstractStream extends AbstractMessageStream {
 
     this.readStatus = 'closed'
 
-    log('closed readable end gracefully')
+    this.log('closed readable end gracefully')
   }
 
   /**

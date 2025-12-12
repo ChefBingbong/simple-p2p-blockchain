@@ -1,15 +1,19 @@
 import type { Uint8ArrayList } from 'uint8arraylist'
 import { toString as uint8ArrayToString } from 'uint8arrays'
-import { AbstractMultiaddrConnection as MultiaddrConnection } from '../connection/abstract-multiaddr-connection.js'
-import { MessageStreamDirection } from '../stream/types.js'
-import { AbstractStreamMuxer } from './abstract-stream-muxer.js'
-import { Decoder, MAX_MSG_QUEUE_SIZE, MAX_MSG_SIZE } from './decode.js'
-import type { MplexInit } from './index.js'
-import type { Message } from './message-types.js'
-import { MessageTypeNames, MessageTypes } from './message-types.js'
-import type { MplexStream } from './stream.js'
-import { createStream } from './stream.js'
-const DISCONNECT_THRESHOLD = 5
+import { CreateStreamOptions } from '../connection/types'
+import { AbstractMessageStream } from '../stream/default-message-stream'
+import { MessageStreamDirection } from '../stream/types'
+import { AbstractStreamMuxer } from './abstract-stream-muxer'
+import { Decoder, MAX_MSG_QUEUE_SIZE, MAX_MSG_SIZE } from './decode'
+import type { Message } from './message-types'
+import { MessageTypeNames, MessageTypes } from './message-types'
+import type { MplexStream } from './stream'
+import { createStream } from './stream'
+
+export interface MplexInit {
+  maxMessageSize?: number
+  maxUnprocessedMessageQueueSize?: number
+}
 
 function printMessage (msg: Message): any {
   const output: any = {
@@ -34,7 +38,7 @@ export class MplexStreamMuxer extends AbstractStreamMuxer<MplexStream> {
   private readonly maxUnprocessedMessageQueueSize: number
   private readonly decoder: Decoder
 
-  constructor (maConn: MultiaddrConnection, init: MplexInit) {
+  constructor (maConn: AbstractMessageStream, init: MplexInit = {}) {
     super(maConn, {
       ...init,
       protocol: '/mplex/6.7.0',
@@ -45,7 +49,6 @@ export class MplexStreamMuxer extends AbstractStreamMuxer<MplexStream> {
     this.maxMessageSize = init.maxMessageSize ?? MAX_MSG_SIZE
     this.maxUnprocessedMessageQueueSize = init.maxUnprocessedMessageQueueSize ?? MAX_MSG_QUEUE_SIZE
     this.decoder = new Decoder(this.maxMessageSize, this.maxUnprocessedMessageQueueSize)
-
   }
 
   onData (data: Uint8Array | Uint8ArrayList): void {
@@ -60,7 +63,7 @@ export class MplexStreamMuxer extends AbstractStreamMuxer<MplexStream> {
    */
   onCreateStream (options: CreateStreamOptions): MplexStream {
     if (this.status !== 'open') {
-      throw new MuxerClosedError('Muxer already closed')
+      throw new Error('Muxer already closed')
     }
 
     const id = this._streamId++
@@ -85,14 +88,12 @@ export class MplexStreamMuxer extends AbstractStreamMuxer<MplexStream> {
 
   handleMessage (message: Message): void {
     if (this.log.enabled) {
-      this.log.trace('incoming message', printMessage(message))
+      this.log.trace('incoming message %o', printMessage(message))
     }
 
     // Create a new stream?
     if (message.type === MessageTypes.NEW_STREAM) {
-      // close the connection if the remote opens too many streams too quickly
-
-      const stream = this._newStream(message.id, 'inbound', this.streamOptions)
+      const stream = this._newStream(message.id, 'inbound')
       this.onRemoteStream(stream)
 
       return
@@ -128,7 +129,7 @@ export class MplexStreamMuxer extends AbstractStreamMuxer<MplexStream> {
           this.log('unknown message type')
       }
     } catch (err: any) {
-      this.log.error('error while processing message - %e', err)
+      this.log.error('error while processing message - %s', err.message)
       stream.abort(err)
     }
   }

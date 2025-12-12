@@ -1,7 +1,6 @@
 import type { Multiaddr } from "@multiformats/multiaddr";
 import type { NetConfig } from "../../utils/getNetConfig";
-import { ConnectionEncrypter } from "../connection-encrypters/eccies/types";
-import type { ConnectionHandler, StreamOpenHandler } from "../connection/types";
+import { Upgrader } from "../connection/upgrader";
 
 export interface TCPSocketOptions {
 	noDelay?: boolean;
@@ -9,12 +8,12 @@ export interface TCPSocketOptions {
 	allowHalfOpen?: boolean;
 	signal?: AbortSignal;
 }
+
 export interface CreateListenerOptions {
-	upgrader: ConnectionEncrypter;
+	upgrader: Upgrader;
 }
-export interface TCPCreateListenerOptions
-	extends CreateListenerOptions,
-		TCPSocketOptions {}
+
+export interface TCPCreateListenerOptions extends CreateListenerOptions, TCPSocketOptions {}
 
 export type Status =
 	| { code: "INACTIVE" }
@@ -24,22 +23,16 @@ export type Status =
 			netConfig: NetConfig;
 	  };
 
-export interface Context extends TCPCreateListenerOptions {
+export interface ListenerContext extends TCPCreateListenerOptions {
 	socketInactivityTimeout?: number;
 	socketCloseTimeout?: number;
 	maxConnections?: number;
 	backlog?: number;
-	frameHandler: ConnectionHandler;
-	streamOpenHandler: StreamOpenHandler;
 }
 
 export type TransportDialOpts = {
 	timeoutMs?: number;
-	shouldCreateConnection?: boolean;
 	maxActiveDials: number;
 };
 
-export type CreateTransportOptions = {
-	frameHandler: ConnectionHandler;
-	streamOpenHandler: StreamOpenHandler;
-};
+export type StreamOpenHandler = (protocol: string, stream: any) => void;

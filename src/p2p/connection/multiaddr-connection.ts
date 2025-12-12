@@ -1,6 +1,5 @@
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { Unix } from '@multiformats/multiaddr-matcher'
-import debug from 'debug'
 import type { Socket } from 'net'
 import { pEvent, TimeoutError } from 'p-event'
 import type { Uint8ArrayList } from 'uint8arraylist'
@@ -8,8 +7,6 @@ import { ipPortToMultiaddr } from '../../utils/multi-addr'
 import { MessageStreamDirection, SendResult } from '../stream/types'
 import { AbstractMultiaddrConnection } from './abstract-multiaddr-connection'
 import { AbortOptions } from './types'
-
-const log = debug('p2p:connection:multiaddr-connection')
 
 export interface MultiAddressConnectionOptions {
   socket: Socket
@@ -38,7 +35,8 @@ class TCPSocketMultiaddrConnection extends AbstractMultiaddrConnection {
 
     super({
       ...init,
-      remoteAddr
+      remoteAddr,
+      logNamespace: `p2p:maconn:${remoteAddr.toString()}`
     })
 
     this.socket = init.socket
@@ -48,25 +46,24 @@ class TCPSocketMultiaddrConnection extends AbstractMultiaddrConnection {
     })
 
     this.socket.on('error', err => {
-      log('tcp error', remoteAddr, err)
-
+      this.log('tcp error %s %s', remoteAddr.toString(), err.message)
       this.abort(err)
     })
 
     this.socket.setTimeout(init.inactivityTimeout ?? (2 * 60 * 1_000))
 
     this.socket.once('timeout', () => {
-      log('tcp timeout', remoteAddr)
+      this.log('tcp timeout %s', remoteAddr.toString())
       this.abort(new TimeoutError())
     })
 
     this.socket.once('end', () => {
-      log('tcp end', remoteAddr)
+      this.log('tcp end %s', remoteAddr.toString())
       this.onTransportClosed()
     })
 
     this.socket.once('close', hadError => {
-      log('tcp close', remoteAddr)
+      this.log('tcp close %s', remoteAddr.toString())
 
       if (hadError) {
         this.abort(new Error('TCP transmission error'))
@@ -77,8 +74,7 @@ class TCPSocketMultiaddrConnection extends AbstractMultiaddrConnection {
     })
 
     this.socket.on('drain', () => {
-      log('tcp drain')
-
+      this.log('tcp drain')
       this.safeDispatchEvent('drain')
     })
   }

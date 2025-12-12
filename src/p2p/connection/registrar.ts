@@ -1,39 +1,30 @@
 import type { TypedEventTarget } from 'main-event'
-import { ProtocolHandler } from './protocol-manager.js'
-import { AbortOptions, NetworkEvents, StreamHandlerOptions, StreamProtocolHandler } from './types.js'
+import { NetworkEvents, PeerId, StreamHandler, StreamHandlerOptions, StreamHandlerRecord } from './types'
 
 export const DEFAULT_MAX_INBOUND_STREAMS = 32
-export const DEFAULT_MAX_OUTBOUND_STEAMS = 64
-
-export type PeerId = Uint8Array
+export const DEFAULT_MAX_OUTBOUND_STREAMS = 64
 
 export interface RegistrarOptions {
   peerId: PeerId
-  events: TypedEventTarget<NetworkEvents>
+  events?: TypedEventTarget<NetworkEvents>
 }
 
 export class Registrar {
-  protected readonly handlers: Map<string, StreamProtocolHandler>
-  protected readonly events: TypedEventTarget<NetworkEvents>
+  protected readonly handlers: Map<string, StreamHandlerRecord>
   protected readonly peerId: PeerId
-
+  protected readonly events?: TypedEventTarget<NetworkEvents>
 
   constructor (options: RegistrarOptions) {
-    this.handlers = new Map<string, StreamProtocolHandler>()
-    this.events = options.events
+    this.handlers = new Map<string, StreamHandlerRecord>()
     this.peerId = options.peerId
-
-
-    this.events.addEventListener('peer:disconnect', this._onDisconnect.bind(this))
-    this.events.addEventListener('peer:update', this._onPeerUpdate.bind(this))
-    this.events.addEventListener('peer:connect', this._onPeerIdentify.bind(this))
+    this.events = options.events
   }
 
-  getProtocols () {
-    return this.handlers.keys().toArray()
+  getProtocols (): string[] {
+    return Array.from(this.handlers.keys())
   }
 
-  getHandler (protocol: string) {
+  getHandler (protocol: string): StreamHandlerRecord {
     const handler = this.handlers.get(protocol)
 
     if (handler == null) {
@@ -43,7 +34,7 @@ export class Registrar {
     return handler
   }
 
-  async handle (protocol: string, handler: ProtocolHandler, opts?: StreamHandlerOptions) {
+  handle (protocol: string, handler: StreamHandler, opts?: StreamHandlerOptions): void {
     if (this.handlers.has(protocol) && opts?.force !== true) {
       throw new Error(`Handler already registered for protocol ${protocol}`)
     }
@@ -52,14 +43,13 @@ export class Registrar {
       handler,
       options: {
         maxInboundStreams: DEFAULT_MAX_INBOUND_STREAMS,
-        maxOutboundStreams: DEFAULT_MAX_OUTBOUND_STEAMS,
+        maxOutboundStreams: DEFAULT_MAX_OUTBOUND_STREAMS,
         ...opts
       }
     })
-
   }
 
-  async unhandle (protocols: string | string[], options?: AbortOptions) {
+  unhandle (protocols: string | string[]): void {
     const protocolList = Array.isArray(protocols) ? protocols : [protocols]
 
     for (const protocol of protocolList) {
@@ -67,15 +57,11 @@ export class Registrar {
     }
   }
 
-  async _onDisconnect (evt: CustomEvent<PeerId>){
-    // TODO: Implement
+  hasHandler (protocol: string): boolean {
+    return this.handlers.has(protocol)
   }
+}
 
-  async _onPeerUpdate (evt: CustomEvent<PeerId>){
-    // TODO: Implement
-  }
-
-  async _onPeerIdentify (evt: CustomEvent<PeerId>){
-    // TODO: Implement
-  }
+export function createRegistrar (options: RegistrarOptions): Registrar {
+  return new Registrar(options)
 }

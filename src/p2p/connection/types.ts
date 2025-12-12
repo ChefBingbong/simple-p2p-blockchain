@@ -1,84 +1,58 @@
-import type { Multiaddr } from "@multiformats/multiaddr";
-import type { TLSSocket } from "node:tls";
-import { PeerInfo } from "../../kademlia";
-import type { MuxedConnection } from "./connection";
-import { ProtocolHandler } from "./protocol-manager";
-import type { ProtocolStream } from "./protocol-stream";
+import type { PeerInfo } from "../../kademlia";
 
-export type ConnectionHandler = (mc: MuxedConnection, f: any) => Promise<void>;
+// Re-export PeerInfo for convenience
+export type { PeerInfo };
 
-export type FrameHandler = (f: any) => void;
+// PeerId is a 64-byte Uint8Array (public key without 0x04 prefix)
+export type PeerId = Uint8Array;
 
-export type StreamOpenPayload = {
-	sid: number;
-	protocol: string;
-};
+export interface AbortOptions {
+	signal?: AbortSignal;
+}
 
-export type StreamDataPayload = {
-	sid: number;
-	data: any;
-};
+export interface StreamHandlerOptions extends AbortOptions {
+	maxInboundStreams?: number;
+	maxOutboundStreams?: number;
+	runOnLimitedConnection?: boolean;
+	force?: boolean;
+}
 
-export type StreamClosePayload = {
-	sid: number;
-	direction?: "local" | "remote" | "both";
-};
+export interface StreamHandlerRecord {
+	handler: StreamHandler;
+	options: StreamHandlerOptions;
+}
 
-export type StreamPacket =
-	| { t: "STREAM_OPEN"; payload: StreamOpenPayload }
-	| { t: "STREAM_DATA"; payload: StreamDataPayload }
-	| { t: "STREAM_CLOSE"; payload: StreamClosePayload };
-
-export type StreamOpenHandler = (
-	protocol: string,
-	stream: ProtocolStream,
-) => void;
-
-export type MuxedConnectionOptions = {
-	localAddr?: Multiaddr;
-	remoteAddr?: Multiaddr;
-};
-
-export type EncryptionCredentials = {
-	certPEM: string;
-	keyPEM: string;
-	nodeKey: {
-		private: Uint8Array<ArrayBufferLike>;
-		publicCompressed: Uint8Array<ArrayBufferLike>;
-	};
-};
-
-export type SecureConnection = {
-	socket: TLSSocket
-	remoteInfo: {
-		remotePublicKey: Uint8Array;
-		remoteNonce: Uint8Array;
-	};
-};
+export type StreamHandler = (stream: any) => void | Promise<void>;
 
 export interface NetworkEvents {
-	'peer:update': CustomEvent<PeerInfo>
-	'peer:connect': CustomEvent<PeerInfo>
-	'peer:disconnect': CustomEvent<PeerInfo>
-  
-  }
+	"peer:update": CustomEvent<PeerInfo>;
+	"peer:connect": CustomEvent<PeerInfo>;
+	"peer:disconnect": CustomEvent<PeerInfo>;
+	"connection:open": CustomEvent<any>;
+	"connection:close": CustomEvent<any>;
+}
 
-  export type ServiceMap = Record<string, unknown>
+export interface SecureConnection {
+	socket: import("node:net").Socket;
+	remotePeer: PeerId;
+}
 
-  export interface AbortOptions {
-	signal?: AbortSignal
-  }
-  
-  export interface StreamHandlerOptions extends AbortOptions {
-	maxInboundStreams?: number
-  
-	maxOutboundStreams?: number
-	runOnLimitedConnection?: boolean
-	force?: true
-  }
+export interface NewStreamOptions extends AbortOptions {
+	maxOutboundStreams?: number;
+}
 
-  export type StreamProtocolHandler = { handler: ProtocolHandler, options?: StreamHandlerOptions }
+export interface CreateStreamOptions extends AbortOptions {
+	protocol?: string;
+}
 
-  export interface AbortOptions {
-	signal?: AbortSignal
-  }
+// Stream muxer types
+export type StreamMuxerStatus = "open" | "closing" | "closed";
+
+export interface StreamOptions {
+	direction?: "inbound" | "outbound";
+}
+
+export interface StreamMuxerOptions {
+	streamOptions?: StreamOptions;
+	maxEarlyStreams?: number;
+}

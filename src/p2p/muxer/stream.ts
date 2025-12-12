@@ -1,15 +1,15 @@
-import { AbstractStream } from '@libp2p/utils'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { MAX_MSG_SIZE } from './decode.js'
-import { encode } from './encode.ts'
-import { InitiatorMessageTypes, ReceiverMessageTypes } from './message-types.js'
-import type { MplexStreamMuxer } from './mplex.ts'
-import type { Logger, MessageStreamDirection } from '@libp2p/interface'
-import type { AbstractStreamInit, SendResult } from '@libp2p/utils'
-import type { AbortOptions } from 'it-pushable'
+import { AbortOptions } from '../connection/types'
+import { AbstractStream, AbstractStreamInit } from '../stream/abstract-stream'
+import { Logger } from '../stream/default-message-stream'
+import { MessageStreamDirection, SendResult } from '../stream/types'
+import { MAX_MSG_SIZE } from './decode'
+import { encode } from './encode'
+import { InitiatorMessageTypes, ReceiverMessageTypes } from './message-types'
+import type { MplexStreamMuxer } from './mplex'
 
-export interface Options {
+export interface MplexStreamOptions {
   id: number
   log: Logger
   direction: MessageStreamDirection
@@ -79,8 +79,8 @@ export class MplexStream extends AbstractStream {
     }
   }
 
-  sendReset (): boolean {
-    return this.muxer.send(
+  sendReset (): void {
+    this.muxer.send(
       encode({
         id: this.streamId,
         type: this.types.RESET
@@ -112,7 +112,7 @@ export class MplexStream extends AbstractStream {
   }
 }
 
-export function createStream (options: Options): MplexStream {
+export function createStream (options: MplexStreamOptions): MplexStream {
   const { id, muxer, direction, maxMsgSize = MAX_MSG_SIZE } = options
 
   return new MplexStream({
@@ -121,7 +121,6 @@ export function createStream (options: Options): MplexStream {
     direction,
     maxDataSize: maxMsgSize,
     muxer,
-    log: options.log.newScope(`${direction}:${id}`),
     protocol: ''
   })
 }

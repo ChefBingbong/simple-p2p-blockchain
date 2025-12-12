@@ -1,283 +1,278 @@
-import type { Multiaddr } from "@multiformats/multiaddr";
-import { Unix } from "@multiformats/multiaddr-matcher";
-import debug from "debug";
-import EventEmitter from "node:events";
-import net from "node:net";
-import { multiaddrFromIp } from "../../utils/utils";
-import { ProtocolStream } from "./protocol-stream";
-import type {
-    FrameHandler,
-    MuxedConnectionOptions,
-    StreamOpenHandler,
-    StreamPacket,
-} from "./types";
+import type { Multiaddr } from '@multiformats/multiaddr'
+import { CODE_P2P } from '@multiformats/multiaddr'
+import { TypedEventEmitter, setMaxListeners } from 'main-event'
+import { bytesToUnprefixedHex } from '../../utils'
+import * as mss from '../multi-stream-select'
+import { MplexStreamMuxer } from '../muxer'
+import { AbstractMessageStream } from '../stream/default-message-stream'
+import { MessageStreamDirection, MessageStreamEvents, StreamCloseEvent } from '../stream/types'
+import { AbstractMultiaddrConnection } from './abstract-multiaddr-connection'
+import { DEFAULT_MAX_INBOUND_STREAMS, DEFAULT_MAX_OUTBOUND_STREAMS, Registrar } from './registrar'
+import { AbortOptions, NewStreamOptions, PeerId } from './types'
 
-const log = debug("p2p:muxer");
-type Direction = "local" | "remote" | "both";
+const PROTOCOL_NEGOTIATION_TIMEOUT = 10_000
+const CONNECTION_CLOSE_TIMEOUT = 1_000
 
-export class MuxedConnection extends (EventEmitter as {
-	new (): EventEmitter;
-}) {
-	public socket: net.Socket;
-	public streams = new Map<number, ProtocolStream>();
-
-	private onStreamOpenHandler: StreamOpenHandler | null = null;
-	private onFrameHandler: FrameHandler | null = null;
-
-	private partial: Buffer = Buffer.alloc(0);
-	private nextStreamId = 1;
-	private remoteAddr: Multiaddr;
-
-	constructor(sock: net.Socket, options: MuxedConnectionOptions) {
-		super();
-
-		if (options.localAddr && Unix.matches(options.localAddr)) {
-			this.remoteAddr = options.localAddr;
-		} else if (!this.remoteAddr) {
-			this.remoteAddr = multiaddrFromIp(sock.remoteAddress, sock.remotePort);
-		}
-		this.socket = sock;
-
-		this.socket.on("data", this.onData.bind(this));
-
-		this.socket.on("error", (err) => {
-			log(`[${this.remoteAddr}] socket error: ${err?.message || err}`);
-			sock.destroySoon();
-		});
-
-		this.socket.once("timeout", () => {
-			log("tcp timeout", this.remoteAddr);
-			this.onClose();
-		});
-
-		this.socket.once("end", () => {
-			log("tcp end", this.remoteAddr);
-			this.onClose();
-		});
-
-		this.socket.once("close", () => {
-			log("tcp close", this.remoteAddr);
-			this.onClose();
-		});
-
-		this.socket.on("drain", () => {
-			log("tcp drain", this.remoteAddr);
-			this.onClose();
-		});
-	}
-
-	send(frame: any) {
-		this.sendRaw(frame);
-	}
-
-	setOnFrame(fn: FrameHandler) {
-		this.onFrameHandler = fn;
-	}
-
-	setOnStreamOpen(fn: StreamOpenHandler) {
-		this.onStreamOpenHandler = fn;
-	}
-
-	openStream(protocol: string): ProtocolStream {
-		const sid = this.nextStreamId++;
-		const stream = new ProtocolStream(this, sid, protocol);
-		this.streams.set(sid, stream);
-
-		try {
-			this.send({
-				t: "STREAM_OPEN",
-				payload: { sid, protocol },
-			});
-			return stream;
-		} catch (error) {
-			this.emit("error", error);
-			this.streams.delete(sid);
-			throw error;
-		}
-	}
-
-	sendStreamData(sid: number, data: any) {
-		try {
-			this.send({
-				t: "STREAM_DATA",
-				payload: { sid, data },
-			});
-		} catch (error) {
-			this.emit("error", error);
-		}
-	}
-
-	sendStreamClose(sid: number, direction: Direction) {
-		try {
-			this.send({
-				t: "STREAM_CLOSE",
-				payload: { sid, direction },
-			});
-		} catch (error) {
-			this.emit("error", error);
-		}
-	}
-
-	private onData(chunk: Buffer) {
-		try {
-			this.partial = Buffer.concat([this.partial, chunk]);
-			this.partial = decodeFrames(this.partial, (outer) => {
-				this.dispatch(outer);
-			});
-		} catch (error) {
-			this.emit("error", error);
-		}
-	}
-
-	private dispatch(f: StreamPacket) {
-		if (
-			f.t === "STREAM_OPEN" ||
-			f.t === "STREAM_DATA" ||
-			f.t === "STREAM_CLOSE"
-		) {
-			try {
-				return this.handleStreamPacket(f);
-			} catch (error) {
-				this.emit("error", error);
-				return;
-			}
-		}
-
-		try {
-			this.onFrameHandler?.(f);
-		} catch (err: any) {
-			this.emit("error", err);
-		}
-	}
-
-	private handleStreamPacket(pkt: StreamPacket) {
-		switch (pkt.t) {
-			case "STREAM_OPEN": {
-				const { sid, protocol } = pkt.payload;
-				if (this.streams.has(sid)) return;
-				try {
-					const stream = new ProtocolStream(this, sid, protocol);
-					this.streams.set(sid, stream);
-
-					this.onStreamOpenHandler(protocol, stream);
-				} catch (error) {
-					this.emit("error", error);
-					this.streams.delete(sid);
-				}
-				break;
-			}
-
-			case "STREAM_DATA": {
-				const { sid, data } = pkt.payload;
-				const stream = this.streams.get(sid);
-
-				if (!stream) {
-					log(`[${this.remoteAddr}] STREAM_DATA for unknown sid=${sid}`);
-					return;
-				}
-				try {
-					stream.onData(data);
-				} catch (error) {
-					this.emit("error", error);
-				}
-				break;
-			}
-
-			case "STREAM_CLOSE": {
-				const { sid } = pkt.payload;
-				const stream = this.streams.get(sid);
-				try {
-					if (!stream) return;
-					stream._onRemoteClose();
-				} catch (error) {
-					this.emit("error", error);
-				}
-				break;
-			}
-		}
-	}
-
-	public onClose() {
-		for (const [sid, stream] of this.streams.entries()) {
-			stream._onRemoteClose();
-			this.streams.delete(sid);
-		}
-
-		if (!this.socket.destroyed) this.socket.end();
-	}
-
-	private sendRaw(frame: any) {
-		try {
-			if (!this.socket.writable) {
-				throw new Error(
-					`[${this.remoteAddr}] attempted to write to non-writable socket`,
-				);
-			}
-			this.socket.write(encodeFrame(frame));
-		} catch (error) {
-			log(`[${this.remoteAddr}] failed to send frame: ${error?.message}`);
-			this.emit("error", error);
-		}
-	}
+export interface ConnectionComponents {
+  registrar: Registrar
 }
 
-
-export function encodeFrame(obj: any): Buffer {
-	const body = Buffer.from(JSON.stringify(obj), "utf8");
-	const len = Buffer.alloc(4);
-	len.writeUInt32BE(body.length, 0);
-	return Buffer.concat([len, body]);
+export interface ConnectionInit {
+  id: string
+  maConn: AbstractMultiaddrConnection
+  stream: AbstractMessageStream
+  remotePeer: PeerId
+  direction?: MessageStreamDirection
+  muxer?: MplexStreamMuxer
+  cryptoProtocol?: string
+  outboundStreamProtocolNegotiationTimeout?: number
+  inboundStreamProtocolNegotiationTimeout?: number
+  closeTimeout?: number
 }
 
-export function decodeFrames(
-	buf: Buffer,
-	onFrame: (f: any) => void,
-): Buffer {
-	let off = 0;
-	while (buf.length - off >= 4) {
-		const len = buf.readUInt32BE(off);
-		off += 4;
-		if (buf.length - off < len) {
-			off -= 4;
-			break;
-		}
-		const slice = buf.subarray(off, off + len);
-		off += len;
-		try {
-			onFrame(JSON.parse(slice.toString("utf8")));
-		} catch (e) {
-			console.error("Failed to parse frame:", e);
-		}
-	}
-	return buf.subarray(off);
+const isDirect = (multiaddr: Multiaddr): boolean => {
+  return multiaddr.getComponents().find(component => component.code === CODE_P2P) != null
 }
 
-export const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+export class Connection extends TypedEventEmitter<MessageStreamEvents> {
+  public readonly id: string
+  public readonly remoteAddr: Multiaddr
+  public readonly remotePeer: PeerId
+  public direction: MessageStreamDirection
+  public direct: boolean
+  public multiplexer?: string
+  public encryption?: string
 
-export type StopFn = () => void;
+  private readonly maConn: AbstractMultiaddrConnection
+  private readonly muxer?: MplexStreamMuxer
+  private readonly components: ConnectionComponents
+  private readonly outboundStreamProtocolNegotiationTimeout: number
+  private readonly inboundStreamProtocolNegotiationTimeout: number
+  private readonly closeTimeout: number
 
-export function startTicker(
-	fn: () => void | Promise<void>,
-	ms: number,
-): StopFn {
-	let ticking = true;
-	let running = false;
-	const id = setInterval(async () => {
-		if (!ticking || running) return;
-		try {
-			running = true;
-			await fn();
-		} finally {
-			running = false;
-		}
-	}, ms);
-	return () => {
-		ticking = false;
-		clearInterval(id);
-	};
+  constructor (components: ConnectionComponents, init: ConnectionInit) {
+    super()
+
+    this.components = components
+
+    this.id = init.id
+    this.remoteAddr = init.maConn.remoteAddr
+    this.remotePeer = init.remotePeer
+    this.direction = init.direction ?? 'outbound'
+    this.encryption = init.cryptoProtocol
+    this.maConn = init.maConn
+    this.muxer = init.muxer
+    this.outboundStreamProtocolNegotiationTimeout = init.outboundStreamProtocolNegotiationTimeout ?? PROTOCOL_NEGOTIATION_TIMEOUT
+    this.inboundStreamProtocolNegotiationTimeout = init.inboundStreamProtocolNegotiationTimeout ?? PROTOCOL_NEGOTIATION_TIMEOUT
+    this.closeTimeout = init.closeTimeout ?? CONNECTION_CLOSE_TIMEOUT
+    this.direct = isDirect(init.maConn.remoteAddr)
+
+    this.onIncomingStream = this.onIncomingStream.bind(this)
+
+    if (init.muxer != null) {
+      this.multiplexer = init.muxer.protocol
+      this.muxer.addEventListener('stream', this.onIncomingStream)
+    }
+
+    this.maConn.addEventListener('close', (evt) => {
+      this.dispatchEvent(new StreamCloseEvent(evt.local, evt.error))
+    })
+  }
+
+  get status (): string {
+    return this.maConn.status
+  }
+
+  get streams () {
+    return this.muxer?.streams ?? []
+  }
+
+  get log () {
+    return this.maConn.log
+  }
+
+  async newStream (protocols: string | string[], options: NewStreamOptions = {}): Promise<any> {
+    if (this.muxer == null) {
+      throw new Error('Connection is not multiplexed')
+    }
+
+    if (this.muxer.status !== 'open') {
+      throw new Error(`The connection muxer is "${this.muxer.status}" and not "open"`)
+    }
+
+    if (this.maConn.status !== 'open') {
+      throw new Error(`The connection is "${this.status}" and not "open"`)
+    }
+
+    if (!Array.isArray(protocols)) {
+      protocols = [protocols]
+    }
+
+    this.log('starting new stream for protocols %s', protocols)
+    const muxedStream = await this.muxer.createStream({
+      // most underlying transports only support negotiating a single protocol
+      // so only pass the early protocol if a single protocol has been requested
+      protocol: protocols.length === 1 ? protocols[0] : undefined
+    })
+    this.log('started new stream %s for protocols %s', muxedStream.id, protocols)
+
+    try {
+      if (options.signal == null) {
+        muxedStream.log('no abort signal was passed while trying to negotiate protocols %s falling back to default timeout', protocols)
+
+        const signal = AbortSignal.timeout(this.outboundStreamProtocolNegotiationTimeout)
+        setMaxListeners(Infinity, signal)
+
+        options = {
+          ...options,
+          signal
+        }
+      }
+
+      if (muxedStream.protocol === '') {
+        muxedStream.log.trace('selecting protocol from protocols %s', protocols)
+
+        muxedStream.protocol = await mss.select(muxedStream, protocols, options)
+
+        muxedStream.log('negotiated protocol %s', muxedStream.protocol)
+      } else {
+        muxedStream.log('pre-negotiated protocol %s', muxedStream.protocol)
+      }
+
+      const outgoingLimit = this.findOutgoingStreamLimit(muxedStream.protocol, options)
+      const streamCount = this.countStreams(muxedStream.protocol, 'outbound')
+
+      if (streamCount > outgoingLimit) {
+        const err = new Error(`Too many outbound protocol streams for protocol "${muxedStream.protocol}" - ${streamCount}/${outgoingLimit}`)
+        muxedStream.abort(err)
+        throw err
+      }
+
+      return muxedStream
+    } catch (err: any) {
+      if (muxedStream.status === 'open') {
+        muxedStream.abort(err)
+      } else {
+        this.log.error('could not create new outbound stream on connection %s %s for protocols %s - %s', this.direction === 'inbound' ? 'from' : 'to', this.remoteAddr.toString(), protocols, err.message)
+      }
+
+      throw err
+    }
+  }
+
+  private async onIncomingStream (evt: CustomEvent<any>): Promise<void> {
+    const muxedStream = evt.detail
+
+    const signal = AbortSignal.timeout(this.inboundStreamProtocolNegotiationTimeout)
+    setMaxListeners(Infinity, signal)
+
+    muxedStream.log('start protocol negotiation, timing out after %dms', this.inboundStreamProtocolNegotiationTimeout)
+
+    try {
+      if (muxedStream.protocol === '') {
+        const protocols = this.components.registrar.getProtocols()
+
+        muxedStream.log.trace('selecting protocol from protocols %s', protocols)
+
+        muxedStream.protocol = await mss.handle(muxedStream, protocols, {
+          signal
+        })
+
+        muxedStream.log('negotiated protocol %s', muxedStream.protocol)
+      } else {
+        muxedStream.log('pre-negotiated protocol %s', muxedStream.protocol)
+      }
+
+      const incomingLimit = this.findIncomingStreamLimit(muxedStream.protocol)
+      const streamCount = this.countStreams(muxedStream.protocol, 'inbound')
+
+      if (streamCount > incomingLimit) {
+        throw new Error(`Too many inbound protocol streams for protocol "${muxedStream.protocol}" - limit ${incomingLimit}`)
+      }
+
+      const { handler } = this.components.registrar.getHandler(muxedStream.protocol)
+
+      // Call the protocol handler
+      await handler(muxedStream)
+    } catch (err: any) {
+      muxedStream.abort(err)
+    }
+  }
+
+  private findIncomingStreamLimit (protocol: string): number {
+    try {
+      const { options } = this.components.registrar.getHandler(protocol)
+
+      if (options?.maxInboundStreams != null) {
+        return options.maxInboundStreams
+      }
+    } catch {
+      // Handler not found
+    }
+
+    return DEFAULT_MAX_INBOUND_STREAMS
+  }
+
+  private findOutgoingStreamLimit (protocol: string, options: NewStreamOptions = {}): number {
+    try {
+      const { options: handlerOptions } = this.components.registrar.getHandler(protocol)
+
+      if (handlerOptions?.maxOutboundStreams != null) {
+        return handlerOptions.maxOutboundStreams
+      }
+    } catch {
+      // Handler not found
+    }
+
+    return options.maxOutboundStreams ?? DEFAULT_MAX_OUTBOUND_STREAMS
+  }
+
+  private countStreams (protocol: string, direction: 'inbound' | 'outbound'): number {
+    let streamCount = 0
+
+    this.streams.forEach(stream => {
+      if (stream.direction === direction && stream.protocol === protocol) {
+        streamCount++
+      }
+    })
+
+    return streamCount
+  }
+
+  /**
+   * Close the connection
+   */
+  async close (options: AbortOptions = {}): Promise<void> {
+    this.log('closing connection to %s', this.remoteAddr.toString())
+
+    if (options.signal == null) {
+      const signal = AbortSignal.timeout(this.closeTimeout)
+      setMaxListeners(Infinity, signal)
+
+      options = {
+        ...options,
+        signal
+      }
+    }
+
+    await this.muxer?.close(options)
+    await this.maConn.close(options)
+  }
+
+  abort (err: Error): void {
+    this.muxer?.abort(err)
+    this.maConn.abort(err)
+  }
+
+  /**
+   * Get remote peer ID as hex string
+   */
+  getRemotePeerIdString (): string {
+    return bytesToUnprefixedHex(this.remotePeer)
+  }
 }
 
-export function jittered(baseMs: number, jitterPct = 0.2) {
-	const d = baseMs * jitterPct;
-	return Math.floor(baseMs - d + Math.random() * (2 * d));
+export function createConnection (components: ConnectionComponents, init: ConnectionInit): Connection {
+  return new Connection(components, init)
 }
+

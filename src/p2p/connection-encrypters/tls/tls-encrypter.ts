@@ -2,78 +2,106 @@ import { createHash } from "crypto";
 import debug from "debug";
 import type { Socket } from "node:net";
 import {
-    TLSSocket,
-    type TLSSocketOptions,
-    connect as tlsConnect,
+	TLSSocket,
+	type TLSSocketOptions,
+	connect as tlsConnect,
 } from "node:tls";
-import { safeError, safeResult } from "../../../utils/safe";
-import type {
-    EncrypterResult,
-    EncryptionCredentials,
-} from "../../connection/types";
+import { pk2id } from "../../../kademlia";
+import type { SecureConnection } from "../../connection/types";
 import { ConnectionEncrypter } from "../eccies/types";
 import { generateBoundCertificate, verifyPeerCertificate } from "./cert";
 
-const log = debug("p2p:encrypter");
+const log = debug("p2p:encrypter:tls");
 
-export class Encrypter implements ConnectionEncrypter {
+export interface TLSEncrypterInit {
+	privateKey: Uint8Array;
+}
+
+export class TLSEncrypter implements ConnectionEncrypter {
+	public readonly protocol = "tls";
+	private readonly privateKey: Uint8Array;
 	private trustedCache: Map<string, any> = new Map();
 
-	constructor(private keyPair: Uint8Array) {}
+	constructor(init: TLSEncrypterInit) {
+		this.privateKey = init.privateKey;
+	}
 
-	private fingerprint(raw: Buffer) {
+	private fingerprint(raw: Buffer): string {
 		return createHash("sha256").update(raw).digest("hex");
 	}
 
-	async encrypt(raw: Socket, isServer: boolean) {
+	async secureInBound(socket: Socket): Promise<SecureConnection> {
 		try {
-			const creds = await generateBoundCertificate(this.keyPair);
-			const tlsSocket = await this.upgradeToTlsSocket(raw, creds, isServer);
-
-			const result = await new Promise<EncrypterResult>((resolve, reject) => {
-				const onError = (e: Error) => {
-					tlsSocket.destroy();
-					cleanup();
-					reject(e);
-				};
-				const onReady = async () => {
-					const result = await this.onTlsConnected(tlsSocket);
-					cleanup();
-					resolve(result);
-				};
-				const cleanup = () => {
-					tlsSocket.off("secure" as any, onReady);
-					tlsSocket.off("error", onError);
-				};
-				tlsSocket.once("secure" as any, onReady);
-				tlsSocket.once("error", onError);
-			});
-			return safeResult(result);
-		} catch (error) {
-			log("encryption handshake failed:", error);
-			return safeError(error);
+			const creds = await generateBoundCertificate(this.privateKey);
+			const tlsSocket = await this.upgradeToTlsSocket(socket, creds, true);
+			return await this.onTlsConnected(tlsSocket);
+		} catch (error: any) {
+			log("TLS inbound handshake failed: %s", error.message);
+			throw error;
 		}
 	}
 
-	private async onTlsConnected(tlsSocket: TLSSocket) {
-		const peer = tlsSocket.getPeerCertificate(true);
-		const fp = this.fingerprint(peer.raw);
-
-		if (this.trustedCache.has(fp)) {
-			const remoteInfo = this.trustedCache.get(fp);
-			return { socket: tlsSocket, remoteInfo };
+	async secureOutBound(socket: Socket, peerId?: Uint8Array): Promise<SecureConnection> {
+		try {
+			const creds = await generateBoundCertificate(this.privateKey);
+			const tlsSocket = await this.upgradeToTlsSocket(socket, creds, false);
+			return await this.onTlsConnected(tlsSocket);
+		} catch (error: any) {
+			log("TLS outbound handshake failed: %s", error.message);
+			throw error;
 		}
+	}
 
-		const remoteInfo = await verifyPeerCertificate(peer.raw);
-		this.trustedCache.set(fp, remoteInfo);
-		return { socket: tlsSocket, remoteInfo };
+	private async onTlsConnected(tlsSocket: TLSSocket): Promise<SecureConnection> {
+		return new Promise((resolve, reject) => {
+			const onError = (e: Error) => {
+				tlsSocket.destroy();
+				cleanup();
+				reject(e);
+			};
+
+			const onReady = async () => {
+				try {
+					const peer = tlsSocket.getPeerCertificate(true);
+					const fp = this.fingerprint(peer.raw);
+
+					let remotePeer: Uint8Array;
+
+					if (this.trustedCache.has(fp)) {
+						const remoteInfo = this.trustedCache.get(fp);
+						remotePeer = pk2id(remoteInfo.nodePubCompressed);
+					} else {
+						const remoteInfo = await verifyPeerCertificate(peer.raw);
+						this.trustedCache.set(fp, remoteInfo);
+						remotePeer = pk2id(remoteInfo.nodePubCompressed);
+					}
+
+					cleanup();
+					resolve({
+						socket: tlsSocket as unknown as Socket,
+						remotePeer
+					});
+				} catch (err: any) {
+					cleanup();
+					reject(err);
+				}
+			};
+
+			const cleanup = () => {
+				tlsSocket.off("secureConnect", onReady);
+				tlsSocket.off("error", onError);
+			};
+
+			tlsSocket.once("secureConnect", onReady);
+			tlsSocket.once("error", onError);
+		});
 	}
 
 	private async upgradeToTlsSocket(
 		raw: Socket,
-		creds: EncryptionCredentials,
+		creds: { certPEM: string; keyPEM: string },
 		isServer: boolean,
-	) {
+	): Promise<TLSSocket> {
 		const baseOpts: TLSSocketOptions = {
 			cert: creds.certPEM,
 			key: creds.keyPEM,
@@ -91,4 +119,8 @@ export class Encrypter implements ConnectionEncrypter {
 		}
 		return tlsConnect({ ...baseOpts, socket: raw });
 	}
+}
+
+export function createTLSEncrypter(init: TLSEncrypterInit): TLSEncrypter {
+	return new TLSEncrypter(init);
 }

@@ -1,11 +1,13 @@
 /**
  * @packageDocumentation
  *
- * multistream-select is protocol multiplexing per connection/stream. [Full spec here](https://github.com/multiformats/multistream-select)
+ * multistream-select is protocol multiplexing per connection/stream. 
+ * Full spec: https://github.com/multiformats/multistream-select
  *
  * ## Select a protocol flow
  *
- * The caller will send "interactive" messages, expecting for some acknowledgement from the callee, which will "select" the handler for the desired and supported protocol:
+ * The caller will send "interactive" messages, expecting for some acknowledgement 
+ * from the callee, which will "select" the handler for the desired and supported protocol:
  *
  * ```
  * < /multistream-select/0.3.0  # i speak multistream-select/0.3.0
@@ -20,12 +22,12 @@
  * ```
  */
 
-import { AbortOptions } from 'it-pushable'
-import { PROTOCOL_ID } from './constants.js'
+import type { AbortOptions } from '../connection/types'
+import { PROTOCOL_ID } from './constants'
 
 export { PROTOCOL_ID }
 
-export interface MultistreamSelectInit extends AbortOptions, Partial<any> {
+export interface MultistreamSelectInit extends AbortOptions {
   /**
    * When false, and only a single protocol is being negotiated, use optimistic
    * select to send both the protocol name and the first data buffer in the
@@ -34,8 +36,19 @@ export interface MultistreamSelectInit extends AbortOptions, Partial<any> {
    * @default true
    */
   negotiateFully?: boolean
+
+  /**
+   * Max data length for protocol names
+   */
+  maxDataLength?: number
+
+  /**
+   * Max length for varint prefix
+   */
+  maxLengthLength?: number
 }
 
-export { handle } from './handle.js'
-export { select } from './select.js'
+export { handle } from './handle'
+export { encode, LengthPrefixedStream, lpStream } from './lp-stream'
+export { select } from './select'
 
