@@ -110,14 +110,24 @@ export class Upgrader {
       // Try to extract remote peer ID from multiaddr
       const peerIdString = maConn.remoteAddr.getComponents().findLast(c => c.code === CODE_P2P)?.value
 
-      // Encrypt the connection
-      const encrypted = direction === 'inbound'
-        ? await this._encryptInbound(stream, opts)
-        : await this._encryptOutbound(stream, opts)
+      // Skip encryption if no encrypter configured (testing mode)
+      if (this.connectionEncrypter) {
+        // Encrypt the connection DIRECTLY (no multi-stream-select for ECIES)
+        // ECIES from RLPx uses a custom handshake, not compatible with multistream-select
+        const encrypted = direction === 'inbound'
+          ? await this._encryptInboundDirect(stream, opts)
+          : await this._encryptOutboundDirect(stream, opts)
 
-      stream = encrypted.connection
-      remotePeer = encrypted.remotePeer
-      cryptoProtocol = encrypted.protocol
+        stream = encrypted.connection
+        remotePeer = encrypted.remotePeer
+        cryptoProtocol = encrypted.protocol
+      } else {
+        // No encryption - use peer ID from connection options
+        const maConnAny = maConn as any
+        remotePeer = maConnAny.remotePeerId || this.id
+        cryptoProtocol = 'none'
+        maConn.log('skipping encryption (testing mode), remote peer: %s', Buffer.from(remotePeer).toString('hex').slice(0, 16))
+      }
 
       // If we had a peer ID in the multiaddr, we could verify it matches here
       // For now we trust the encrypted connection's peer ID
@@ -161,15 +171,12 @@ export class Upgrader {
   }
 
   /**
-   * Encrypts the incoming connection
+   * Encrypts the incoming connection (DIRECT - no multistream-select)
+   * ECIES uses its own handshake protocol, incompatible with multistream-select
    */
-  async _encryptInbound (connection: AbstractMessageStream, options: AbortOptions): Promise<SecuredConnection> {
-    const protocols = [this.connectionEncrypter.protocol]
-
+  async _encryptInboundDirect (connection: AbstractMessageStream, options: AbortOptions): Promise<SecuredConnection> {
     try {
-      const protocol = await mss.handle(connection, protocols, options)
-
-      connection.log('encrypting inbound connection using %s', protocol)
+      connection.log('performing ECIES handshake (inbound) - direct, no multistream-select')
 
       // Perform actual ECIES encryption handshake
       const maConn = connection as any
@@ -178,7 +185,6 @@ export class Upgrader {
         throw new Error('No socket available for ECIES encryption')
       }
 
-      connection.log('performing ECIES handshake (inbound)...')
       const secureConn = await this.connectionEncrypter.secureInBound(socket)
       
       connection.log('ECIES handshake complete (inbound), remote peer: %s', Buffer.from(secureConn.remotePeer).toString('hex').slice(0, 16))
@@ -186,7 +192,7 @@ export class Upgrader {
       return {
         connection,
         remotePeer: secureConn.remotePeer,
-        protocol
+        protocol: 'eccies'
       }
     } catch (err: any) {
       throw new Error(`Failed to encrypt inbound connection: ${err.message}`)
@@ -194,17 +200,12 @@ export class Upgrader {
   }
 
   /**
-   * Encrypts the outgoing connection
+   * Encrypts the outgoing connection (DIRECT - no multistream-select)
+   * ECIES uses its own handshake protocol, incompatible with multistream-select
    */
-  async _encryptOutbound (connection: AbstractMessageStream, options: AbortOptions): Promise<SecuredConnection> {
-    const protocols = [this.connectionEncrypter.protocol]
-
+  async _encryptOutboundDirect (connection: AbstractMessageStream, options: AbortOptions): Promise<SecuredConnection> {
     try {
-      connection.log.trace('selecting encrypter from %s', protocols)
-
-      const protocol = await mss.select(connection, protocols, options)
-
-      connection.log('encrypting outbound connection using %s', protocol)
+      connection.log('performing ECIES handshake (outbound) - direct, no multistream-select')
 
       // Perform actual ECIES encryption handshake
       const maConn = connection as any
@@ -227,7 +228,7 @@ export class Upgrader {
       return {
         connection,
         remotePeer: secureConn.remotePeer,
-        protocol
+        protocol: 'eccies'
       }
     } catch (err: any) {
       throw new Error(`Failed to encrypt outbound connection: ${err.message}`)

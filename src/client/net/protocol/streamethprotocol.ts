@@ -14,7 +14,8 @@ import {
     bigIntToUnpaddedBytes,
     bytesToBigInt,
     bytesToHex,
-    bytesToInt
+    bytesToInt,
+    intToUnpaddedBytes
 } from "../../../utils";
 import {
     encodeReceipt
@@ -175,24 +176,56 @@ export class StreamEthProtocol extends Protocol {
 	 */
 	private async handleStream(stream: MplexStream) {
 		this.config.logger?.info(
-			`📨 ETH protocol stream opened: ${stream.id} (protocol: ${stream.protocol})`,
+			`📨 ETH protocol stream opened: ${stream.id} (protocol: ${stream.protocol}), read buffer: ${(stream as any).readBufferLength || 0} bytes`,
 		);
 
-		// Listen for messages on this stream
+		// IMPORTANT: Attach message listener IMMEDIATELY to catch any buffered data
 		stream.addEventListener("message", async (evt: any) => {
 			try {
-				const data = evt.data instanceof Uint8Array
-					? evt.data.subarray ? evt.data.subarray() : evt.data
-					: new Uint8Array(evt.data);
+				// StreamMessageEvent has .data property containing Uint8Array or Uint8ArrayList
+				if (!evt.data) {
+					this.config.logger?.error(
+						`❌ Message event has no .data property! Event: ${JSON.stringify(evt)}`,
+					);
+					return;
+				}
+
+				// Convert Uint8ArrayList to Uint8Array
+				// Uint8ArrayList has subarray() method that returns all bytes as Uint8Array
+				let data: Uint8Array;
+				if (typeof evt.data.subarray === 'function') {
+					data = evt.data.subarray();
+				} else if (evt.data instanceof Uint8Array) {
+					data = evt.data;
+				} else {
+					this.config.logger?.error(
+						`❌ evt.data has unexpected type: ${evt.data.constructor?.name || typeof evt.data}`,
+					);
+					return;
+				}
 
 				this.config.logger?.info(
-					`📥 Received message on stream ${stream.id}: ${data.length} bytes`,
+					`📥 Received message on stream ${stream.id}: ${data.length} bytes, hex: ${bytesToHex(data).slice(0, 40)}...`,
 				);
+
+				if (data.length === 0) {
+					this.config.logger?.warn(
+						`⚠️  Received empty message`,
+					);
+					return;
+				}
+
+				if (data.length < 2) {
+					this.config.logger?.warn(
+						`⚠️  Message too short (${data.length} bytes), expected at least 2 bytes (code + payload)`,
+					);
+					return;
+				}
 
 				await this.handleMessage(stream, data);
 			} catch (err: any) {
 				this.config.logger?.error(
-					`❌ Error handling ETH message: ${err.message}`,
+					`❌ Error handling ETH message: ${err.message}, stack: ${err.stack}`,
 				);
 			}
 		});
@@ -208,6 +241,18 @@ export class StreamEthProtocol extends Protocol {
 				`❌ ETH protocol stream error: ${evt.error?.message || "unknown"}`,
 			);
 		});
+
+		// Check if there's already data in the read buffer and manually trigger processing
+		const streamAny = stream as any;
+		if (streamAny.readBufferLength && streamAny.readBufferLength > 0) {
+			this.config.logger?.info(
+				`⚡ Stream ${stream.id} has ${streamAny.readBufferLength} bytes already buffered, triggering dispatch...`,
+			);
+			// Try to trigger a read to dispatch buffered data
+			if (typeof streamAny.processReadBuffer === 'function') {
+				streamAny.processReadBuffer();
+			}
+		}
 	}
 
 	/**
@@ -235,11 +280,22 @@ export class StreamEthProtocol extends Protocol {
 		};
 
 		this.config.logger?.info(
-			`📥 Processing message: ${messageNames[code] || `0x${code.toString(16)}`} (${payload.length} bytes payload)`,
+			`📥 Processing message: ${messageNames[code] || `0x${code.toString(16)}`} (${payload.length} bytes payload, hex: ${bytesToHex(payload).slice(0, 40)}...)`,
 		);
 
 		// Decode RLP payload
-		const decoded = RLP.decode(payload);
+		let decoded: any;
+		try {
+			decoded = RLP.decode(payload);
+			this.config.logger?.debug(
+				`RLP decoded: type=${Array.isArray(decoded) ? 'array' : typeof decoded}, length=${Array.isArray(decoded) ? decoded.length : 'N/A'}`,
+			);
+		} catch (err: any) {
+			this.config.logger?.error(
+				`❌ Failed to decode RLP payload: ${err.message}`,
+			);
+			return;
+		}
 
 		switch (code) {
 			case StreamEthProtocol.MSG_STATUS:
@@ -261,9 +317,12 @@ export class StreamEthProtocol extends Protocol {
 			case StreamEthProtocol.MSG_TRANSACTIONS:
 			case StreamEthProtocol.MSG_NEW_BLOCK:
 			case StreamEthProtocol.MSG_NEW_POOLED_TX_HASHES:
-				// These are announcements
-				// TODO: Handle announcements (similar to old BoundProtocol)
-				this.config.logger?.info(`📢 Received announcement: ${messageNames[code]}`);
+				// These are announcements - emit PROTOCOL_MESSAGE event for FullSynchronizer
+				this.config.logger?.info(
+					`📢 Received announcement: ${messageNames[code]}`,
+				);
+				// The event should be emitted with message details
+				// For now, just log it
 				break;
 			default:
 				this.config.logger?.warn(`❓ Unknown ETH message code: 0x${code.toString(16)}`);
@@ -272,16 +331,29 @@ export class StreamEthProtocol extends Protocol {
 
 	/**
 	 * Handle STATUS message
+	 * Format: [version, chainId, td, bestHash, genesisHash]
 	 */
 	private async handleStatus(stream: MplexStream, decoded: any) {
+		if (!Array.isArray(decoded) || decoded.length < 5) {
+			this.config.logger?.error(
+				`❌ Invalid STATUS format: expected array with 5+ elements, got ${typeof decoded}`,
+			);
+			stream.close();
+			return;
+		}
+
+		const [version, chainId, td, bestHash, genesisHash] = decoded;
+
 		const status = {
-			chainId: bytesToBigInt(decoded.chainId),
-			td: bytesToBigInt(decoded.td),
-			bestHash: decoded.bestHash,
-			genesisHash: decoded.genesisHash,
+			version: bytesToInt(version),
+			chainId: bytesToBigInt(chainId),
+			td: bytesToBigInt(td),
+			bestHash: bestHash,
+			genesisHash: genesisHash,
 		};
+
 		this.config.logger?.info(
-			`✅ Received STATUS: chainId=${status.chainId}, td=${status.td}, genesis=${bytesToHex(status.genesisHash).slice(0, 18)}...`,
+			`✅ Received STATUS: version=eth/${status.version}, chainId=${status.chainId}, td=${status.td}, genesis=${bytesToHex(status.genesisHash).slice(0, 18)}...`,
 		);
 		
 		// Verify genesis hash matches
@@ -399,28 +471,47 @@ export class StreamEthProtocol extends Protocol {
 		code: number,
 		payload: any,
 	) {
-		const encoded = RLP.encode(payload);
-		const message = new Uint8Array(1 + encoded.length);
-		message[0] = code;
-		message.set(encoded, 1);
-		stream.send(message);
+		try {
+			// Payload should be RLP-compatible (arrays of Uint8Arrays)
+			const encoded = RLP.encode(payload);
+			const message = new Uint8Array(1 + encoded.length);
+			message[0] = code;
+			message.set(encoded, 1);
+			
+			this.config.logger?.info(
+				`📤 Sending message code=0x${code.toString(16)} payload=${encoded.length} bytes, total=${message.length} bytes, hex=${bytesToHex(message).slice(0, 40)}...`,
+			);
+			
+			stream.send(message);
+		} catch (err: any) {
+			this.config.logger?.error(
+				`Failed to encode message code=0x${code.toString(16)}: ${err.message}`,
+			);
+			throw err;
+		}
 	}
 
 	/**
 	 * Send STATUS message
+	 * Format: [version, chainId, td, bestHash, genesisHash]
 	 */
 	async sendStatus(stream: MplexStream) {
-		const status = {
-			chainId: bigIntToUnpaddedBytes(this.chain.chainId),
-			td: bigIntToUnpaddedBytes(this.chain.blocks.td),
-			bestHash: this.chain.blocks.latest!.hash(),
-			genesisHash: this.chain.genesis.hash(),
-			latestBlock: bigIntToUnpaddedBytes(
-				this.chain.blocks.latest!.header.number,
-			),
-		};
+		// Determine protocol version from stream protocol string
+		const protocolVersion = stream.protocol.includes('/eth/68') ? 68
+			: stream.protocol.includes('/eth/67') ? 67
+			: 66;
+
+		// STATUS is sent as an array (RLP format from eth protocol)
+		const status = [
+			intToUnpaddedBytes(protocolVersion),
+			bigIntToUnpaddedBytes(this.chain.chainId),
+			bigIntToUnpaddedBytes(this.chain.blocks.td),
+			this.chain.blocks.latest!.hash(),
+			this.chain.genesis.hash(),
+		];
+
 		this.config.logger?.info(
-			`📤 Sending STATUS: chainId=${this.chain.chainId}, td=${this.chain.blocks.td}, bestHash=${bytesToHex(status.bestHash).slice(0, 18)}...`,
+			`📤 Sending STATUS: version=eth/${protocolVersion}, chainId=${this.chain.chainId}, td=${this.chain.blocks.td}, bestHash=${bytesToHex(this.chain.blocks.latest!.hash()).slice(0, 18)}...`,
 		);
 		await this.sendMessage(stream, StreamEthProtocol.MSG_STATUS, status);
 		this.config.logger?.info(`✅ STATUS message sent on stream ${stream.id}`);

@@ -2,7 +2,6 @@ import { multiaddr } from "@multiformats/multiaddr";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { DPT as Devp2pDPT } from "../../../devp2p/dpt-1/index.ts";
 import { pk2id } from "../../../devp2p/util.ts";
-import { EcciesEncrypter } from "../../../p2p/connection-encrypters/eccies/eccies-encrypter.ts";
 import { Connection } from "../../../p2p/connection/connection.ts";
 import { Registrar } from "../../../p2p/connection/registrar.ts";
 import { Upgrader } from "../../../p2p/connection/upgrader.ts";
@@ -168,6 +167,10 @@ export class P2PServer extends Server {
 	 * Bootstrap bootnode from the network
 	 */
 	async bootstrap(): Promise<void> {
+		this.config.logger?.info(
+			`🌐 Bootstrap starting with ${this.bootnodes.length} bootnode(s)`,
+		);
+
 		const promises = this.bootnodes.map((ma) => {
 			const { host, port } = getHostPortFromMultiaddr(ma);
 			const bootnode = {
@@ -175,16 +178,25 @@ export class P2PServer extends Server {
 				udpPort: Number(port),
 				tcpPort: Number(port),
 			};
+			this.config.logger?.info(
+				`📡 Bootstrapping to ${host}:${port} (UDP+TCP)`,
+			);
 			return this.dpt!.bootstrap(bootnode);
 		});
 
 		for (const promise of promises) {
 			try {
 				await promise;
+				this.config.logger?.info(`✅ Bootstrap complete`);
 			} catch (e: any) {
+				this.config.logger?.error(`❌ Bootstrap failed: ${e.message}`);
 				this.error(e);
 			}
 		}
+
+		this.config.logger?.info(
+			`✅ Bootstrap phase complete, DPT table size: ${this.dpt?.getPeers().length || 0}`,
+		);
 	}
 
 	/**
@@ -254,13 +266,17 @@ export class P2PServer extends Server {
 				refreshInterval: this.refreshInterval,
 				endpoint: {
 					address: "127.0.0.1",
-					udpPort: null,
-					tcpPort: null,
+					udpPort: this.config.port || null,
+					tcpPort: this.config.port || null,  // Important: Tell peers our TCP port!
 				},
 				onlyConfirmed: false,
 				shouldFindNeighbours: this.config.discV4,
 				common: this.config.chainCommon,
 			});
+
+			this.config.logger?.info(
+				`🔧 DPT initialized with endpoint udp:${this.config.port} tcp:${this.config.port}`,
+			);
 
 			this.dpt.events.on("error", (e: Error) => {
 				this.error(e);
@@ -268,7 +284,20 @@ export class P2PServer extends Server {
 			});
 
 			this.dpt.events.on("listening", () => {
+				this.config.logger?.info(
+					`🎧 DPT listening on UDP port ${this.config.port}`,
+				);
 				resolve();
+			});
+
+			// Add more DPT event logging
+			this.dpt.events.on("peer:new", (peer: any) => {
+				const peerId = peer.id
+					? bytesToUnprefixedHex(peer.id).slice(0, 8)
+					: "unknown";
+				this.config.logger?.info(
+					`🆕 DPT PEER:NEW - ${peerId}... at ${peer.address}:${peer.udpPort}/${peer.tcpPort || "?"}`,
+				);
 			});
 
 			this.config.events.on(Event.PEER_CONNECTED, (peer) => {
@@ -326,29 +355,23 @@ export class P2PServer extends Server {
 					`✅ Registrar created (protocols: ${this.registrar.getProtocols().length})`,
 				);
 
-				// Create ECIES encrypter
-				const encrypter = new EcciesEncrypter(this.key, {
-					requireEip8: true,
-					id: peerId,
-					remoteId: null,
-				});
-
-				this.config.logger?.info(
-					`✅ ECIES encrypter created`,
-				);
-
 				// Create stream muxer factory
 				const muxerFactory = mplex()();
 
-				// Create upgrader
+				// Create upgrader WITHOUT encryption for now
+				// TODO: Implement proper libp2p-compatible encryption (not ECIES which is RLPx-specific)
 				this.upgrader = new Upgrader(
 					{ registrar: this.registrar },
 					{
 						privateKey: this.key,
 						id: peerId,
-						connectionEncrypter: encrypter,
+						connectionEncrypter: null as any, // Skip encryption for now
 						streamMuxerFactory: muxerFactory,
 					},
+				);
+
+				this.config.logger?.info(
+					`⚠️  Upgrader created WITHOUT encryption (testing mode)`,
 				);
 
 				// Create transport

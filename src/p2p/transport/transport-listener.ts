@@ -51,11 +51,20 @@ export class TransportListener extends EventEmitter<TransportListenerEvents> {
 		}
 
 		try {
+			// For inbound connections, derive a temporary peer ID from the socket address
+			// The real peer ID will be extracted during ECIES handshake (if encryption is enabled)
+			const remoteAddr = sock.remoteAddress;
+			const remotePort = sock.remotePort;
+			const tempPeerId = new Uint8Array(64);  // Will be replaced after encryption
+			
+			log('incoming socket from %s:%s', remoteAddr, remotePort);
+
 			// Create multiaddr connection from raw socket
 			const maConn = toMultiaddrConnection({
 				socket: sock,
 				remoteAddr: this.status.listeningAddr,
-				direction: 'inbound'
+				direction: 'inbound',
+				remotePeerId: tempPeerId  // Temporary ID
 			});
 
 			// Upgrade the connection (encrypt + mux)
@@ -69,7 +78,7 @@ export class TransportListener extends EventEmitter<TransportListenerEvents> {
 				log('connection closed: %s', connKey);
 			});
 
-			log('new inbound connection: %s', connKey);
+			log('new inbound connection: %s from peer %s', connKey, Buffer.from(connection.remotePeer).toString('hex').slice(0, 16));
 			
 			// Emit connection event
 			this.emit('connection', connection);

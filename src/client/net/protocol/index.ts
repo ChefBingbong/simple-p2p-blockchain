@@ -3,6 +3,7 @@
  */
 
 export * from "./boundprotocol.ts";
+export * from "./boundstreamethprotocol.ts";
 export * from "./ethprotocol.ts";
 export * from "./protocol.ts";
 export * from "./rlpxsender.ts";

@@ -259,6 +259,7 @@ async function startClient() {
 
 	if (isBootnode) {
 		writeBootnodeInfo(port, nodeKey);
+		console.log(`\n📝 Bootnode mode: Not using any bootnodes (this IS the bootnode)\n`);
 	} else {
 		// This is a peer node - read bootnode info
 		const enodeUrl = readBootnodeInfo();
@@ -266,7 +267,12 @@ async function startClient() {
 			const ma = enodeToMultiaddr(enodeUrl);
 			if (ma) {
 				bootnodes = [ma];
+				console.log(`\n✅ Will bootstrap to: ${ma.toString()}\n`);
+			} else {
+				console.log(`\n❌ Failed to parse bootnode multiaddr\n`);
 			}
+		} else {
+			console.log(`\n❌ No bootnode info found!\n`);
 		}
 	}
 
@@ -399,14 +405,27 @@ async function startClient() {
 		console.log(`   Total peers: ${client.service.pool.size}\n`);
 	});
 
-	// Log peer count periodically
+	// Log peer count and DPT status periodically
 	setInterval(() => {
 		const peerCount = client.service.pool.size;
 		const blockHeight = client.chain.headers.height;
-		if (peerCount > 0) {
-			console.log(
-				`📊 Status: ${peerCount} peer(s) connected, block height: ${blockHeight}`,
-			);
+		const dptPeers = config.server?.dpt?.getPeers() || [];
+		const dptSize = dptPeers.length;
+
+		console.log(
+			`📊 Status: Pool=${peerCount} peer(s), DPT=${dptSize} peer(s), Block height=${blockHeight}`,
+		);
+
+		if (dptSize > 0) {
+			console.log(`   DPT peers:`);
+			for (const peer of dptPeers.slice(0, 5)) {  // Show first 5
+				const peerId = peer.id
+					? bytesToUnprefixedHex(peer.id).slice(0, 8)
+					: "unknown";
+				console.log(
+					`      - ${peerId}... at ${peer.address}:${peer.tcpPort || "?"}`,
+				);
+			}
 		}
 	}, 30000); // Every 30 seconds
 

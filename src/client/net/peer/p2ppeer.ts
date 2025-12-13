@@ -1,6 +1,9 @@
 import { Connection } from "../../../p2p/connection/connection.ts";
 import { Registrar } from "../../../p2p/connection/registrar.ts";
 import { MplexStream } from "../../../p2p/muxer/index.ts";
+import * as RLP from "../../../rlp";
+import { bytesToBigInt, bytesToInt } from "../../../utils";
+import { BoundStreamEthProtocol } from "../protocol/boundstreamethprotocol.ts";
 import { StreamEthProtocol } from "../protocol/streamethprotocol.ts";
 import { Peer } from "./peer.ts";
 
@@ -92,8 +95,20 @@ export class P2PPeer extends Peer {
 					this.config.logger?.info(
 						`✅ StreamEthProtocol opened for peer ${this.id.slice(0, 8)}...`,
 					);
-					// Note: The actual protocol handshake happens when a stream is opened
-					// The StreamEthProtocol registers handlers with the registrar
+
+					// CRITICAL: Create BoundStreamEthProtocol and attach it to this.eth
+					// This is what the Synchronizer expects!
+					const boundProtocol = new BoundStreamEthProtocol(
+						this.connection,
+						protocol,
+						this.id,
+						this.config,
+					);
+					this.eth = boundProtocol as any;
+					
+					this.config.logger?.info(
+						`✅ Created BoundStreamEthProtocol - peer.eth now available for Synchronizer`,
+					);
 					
 					// Try to open a status stream to initiate handshake
 					try {
@@ -106,11 +121,60 @@ export class P2PPeer extends Peer {
 							`✅ Status stream opened: ${stream.id} using protocol ${stream.protocol}`,
 						);
 						
+						// Track this stream
+						this.streams.set(stream.id, stream);
+						
 						// Send status message
 						await protocol.sendStatus(stream);
 						this.config.logger?.info(
 							`📤 Sent STATUS message to peer ${this.id.slice(0, 8)}...`,
 						);
+
+						// Listen for STATUS response on this specific stream
+						const handleStatusResponse = async (evt: any) => {
+							try {
+								// Extract data
+								let data: Uint8Array;
+								if (typeof evt.data?.subarray === 'function') {
+									data = evt.data.subarray();
+								} else if (evt.data instanceof Uint8Array) {
+									data = evt.data;
+								} else {
+									return;
+								}
+
+								// Parse STATUS response
+								const code = data[0];
+								if (code === 0x00) {  // STATUS
+									const payload = data.slice(1);
+									const decoded = RLP.decode(payload);
+									
+									if (Array.isArray(decoded) && decoded.length >= 5) {
+										const [version, chainId, td, bestHash, genesisHash] = decoded as any[];
+										const status = {
+											version: bytesToInt(version),
+											chainId: bytesToBigInt(chainId),
+											td: bytesToBigInt(td),
+											bestHash: bestHash,
+											genesisHash: genesisHash,
+										};
+
+										this.config.logger?.info(
+											`✅ Received STATUS response: chainId=${status.chainId}, td=${status.td}`,
+										);
+
+										// Set status on boundProtocol so Synchronizer can use it
+										boundProtocol.status = status;
+									}
+								}
+							} catch (err: any) {
+								this.config.logger?.error(
+									`Error parsing STATUS response: ${err.message}`,
+								);
+							}
+						};
+
+						stream.addEventListener("message", handleStatusResponse);
 					} catch (err: any) {
 						this.config.logger?.error(
 							`❌ Failed to open status stream: ${err.message}`,
