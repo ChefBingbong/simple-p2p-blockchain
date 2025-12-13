@@ -2,6 +2,7 @@ import type { Multiaddr } from "@multiformats/multiaddr";
 import debug from "debug";
 import type { TcpSocketConnectOpts } from "net";
 import net from "node:net";
+import { bytesToHex } from "../../utils";
 import {
 	type SafeError,
 	type SafePromise,
@@ -118,15 +119,22 @@ export class Transport {
 
 	private async onConnect(socket: net.Socket, peerAddr: Multiaddr, remotePeerId?: Uint8Array): Promise<SafeError<Error> | SafeResult<Connection>> {
 		try {
+			log(`📡 TCP connected to ${peerAddr.toString()}, upgrading connection...`);
+
 			// Create multiaddr connection from raw socket
 			const maConn = toMultiaddrConnection({
 				socket,
 				remoteAddr: peerAddr,
-				direction: 'outbound'
+				direction: 'outbound',
+				remotePeerId: remotePeerId
 			});
+
+			log(`🔐 Starting encryption and muxing for ${peerAddr.toString()}...`);
 
 			// Upgrade the connection (encrypt + mux)
 			const connection = await this.upgrader.upgradeOutbound(maConn);
+
+			log(`✅ Connection upgraded successfully: ${connection.id}, remote peer: ${bytesToHex(connection.remotePeer).slice(0, 18)}...`);
 
 			// Cache the connection
 			this.connectionCache.set(peerAddr.toString(), connection);
@@ -134,10 +142,12 @@ export class Transport {
 			// Remove from cache when closed
 			connection.addEventListener('close', () => {
 				this.connectionCache.delete(peerAddr.toString());
+				log(`Connection ${connection.id} removed from cache`);
 			});
 
 			return safeResult(connection);
 		} catch (err: any) {
+			log(`❌ Connection upgrade failed for ${peerAddr.toString()}: ${err.message}`);
 			return safeError(err);
 		}
 	}

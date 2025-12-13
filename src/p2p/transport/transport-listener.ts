@@ -1,15 +1,23 @@
 import type { Multiaddr } from "@multiformats/multiaddr";
 import debug from "debug";
+import { EventEmitter } from "eventemitter3";
 import net, { type Server, type Socket } from "node:net";
 import type { NetConfig } from "../../utils/getNetConfig";
 import { multiaddrToNetConfig } from "../../utils/utils";
-import { toMultiaddrConnection } from "../connection/multiaddr-connection";
 import { Connection } from "../connection/connection";
+import { toMultiaddrConnection } from "../connection/multiaddr-connection";
 import type { ListenerContext, Status } from "./types";
 
 const log = debug("p2p:transport:listener");
 
-export class TransportListener {
+interface TransportListenerEvents {
+	connection: (connection: Connection) => void;
+	listening: () => void;
+	error: (error: Error) => void;
+	close: () => void;
+}
+
+export class TransportListener extends EventEmitter<TransportListenerEvents> {
 	public server: Server;
 	private addr: string = "unknown";
 	public context: ListenerContext;
@@ -17,15 +25,21 @@ export class TransportListener {
 	private connections: Map<string, Connection> = new Map();
 
 	constructor(context: ListenerContext) {
+		super();
 		this.context = context;
 		this.server = net.createServer(this.onSocket.bind(this));
 		this.server
-			.on("listening", this.onListen.bind(this))
+			.on("listening", () => {
+				this.onListen();
+				this.emit("listening");
+			})
 			.on("error", (err) => {
 				log(`server error: ${err?.message || err}`);
+				this.emit("error", err);
 			})
 			.on("close", () => {
 				log(`server on ${this.addr} closed`);
+				this.emit("close");
 			});
 	}
 
@@ -56,6 +70,9 @@ export class TransportListener {
 			});
 
 			log('new inbound connection: %s', connKey);
+			
+			// Emit connection event
+			this.emit('connection', connection);
 		} catch (err: any) {
 			log(`Error handling socket: ${err.message}`);
 			sock.destroy();

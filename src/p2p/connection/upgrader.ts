@@ -171,11 +171,21 @@ export class Upgrader {
 
       connection.log('encrypting inbound connection using %s', protocol)
 
-      // For ECIES, we don't have the socket directly here, so we work with the stream
-      // The actual encryption happens at the transport level
+      // Perform actual ECIES encryption handshake
+      const maConn = connection as any
+      const socket = maConn.socket
+      if (!socket) {
+        throw new Error('No socket available for ECIES encryption')
+      }
+
+      connection.log('performing ECIES handshake (inbound)...')
+      const secureConn = await this.connectionEncrypter.secureInBound(socket)
+      
+      connection.log('ECIES handshake complete (inbound), remote peer: %s', Buffer.from(secureConn.remotePeer).toString('hex').slice(0, 16))
+
       return {
         connection,
-        remotePeer: new Uint8Array(64), // Will be set by actual encryption
+        remotePeer: secureConn.remotePeer,
         protocol
       }
     } catch (err: any) {
@@ -196,9 +206,27 @@ export class Upgrader {
 
       connection.log('encrypting outbound connection using %s', protocol)
 
+      // Perform actual ECIES encryption handshake
+      const maConn = connection as any
+      const socket = maConn.socket
+      if (!socket) {
+        throw new Error('No socket available for ECIES encryption')
+      }
+
+      // For outbound, we need the remote peer ID that was passed to the transport
+      const remotePeerId = maConn.remotePeerId
+      if (!remotePeerId) {
+        throw new Error('No remote peer ID available for ECIES encryption')
+      }
+
+      connection.log('performing ECIES handshake (outbound) with peer %s...', Buffer.from(remotePeerId).toString('hex').slice(0, 16))
+      const secureConn = await this.connectionEncrypter.secureOutBound(socket, remotePeerId)
+      
+      connection.log('ECIES handshake complete (outbound), remote peer: %s', Buffer.from(secureConn.remotePeer).toString('hex').slice(0, 16))
+
       return {
         connection,
-        remotePeer: new Uint8Array(64), // Will be set by actual encryption
+        remotePeer: secureConn.remotePeer,
         protocol
       }
     } catch (err: any) {

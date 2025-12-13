@@ -1,0 +1,528 @@
+import {
+    type BlockBodyBytes,
+    type BlockHeader
+} from "../../../block";
+import type { Registrar } from "../../../p2p/connection/registrar.ts";
+import type { MplexStream } from "../../../p2p/muxer/index.ts";
+import * as RLP from "../../../rlp";
+import {
+    isLegacyTx,
+    type TypedTransaction
+} from "../../../tx";
+import {
+    BIGINT_0,
+    bigIntToUnpaddedBytes,
+    bytesToBigInt,
+    bytesToHex,
+    bytesToInt
+} from "../../../utils";
+import {
+    encodeReceipt
+} from "../../../vm";
+import type { Chain } from "../../blockchain";
+import type { TxReceiptWithType } from "../../execution/receipt.ts";
+import { Protocol, type ProtocolOptions } from "./protocol.ts";
+
+// Log type for receipts
+type Log = [address: Uint8Array, topics: Uint8Array[], data: Uint8Array];
+
+export interface StreamEthProtocolOptions extends ProtocolOptions {
+	chain: Chain;
+	registrar?: Registrar;
+}
+
+type GetBlockHeadersOpts = {
+	reqId?: bigint;
+	block: bigint | Uint8Array;
+	max: number;
+	skip?: number;
+	reverse?: boolean;
+};
+
+type GetBlockBodiesOpts = {
+	reqId?: bigint;
+	hashes: Uint8Array[];
+};
+
+type GetPooledTransactionsOpts = {
+	reqId?: bigint;
+	hashes: Uint8Array[];
+};
+
+type GetReceiptsOpts = {
+	reqId?: bigint;
+	hashes: Uint8Array[];
+};
+
+/**
+ * Stream-based ETH protocol implementation
+ * Supports eth/66, eth/67, eth/68 over multiplexed streams
+ */
+export class StreamEthProtocol extends Protocol {
+	private chain: Chain;
+	private registrar: Registrar;
+	private nextReqId = BIGINT_0;
+	
+	// Protocol identifiers
+	public static readonly ETH_66 = "/eth/66/1.0.0";
+	public static readonly ETH_67 = "/eth/67/1.0.0";
+	public static readonly ETH_68 = "/eth/68/1.0.0";
+
+	// Message codes (matching eth/66+ spec)
+	private static readonly MSG_STATUS = 0x00;
+	private static readonly MSG_NEW_BLOCK_HASHES = 0x01;
+	private static readonly MSG_TRANSACTIONS = 0x02;
+	private static readonly MSG_GET_BLOCK_HEADERS = 0x03;
+	private static readonly MSG_BLOCK_HEADERS = 0x04;
+	private static readonly MSG_GET_BLOCK_BODIES = 0x05;
+	private static readonly MSG_BLOCK_BODIES = 0x06;
+	private static readonly MSG_NEW_BLOCK = 0x07;
+	private static readonly MSG_NEW_POOLED_TX_HASHES = 0x08;
+	private static readonly MSG_GET_POOLED_TXS = 0x09;
+	private static readonly MSG_POOLED_TXS = 0x0a;
+	private static readonly MSG_GET_RECEIPTS = 0x0f;
+	private static readonly MSG_RECEIPTS = 0x10;
+
+	constructor(options: StreamEthProtocolOptions) {
+		super(options);
+		this.chain = options.chain;
+		this.registrar = options.registrar!;
+	}
+
+	/**
+	 * Set the registrar (called by server after initialization)
+	 */
+	setRegistrar(registrar: Registrar) {
+		this.registrar = registrar;
+	}
+
+	/**
+	 * Name of protocol
+	 */
+	get name() {
+		return "eth";
+	}
+
+	/**
+	 * Protocol versions supported
+	 */
+	override get versions() {
+		return [66, 67, 68];
+	}
+
+	/**
+	 * Messages defined by this protocol
+	 * (For compatibility with Protocol base class - not used in stream-based impl)
+	 */
+	override get messages() {
+		return [];
+	}
+
+	/**
+	 * Get protocol strings for all versions
+	 */
+	getProtocolStrings(): string[] {
+		return [
+			StreamEthProtocol.ETH_66,
+			StreamEthProtocol.ETH_67,
+			StreamEthProtocol.ETH_68,
+		];
+	}
+
+	/**
+	 * Open protocol
+	 */
+	override async open(): Promise<void> {
+		if (this.opened) {
+			return;
+		}
+		await this.chain.open();
+		this.registerHandlers();
+		this.opened = true;
+	}
+
+	/**
+	 * Register protocol handlers with registrar
+	 */
+	private registerHandlers() {
+		if (!this.registrar) {
+			this.config.logger?.error(
+				"❌ StreamEthProtocol: Registrar not set, CANNOT register handlers!",
+			);
+			return;
+		}
+
+		const protocols = this.getProtocolStrings();
+		this.config.logger?.info(
+			`📝 Registering ETH protocol handlers: ${protocols.join(", ")}`,
+		);
+
+		// Register handlers for each protocol version
+		for (const protocol of protocols) {
+			this.registrar.handle(protocol, this.handleStream.bind(this));
+			this.config.logger?.info(`✅ Registered handler for ${protocol}`);
+		}
+
+		// Verify registration
+		const registered = this.registrar.getProtocols();
+		this.config.logger?.info(
+			`✅ Registrar now has ${registered.length} protocol(s): ${registered.join(", ")}`,
+		);
+	}
+
+	/**
+	 * Handle incoming stream
+	 */
+	private async handleStream(stream: MplexStream) {
+		this.config.logger?.info(
+			`📨 ETH protocol stream opened: ${stream.id} (protocol: ${stream.protocol})`,
+		);
+
+		// Listen for messages on this stream
+		stream.addEventListener("message", async (evt: any) => {
+			try {
+				const data = evt.data instanceof Uint8Array
+					? evt.data.subarray ? evt.data.subarray() : evt.data
+					: new Uint8Array(evt.data);
+
+				this.config.logger?.info(
+					`📥 Received message on stream ${stream.id}: ${data.length} bytes`,
+				);
+
+				await this.handleMessage(stream, data);
+			} catch (err: any) {
+				this.config.logger?.error(
+					`❌ Error handling ETH message: ${err.message}`,
+				);
+			}
+		});
+
+		stream.addEventListener("close", () => {
+			this.config.logger?.info(
+				`📪 ETH protocol stream closed: ${stream.id}`,
+			);
+		});
+
+		stream.addEventListener("error", (evt: any) => {
+			this.config.logger?.error(
+				`❌ ETH protocol stream error: ${evt.error?.message || "unknown"}`,
+			);
+		});
+	}
+
+	/**
+	 * Handle a message received on a stream
+	 */
+	private async handleMessage(stream: MplexStream, data: Uint8Array) {
+		// First byte is message code
+		const code = data[0];
+		const payload = data.slice(1);
+
+		const messageNames: Record<number, string> = {
+			0x00: "STATUS",
+			0x01: "NEW_BLOCK_HASHES",
+			0x02: "TRANSACTIONS",
+			0x03: "GET_BLOCK_HEADERS",
+			0x04: "BLOCK_HEADERS",
+			0x05: "GET_BLOCK_BODIES",
+			0x06: "BLOCK_BODIES",
+			0x07: "NEW_BLOCK",
+			0x08: "NEW_POOLED_TX_HASHES",
+			0x09: "GET_POOLED_TXS",
+			0x0a: "POOLED_TXS",
+			0x0f: "GET_RECEIPTS",
+			0x10: "RECEIPTS",
+		};
+
+		this.config.logger?.info(
+			`📥 Processing message: ${messageNames[code] || `0x${code.toString(16)}`} (${payload.length} bytes payload)`,
+		);
+
+		// Decode RLP payload
+		const decoded = RLP.decode(payload);
+
+		switch (code) {
+			case StreamEthProtocol.MSG_STATUS:
+				await this.handleStatus(stream, decoded);
+				break;
+			case StreamEthProtocol.MSG_GET_BLOCK_HEADERS:
+				await this.handleGetBlockHeaders(stream, decoded);
+				break;
+			case StreamEthProtocol.MSG_GET_BLOCK_BODIES:
+				await this.handleGetBlockBodies(stream, decoded);
+				break;
+			case StreamEthProtocol.MSG_GET_POOLED_TXS:
+				await this.handleGetPooledTransactions(stream, decoded);
+				break;
+			case StreamEthProtocol.MSG_GET_RECEIPTS:
+				await this.handleGetReceipts(stream, decoded);
+				break;
+			case StreamEthProtocol.MSG_NEW_BLOCK_HASHES:
+			case StreamEthProtocol.MSG_TRANSACTIONS:
+			case StreamEthProtocol.MSG_NEW_BLOCK:
+			case StreamEthProtocol.MSG_NEW_POOLED_TX_HASHES:
+				// These are announcements
+				// TODO: Handle announcements (similar to old BoundProtocol)
+				this.config.logger?.info(`📢 Received announcement: ${messageNames[code]}`);
+				break;
+			default:
+				this.config.logger?.warn(`❓ Unknown ETH message code: 0x${code.toString(16)}`);
+		}
+	}
+
+	/**
+	 * Handle STATUS message
+	 */
+	private async handleStatus(stream: MplexStream, decoded: any) {
+		const status = {
+			chainId: bytesToBigInt(decoded.chainId),
+			td: bytesToBigInt(decoded.td),
+			bestHash: decoded.bestHash,
+			genesisHash: decoded.genesisHash,
+		};
+		this.config.logger?.info(
+			`✅ Received STATUS: chainId=${status.chainId}, td=${status.td}, genesis=${bytesToHex(status.genesisHash).slice(0, 18)}...`,
+		);
+		
+		// Verify genesis hash matches
+		const ourGenesis = this.chain.genesis.hash();
+		const theirGenesisHex = bytesToHex(status.genesisHash);
+		const ourGenesisHex = bytesToHex(ourGenesis);
+		if (theirGenesisHex !== ourGenesisHex) {
+			this.config.logger?.error(
+				`❌ Genesis mismatch! Theirs: ${theirGenesisHex.slice(0, 18)}... Ours: ${ourGenesisHex.slice(0, 18)}...`,
+			);
+			stream.close();
+			return;
+		}
+
+		this.config.logger?.info(
+			`✅ Peer status validated - handshake complete!`,
+		);
+	}
+
+	/**
+	 * Handle GetBlockHeaders request
+	 */
+	private async handleGetBlockHeaders(stream: MplexStream, decoded: any) {
+		const [reqId, [block, max, skip, reverse]] = decoded as [
+			Uint8Array,
+			[Uint8Array, Uint8Array, Uint8Array, Uint8Array],
+		];
+
+		const request = {
+			reqId: bytesToBigInt(reqId),
+			block: block.length === 32 ? block : bytesToBigInt(block),
+			max: bytesToInt(max),
+			skip: bytesToInt(skip),
+			reverse: bytesToInt(reverse) === 0 ? false : true,
+		};
+
+		// TODO: Implement actual block header retrieval
+		// For now, return empty response
+		const headers: BlockHeader[] = [];
+
+		await this.sendBlockHeaders(stream, {
+			reqId: request.reqId,
+			headers,
+		});
+	}
+
+	/**
+	 * Handle GetBlockBodies request
+	 */
+	private async handleGetBlockBodies(stream: MplexStream, decoded: any) {
+		const [reqId, hashes] = decoded as [Uint8Array, Uint8Array[]];
+
+		const request = {
+			reqId: bytesToBigInt(reqId),
+			hashes,
+		};
+
+		// TODO: Implement actual block body retrieval
+		const bodies: BlockBodyBytes[] = [];
+
+		await this.sendBlockBodies(stream, {
+			reqId: request.reqId,
+			bodies,
+		});
+	}
+
+	/**
+	 * Handle GetPooledTransactions request
+	 */
+	private async handleGetPooledTransactions(
+		stream: MplexStream,
+		decoded: any,
+	) {
+		const [reqId, hashes] = decoded as [Uint8Array, Uint8Array[]];
+
+		const request = {
+			reqId: bytesToBigInt(reqId),
+			hashes,
+		};
+
+		// TODO: Implement actual pooled transaction retrieval
+		const txs: TypedTransaction[] = [];
+
+		await this.sendPooledTransactions(stream, {
+			reqId: request.reqId,
+			txs,
+		});
+	}
+
+	/**
+	 * Handle GetReceipts request
+	 */
+	private async handleGetReceipts(stream: MplexStream, decoded: any) {
+		const [reqId, hashes] = decoded as [Uint8Array, Uint8Array[]];
+
+		const request = {
+			reqId: bytesToBigInt(reqId),
+			hashes,
+		};
+
+		// TODO: Implement actual receipt retrieval
+		const receipts: TxReceiptWithType[] = [];
+
+		await this.sendReceipts(stream, {
+			reqId: request.reqId,
+			receipts,
+		});
+	}
+
+	/**
+	 * Send a message over a stream
+	 */
+	private async sendMessage(
+		stream: MplexStream,
+		code: number,
+		payload: any,
+	) {
+		const encoded = RLP.encode(payload);
+		const message = new Uint8Array(1 + encoded.length);
+		message[0] = code;
+		message.set(encoded, 1);
+		stream.send(message);
+	}
+
+	/**
+	 * Send STATUS message
+	 */
+	async sendStatus(stream: MplexStream) {
+		const status = {
+			chainId: bigIntToUnpaddedBytes(this.chain.chainId),
+			td: bigIntToUnpaddedBytes(this.chain.blocks.td),
+			bestHash: this.chain.blocks.latest!.hash(),
+			genesisHash: this.chain.genesis.hash(),
+			latestBlock: bigIntToUnpaddedBytes(
+				this.chain.blocks.latest!.header.number,
+			),
+		};
+		this.config.logger?.info(
+			`📤 Sending STATUS: chainId=${this.chain.chainId}, td=${this.chain.blocks.td}, bestHash=${bytesToHex(status.bestHash).slice(0, 18)}...`,
+		);
+		await this.sendMessage(stream, StreamEthProtocol.MSG_STATUS, status);
+		this.config.logger?.info(`✅ STATUS message sent on stream ${stream.id}`);
+	}
+
+	/**
+	 * Send BlockHeaders response
+	 */
+	async sendBlockHeaders(
+		stream: MplexStream,
+		opts: { reqId: bigint; headers: BlockHeader[] },
+	) {
+		const payload = [
+			bigIntToUnpaddedBytes(opts.reqId),
+			opts.headers.map((h) => h.raw()),
+		];
+		await this.sendMessage(
+			stream,
+			StreamEthProtocol.MSG_BLOCK_HEADERS,
+			payload,
+		);
+	}
+
+	/**
+	 * Send BlockBodies response
+	 */
+	async sendBlockBodies(
+		stream: MplexStream,
+		opts: { reqId: bigint; bodies: BlockBodyBytes[] },
+	) {
+		const payload = [bigIntToUnpaddedBytes(opts.reqId), opts.bodies];
+		await this.sendMessage(
+			stream,
+			StreamEthProtocol.MSG_BLOCK_BODIES,
+			payload,
+		);
+	}
+
+	/**
+	 * Send PooledTransactions response
+	 */
+	async sendPooledTransactions(
+		stream: MplexStream,
+		opts: { reqId: bigint; txs: TypedTransaction[] },
+	) {
+		const serializedTxs = [];
+		for (const tx of opts.txs) {
+			if (isLegacyTx(tx)) {
+				serializedTxs.push(tx.raw());
+			}
+		}
+
+		const payload = [bigIntToUnpaddedBytes(opts.reqId), serializedTxs];
+		await this.sendMessage(
+			stream,
+			StreamEthProtocol.MSG_POOLED_TXS,
+			payload,
+		);
+	}
+
+	/**
+	 * Send Receipts response
+	 */
+	async sendReceipts(
+		stream: MplexStream,
+		opts: { reqId: bigint; receipts: TxReceiptWithType[] },
+	) {
+		const serializedReceipts = [];
+		for (const receipt of opts.receipts) {
+			const encodedReceipt = encodeReceipt(receipt, receipt.txType);
+			serializedReceipts.push(encodedReceipt);
+		}
+
+		const payload = [bigIntToUnpaddedBytes(opts.reqId), serializedReceipts];
+		await this.sendMessage(stream, StreamEthProtocol.MSG_RECEIPTS, payload);
+	}
+
+	/**
+	 * Encode status into ETH status message payload
+	 */
+	override encodeStatus(): any {
+		return {
+			chainId: bigIntToUnpaddedBytes(this.chain.chainId),
+			td: bigIntToUnpaddedBytes(this.chain.blocks.td),
+			bestHash: this.chain.blocks.latest!.hash(),
+			genesisHash: this.chain.genesis.hash(),
+			latestBlock: bigIntToUnpaddedBytes(
+				this.chain.blocks.latest!.header.number,
+			),
+		};
+	}
+
+	/**
+	 * Decode ETH status message payload into a status object
+	 */
+	override decodeStatus(status: any): any {
+		return {
+			chainId: bytesToBigInt(status.chainId),
+			td: bytesToBigInt(status.td),
+			bestHash: status.bestHash,
+			genesisHash: status.genesisHash,
+		};
+	}
+}
+
