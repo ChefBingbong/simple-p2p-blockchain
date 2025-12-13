@@ -4,13 +4,15 @@
 import { multiaddr } from "@multiformats/multiaddr";
 import debug from "debug";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
-import { EcciesEncrypter } from "../../connection-encrypters/eccies/eccies-encrypter.ts";
-import type { MuxedConnection } from "../../connection/connection.ts";
-import type { ProtocolStream } from "../../connection/protocol-stream.ts";
 import { genPrivateKey, pk2id } from "../../devp2p/index.ts";
 import { KademliaNode, type PeerInfo } from "../../kademlia/index.ts";
-import { TransportListener } from "../../transport/transport-listener.ts";
-import { Transport } from "../../transport/transport.ts";
+import { EcciesEncrypter } from "../../p2p/connection-encrypters/eccies/eccies-encrypter.ts";
+import { Connection } from "../../p2p/connection/connection.ts";
+import { Registrar } from "../../p2p/connection/registrar.ts";
+import { Upgrader } from "../../p2p/connection/upgrader.ts";
+import { mplex, MplexStream } from "../../p2p/muxer/index.ts";
+import { TransportListener } from "../../p2p/transport/transport-listener.ts";
+import { Transport } from "../../p2p/transport/transport.ts";
 import { bytesToUnprefixedHex } from "../../utils/index.ts";
 
 debug.enable("p2p:*,kad:*");
@@ -36,8 +38,11 @@ interface DHTTCPNode {
   // TCP layer
   transport: Transport;
   listener: TransportListener;
-  connections: Map<string, MuxedConnection>;
-  protocolHandlers: Map<string, (stream: ProtocolStream) => void>;
+  connections: Map<string, Connection>;
+  protocolHandlers: Map<string, (stream: MplexStream) => void>;
+  
+  // Components
+  registrar: Registrar;
 }
 
 // ============ Logging ============
@@ -80,43 +85,40 @@ function createDHTTCPNode(nodeIndex: number, udpPort: number, tcpPort: number): 
     remoteId: null, // Will be set per-connection
   });
 
-  // Transport for outbound connections
-  const transport = new Transport(
+  // Create registrar for protocol handling
+  const registrar = new Registrar({
+    peerId: peerId,
+  });
+
+  // Create stream muxer factory
+  const muxerFactory = mplex()();
+
+  // Create upgrader
+  const upgrader = new Upgrader(
+    { registrar },
     {
+      privateKey: privateKey,
+      id: peerId,
+      connectionEncrypter: encrypter,
+      streamMuxerFactory: muxerFactory,
+    }
+  );
+
+  // Transport for outbound connections
+  const transport = new Transport({
+    upgrader,
+    dialOpts: {
       timeoutMs: 30000,
       maxActiveDials: 10,
     },
-    encrypter,
-  );
+  });
 
   // Storage
-  const connections = new Map<string, MuxedConnection>();
-  const protocolHandlers = new Map<string, (stream: ProtocolStream) => void>();
-
-  // Frame handler (for debugging)
-  const handleFrame = async (conn: MuxedConnection, frame: unknown): Promise<void> => {
-    log(nodeIndex, `📦 Frame received: ${JSON.stringify(frame)}`);
-  };
-
-  // Stream open handler (incoming protocol streams)
-  const handleStreamOpen = (protocolId: string, stream: ProtocolStream) => {
-    const handler = protocolHandlers.get(protocolId);
-    if (handler) {
-      handler(stream);
-    } else {
-      log(nodeIndex, `⚠️  No handler for protocol ${protocolId}, closing stream`);
-      stream.close();
-    }
-  };
+  const connections = new Map<string, Connection>();
+  const protocolHandlers = new Map<string, (stream: MplexStream) => void>();
 
   // Listener for inbound connections
-  const listener = new TransportListener({
-    upgrader: encrypter,
-    frameHandler: handleFrame,
-    streamOpenHandler: (protocolId, stream) => {
-        handleStreamOpen(protocolId, stream);
-    },
-  });
+  const listener = transport.createListener({});
 
   return {
     index: nodeIndex,
@@ -129,6 +131,7 @@ function createDHTTCPNode(nodeIndex: number, udpPort: number, tcpPort: number): 
     listener,
     connections,
     protocolHandlers,
+    registrar,
   };
 }
 
@@ -183,8 +186,8 @@ async function attemptTCPConnection(node: DHTTCPNode, peer: PeerInfo): Promise<v
     // Dial the peer with their peer ID for ECIES encryption
     const [error, connection] = await node.transport.dial(peerMultiaddr, peer.id);
     
-    if (error) {
-      log(node.index, `❌ TCP connection failed: ${error.message}`);
+    if (error || !connection) {
+      log(node.index, `❌ TCP connection failed: ${error?.message ?? 'Unknown error'}`);
       return;
     }
 
@@ -192,19 +195,10 @@ async function attemptTCPConnection(node: DHTTCPNode, peer: PeerInfo): Promise<v
     node.connections.set(connKey, connection);
     log(node.index, `✅ TCP connection established to ${connKey}`);
 
-    // Set up connection event handlers
-    connection.setOnFrame((frame) => {
-      log(node.index, `📦 Frame from ${connKey}: ${JSON.stringify(frame)}`);
-    });
-
-    connection.setOnStreamOpen((protocolId, stream) => {
-      log(node.index, `📨 Incoming stream from ${connKey} for protocol: ${protocolId}`);
-      const handler = node.protocolHandlers.get(protocolId);
-      if (handler) {
-        handler(stream);
-      } else {
-        stream.close();
-      }
+    // Set up connection close handler
+    connection.addEventListener('close', () => {
+      log(node.index, `🔌 Connection closed: ${connKey}`);
+      node.connections.delete(connKey);
     });
 
     // Optionally: Open a ping stream to test the connection
@@ -220,16 +214,27 @@ async function attemptTCPConnection(node: DHTTCPNode, peer: PeerInfo): Promise<v
 const PING_PROTOCOL = "/ping/1.0.0";
 
 function setupPingProtocol(node: DHTTCPNode) {
-  node.protocolHandlers.set(PING_PROTOCOL, (stream: ProtocolStream) => {
+  // Register the ping protocol handler with the registrar
+  node.registrar.handle(PING_PROTOCOL, async (stream: MplexStream) => {
     log(node.index, `🏓 Ping stream opened (responding)`);
 
     stream.addEventListener("message", (evt: any) => {
-      const msg = evt.data;
-      log(node.index, `🏓 Received: ${JSON.stringify(msg)}`);
-      
-      if (msg?.type === "ping") {
-        // Respond with pong
-        stream.send({ type: "pong", ts: msg.ts, from: shortId(node.peerId) });
+      try {
+        // Parse the message data
+        const data = evt.data instanceof Uint8Array 
+          ? new TextDecoder().decode(evt.data.subarray ? evt.data.subarray() : evt.data)
+          : evt.data.toString();
+        const msg = JSON.parse(data);
+        
+        log(node.index, `🏓 Received: ${JSON.stringify(msg)}`);
+        
+        if (msg?.type === "ping") {
+          // Respond with pong
+          const pong = JSON.stringify({ type: "pong", ts: msg.ts, from: shortId(node.peerId) });
+          stream.send(new TextEncoder().encode(pong));
+        }
+      } catch (err: any) {
+        log(node.index, `⚠️ Error parsing ping message: ${err.message}`);
       }
     });
 
@@ -239,27 +244,42 @@ function setupPingProtocol(node: DHTTCPNode) {
   });
 }
 
-async function testPingProtocol(node: DHTTCPNode, connection: MuxedConnection, connKey: string) {
+async function testPingProtocol(node: DHTTCPNode, connection: Connection, connKey: string) {
   try {
     log(node.index, `🏓 Opening ping stream to ${connKey}...`);
-    const stream = connection.openStream(PING_PROTOCOL);
+    
+    // Open a new stream for the ping protocol
+    const stream = await connection.newStream([PING_PROTOCOL]);
 
     // Send a ping
     const pingTs = Date.now();
-    stream.send({ type: "ping", ts: pingTs, from: shortId(node.peerId) });
+    const pingMsg = JSON.stringify({ type: "ping", ts: pingTs, from: shortId(node.peerId) });
+    stream.send(new TextEncoder().encode(pingMsg));
     log(node.index, `🏓 Sent ping to ${connKey}`);
 
     // Listen for pong
     stream.addEventListener("message", (evt: any) => {
-      const msg = evt.data;
-      if (msg?.type === "pong") {
-        const rtt = Date.now() - msg.ts;
-        log(node.index, `🏓 Received pong from ${connKey} (RTT: ${rtt}ms)`);
+      try {
+        const data = evt.data instanceof Uint8Array 
+          ? new TextDecoder().decode(evt.data.subarray ? evt.data.subarray() : evt.data)
+          : evt.data.toString();
+        const msg = JSON.parse(data);
+        
+        if (msg?.type === "pong") {
+          const rtt = Date.now() - msg.ts;
+          log(node.index, `🏓 Received pong from ${connKey} (RTT: ${rtt}ms)`);
+        }
+      } catch (err: any) {
+        log(node.index, `⚠️ Error parsing pong message: ${err.message}`);
       }
     });
 
     // Close stream after a short delay
-    // setTimeout(() => stream.close(), 2000);
+    setTimeout(() => {
+      try {
+        stream.close();
+      } catch {}
+    }, 5000);
   } catch (err: any) {
     log(node.index, `❌ Ping protocol error: ${err.message}`);
   }
@@ -350,16 +370,17 @@ async function main() {
   // Step 8: Monitoring mode
   console.log("\n🔄 Entering monitoring mode (Ctrl+C to exit)...\n");
 
-  process.on("SIGINT", () => {
+  process.on("SIGINT", async () => {
     console.log("\n\n🛑 Shutting down...");
     
     for (const node of nodes) {
       log(node.index, "Closing connections...");
       for (const conn of node.connections.values()) {
         try {
-          conn.onClose();
+          await conn.close();
         } catch {}
       }
+      await node.listener.close();
       node.kademlia.destroy();
     }
     
