@@ -442,8 +442,8 @@ export class RlpxServer extends Server {
 		});
 
 		// Create listener - TransportListener handles connections automatically via 'connection' event
-		// The transport already has the upgrader, so we don't need to pass it
-		this.listener = this.transport.createListener({ upgrader: this.upgrader });
+		// The transport already has the upgrader, so we don't need to pass it again
+		this.listener = this.transport.createListener({});
 
 		// Handle incoming connections
 		this.listener.on("connection", async (basicConn: BasicConnection) => {

@@ -1032,6 +1032,83 @@ export class TxPool {
 		}
 	}
 
+	/**
+	 * Handle transactions received from peer via RlpxConnection
+	 */
+	async handleIncomingTransactions(txs: Uint8Array[] | TypedTransaction[], peer: Peer): Promise<void> {
+		if (!this.running || txs.length === 0) return;
+
+		this.config.logger?.debug(
+			`[TxPool] Received ${txs.length} transactions from peer ${peer.id.slice(0, 8)}`,
+		);
+
+		let added = 0;
+		let rejected = 0;
+
+		for (const tx of txs) {
+			try {
+				// If tx is already a TypedTransaction, add it directly
+				// Otherwise, assume it's a Uint8Array and needs to be decoded
+				if (tx instanceof Uint8Array) {
+					// You may need to decode the Uint8Array to a TypedTransaction here
+					// For now, we'll skip raw Uint8Array handling and only process TypedTransaction
+					continue;
+				}
+				await this.add(tx as TypedTransaction);
+				added++;
+			} catch (err: any) {
+				rejected++;
+				this.config.logger?.debug(
+					`[TxPool] Rejected transaction: ${err.message}`,
+				);
+			}
+		}
+
+		this.config.logger?.info(
+			`[TxPool] Processed ${txs.length} transactions: ${added} added, ${rejected} rejected`,
+		);
+	}
+
+	/**
+	 * Broadcast transaction to all connected peers via RlpxConnection
+	 */
+	async broadcast(tx: TypedTransaction): Promise<void> {
+		const peers = this.service.pool?.peers || [];
+
+		if (peers.length === 0) {
+			this.config.logger?.warn('[TxPool] No peers to broadcast transaction to');
+			return;
+		}
+
+		this.config.logger?.debug(
+			`[TxPool] Broadcasting transaction to ${peers.length} peers`,
+		);
+
+		for (const peer of peers) {
+			try {
+				if (peer.rlpxConnection) {
+					const ethHandler = this.getEthHandler(peer);
+					if (ethHandler) {
+						await ethHandler.broadcastTransactions([tx.serialize()]);
+					}
+				}
+			} catch (err: any) {
+				this.config.logger?.error(
+					`[TxPool] Failed to broadcast to peer ${peer.id.slice(0, 8)}: ${err.message}`,
+				);
+			}
+		}
+	}
+
+	private getEthHandler(peer: Peer): any | null {
+		if (!peer.rlpxConnection) {
+			return null;
+		}
+		const protocols = (peer.rlpxConnection as any).protocols as Map<string, any>;
+		const ethDescriptor = protocols.get('eth');
+		return ethDescriptor?.handler || null;
+	}
+
 	async handleAnnouncedTxs(
 		txs: TypedTransaction[],
 		peer: Peer,

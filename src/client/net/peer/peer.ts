@@ -1,6 +1,11 @@
 import { EventEmitter } from "eventemitter3";
 import type { BlockHeader } from "../../../block";
 import type { BasicConnection } from "../../../p2p/connection/basic-connection";
+import {
+	createRlpxConnection,
+	type RlpxConnection,
+} from "../../../p2p/transport/rlpx/RlpxConnection";
+import { EthProtocolHandler } from "../../../p2p/transport/rlpx/protocols/eth-protocol-handler";
 import { Transport } from "../../../p2p/transport/rlpx/transport.ts";
 import {
 	BIGINT_0,
@@ -73,6 +78,10 @@ export class Peer extends EventEmitter {
 	private protocolInstances: Map<string, AbstractProtocol<any>> = new Map();
 
 	public eth?: AbstractProtocol<any>;
+
+	// RlpxConnection for new protocol handler system
+	public rlpxConnection?: RlpxConnection;
+	private registeredProtocols: Set<string> = new Set();
 
 	/*
     If the peer is in the PeerPool.
@@ -202,8 +211,16 @@ export class Peer extends EventEmitter {
 				this.config.logger?.debug(
 					`[Peer.connect] 🔗 BasicConnection details: remotePeer=${bytesToUnprefixedHex(basicConn.remotePeer).slice(0, 8)}, remoteAddr=${basicConn.remoteAddr.toString()}`,
 				);
+				
+				// Upgrade to RlpxConnection and register protocols
 				this.config.logger?.debug(
-					`[Peer.connect] 🔗 Binding protocols to connection...`,
+					`[Peer.connect] 🔗 Upgrading to RlpxConnection and registering protocols...`,
+				);
+				await this.upgradeToRlpxConnection(basicConn);
+				
+				// Also bind legacy protocols for backward compatibility
+				this.config.logger?.debug(
+					`[Peer.connect] 🔗 Binding legacy protocols to connection...`,
 				);
 				await this.bindProtocols(basicConn);
 
@@ -256,8 +273,15 @@ export class Peer extends EventEmitter {
 		);
 		this.basicConnection = basicConn;
 
+		// Upgrade to RlpxConnection and register protocols
 		this.config.logger?.debug(
-			`[Peer.accept] 🔗 Binding protocols to inbound connection...`,
+			`[Peer.accept] 🔗 Upgrading to RlpxConnection and registering protocols...`,
+		);
+		await this.upgradeToRlpxConnection(basicConn);
+
+		// Also bind legacy protocols for backward compatibility
+		this.config.logger?.debug(
+			`[Peer.accept] 🔗 Binding legacy protocols to inbound connection...`,
 		);
 		await this.bindProtocols(basicConn);
 
@@ -460,5 +484,129 @@ export class Peer extends EventEmitter {
 			)
 			.map((keyValue) => keyValue.join("="))
 			.join(" ");
+	}
+
+	/**
+	 * Convert BasicConnection to RlpxConnection and register protocols
+	 */
+	private async upgradeToRlpxConnection(basicConn: BasicConnection): Promise<void> {
+		// Convert BasicConnection to RlpxConnection
+		this.rlpxConnection = createRlpxConnection({
+			id: basicConn.id,
+			maConn: (basicConn as any).maConn,
+			stream: (basicConn as any).stream,
+			remotePeer: basicConn.remotePeer,
+			direction: this.inbound ? 'inbound' : 'outbound',
+			cryptoProtocol: 'eccies',
+		});
+
+		// Register protocols
+		await this.registerProtocols();
+
+		// Set up event listeners
+		this.setupConnectionListeners();
+	}
+
+	/**
+	 * Register protocols on RlpxConnection
+	 */
+	private async registerProtocols(): Promise<void> {
+		if (!this.rlpxConnection) {
+			throw new Error('RlpxConnection not initialized');
+		}
+
+		// Register ETH protocol
+		const ethHandler = this.createEthProtocolHandler();
+		const ethOffset = this.rlpxConnection.registerProtocol(ethHandler);
+		this.registeredProtocols.add('eth');
+
+		this.config.logger?.info(
+			`[Peer ${this.id.slice(0, 8)}] Registered ETH protocol at offset 0x${ethOffset.toString(16)}`
+		);
+
+		// Can register more protocols here (LES, SNAP, etc.)
+	}
+
+	/**
+	 * Create ETH protocol handler and bind to service methods
+	 */
+	private createEthProtocolHandler(): EthProtocolHandler {
+		const handler = new EthProtocolHandler(68);
+
+		// Bind handlers to service methods
+		// The service will listen to events emitted by the protocol handler
+		// via the connection's event system
+
+		return handler;
+	}
+
+	/**
+	 * Set up connection event listeners
+	 */
+	private setupConnectionListeners(): void {
+		if (!this.rlpxConnection) {
+			return;
+		}
+
+		// Listen for connection close
+		this.rlpxConnection.addEventListener('close', () => {
+			this.config.logger?.info(`[Peer ${this.id.slice(0, 8)}] RlpxConnection closed`);
+			this.connected = false;
+			this.rlpxConnection = undefined;
+			this.registeredProtocols.clear();
+		});
+
+		// Listen for ETH protocol events (cast to any for custom events)
+		const conn = this.rlpxConnection as any;
+
+		conn.addEventListener('eth:status', ((evt: CustomEvent) => {
+			const status = evt.detail;
+			this.config.events.emit(Event.ETH_STATUS, status, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:newBlockHashes', ((evt: CustomEvent) => {
+			const hashes = evt.detail;
+			this.config.events.emit(Event.ETH_NEW_BLOCK_HASHES, hashes, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:transactions', ((evt: CustomEvent) => {
+			const txs = evt.detail;
+			this.config.events.emit(Event.ETH_TRANSACTIONS, txs, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:newBlock', ((evt: CustomEvent) => {
+			const block = evt.detail;
+			this.config.events.emit(Event.ETH_NEW_BLOCK, block, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:getBlockHeaders', ((evt: CustomEvent) => {
+			const request = evt.detail;
+			this.config.events.emit(Event.ETH_GET_BLOCK_HEADERS, request, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:blockHeaders', ((evt: CustomEvent) => {
+			const headers = evt.detail;
+			this.config.events.emit(Event.ETH_BLOCK_HEADERS, headers, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:getBlockBodies', ((evt: CustomEvent) => {
+			const request = evt.detail;
+			this.config.events.emit(Event.ETH_GET_BLOCK_BODIES, request, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:blockBodies', ((evt: CustomEvent) => {
+			const bodies = evt.detail;
+			this.config.events.emit(Event.ETH_BLOCK_BODIES, bodies, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:getPooledTransactions', ((evt: CustomEvent) => {
+			const request = evt.detail;
+			this.config.events.emit(Event.ETH_GET_POOLED_TRANSACTIONS, request, this);
+		}) as EventListener);
+
+		conn.addEventListener('eth:pooledTransactions', ((evt: CustomEvent) => {
+			const txs = evt.detail;
+			this.config.events.emit(Event.ETH_POOLED_TRANSACTIONS, txs, this);
+		}) as EventListener);
 	}
 }

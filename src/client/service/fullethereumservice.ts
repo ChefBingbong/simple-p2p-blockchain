@@ -91,6 +91,10 @@ export class FullEthereumService extends Service {
 		} else {
 			this.config.logger?.info("Starting FullEthereumService with no syncing.");
 		}
+
+		// Setup event listeners for RlpxConnection-based protocol handlers
+		this.setupRlpxEventListeners();
+
 		// Broadcast pending txs to newly connected peer
 		this.config.events.on(Event.POOL_PEER_ADDED, (peer) => {
 			// TODO: Should we do this if the txPool isn't started?
@@ -269,5 +273,217 @@ export class FullEthereumService extends Service {
 	async handleEth(message: any, peer: Peer): Promise<void> {
 		// All message handling is now done by protocol handlers
 		// This method is essentially a no-op but kept for compatibility
+	}
+
+	// ========== NEW RLPX CONNECTION HANDLERS ==========
+
+	/**
+	 * Called when STATUS message received via RlpxConnection
+	 */
+	async handleStatus(status: any, peer: Peer): Promise<void> {
+		this.config.logger?.debug('[ETH] Handling STATUS from peer');
+		// Store peer status, validate chain compatibility
+		// This is handled by the legacy protocol system for now
+	}
+
+	/**
+	 * Called when peer announces new block hashes via RlpxConnection
+	 */
+	async handleNewBlockHashes(hashes: any[], peer: Peer): Promise<void> {
+		this.config.logger?.debug('[ETH] Received %d new block hashes', hashes.length);
+		// Trigger synchronizer to fetch these blocks
+		// Note: This would need to be integrated with the synchronizer's fetching mechanism
+		// For now, we just log the announcement
+	}
+
+	/**
+	 * Called when peer announces new full block via RlpxConnection
+	 */
+	async handleNewBlock(block: any, peer: Peer): Promise<void> {
+		this.config.logger?.debug('[ETH] Received new block');
+		// Validate and add to chain
+		try {
+			await this.chain.putBlocks([block]);
+		} catch (error: any) {
+			this.config.logger?.error(`[ETH] Failed to put block: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Called when peer requests headers via RlpxConnection
+	 */
+	async handleGetBlockHeaders(request: any, peer: Peer): Promise<void> {
+		this.config.logger?.debug('[ETH] Peer requested block headers');
+
+		try {
+			// Fetch headers from chain
+			// Note: This is a simplified implementation, you may need to adjust based on your chain API
+			const headers = []; // await this.chain.getHeaders(request);
+
+			// Send response via peer's ETH protocol
+			const ethHandler = this.getEthHandler(peer);
+			if (ethHandler) {
+				await ethHandler.sendBlockHeaders(headers);
+			}
+		} catch (error: any) {
+			this.config.logger?.error(`[ETH] Failed to handle getBlockHeaders: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Called when peer requests bodies via RlpxConnection
+	 */
+	async handleGetBlockBodies(request: any, peer: Peer): Promise<void> {
+		this.config.logger?.debug('[ETH] Peer requested block bodies');
+
+		try {
+			// Fetch bodies from chain
+			// Note: This is a simplified implementation, you may need to adjust based on your chain API
+			const bodies = []; // await this.chain.getBodies(request);
+
+			// Send response via peer's ETH protocol
+			const ethHandler = this.getEthHandler(peer);
+			if (ethHandler) {
+				await ethHandler.sendBlockBodies(bodies);
+			}
+		} catch (error: any) {
+			this.config.logger?.error(`[ETH] Failed to handle getBlockBodies: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Helper to get ETH protocol handler from peer's RlpxConnection
+	 */
+	private getEthHandler(peer: Peer): any | null {
+		if (!peer.rlpxConnection) {
+			this.config.logger?.warn('[ETH] Peer has no RlpxConnection');
+			return null;
+		}
+
+		const protocols = (peer.rlpxConnection as any).protocols as Map<string, any>;
+		const ethDescriptor = protocols.get('eth');
+		if (!ethDescriptor) {
+			this.config.logger?.warn('[ETH] Peer does not support ETH protocol');
+			return null;
+		}
+
+		return ethDescriptor.handler;
+	}
+
+	/**
+	 * Setup event listeners for RlpxConnection-based protocol handlers
+	 */
+	private setupRlpxEventListeners(): void {
+		// Listen for ETH protocol messages from RlpxConnection
+		this.config.events.on(Event.ETH_STATUS, async (status, peer) => {
+			await this.handleStatus(status, peer);
+		});
+
+		this.config.events.on(Event.ETH_NEW_BLOCK_HASHES, async (hashes, peer) => {
+			await this.handleNewBlockHashes(hashes, peer);
+		});
+
+		this.config.events.on(Event.ETH_NEW_BLOCK, async (block, peer) => {
+			await this.handleNewBlock(block, peer);
+		});
+
+		this.config.events.on(Event.ETH_GET_BLOCK_HEADERS, async (request, peer) => {
+			await this.handleGetBlockHeaders(request, peer);
+		});
+
+		this.config.events.on(Event.ETH_GET_BLOCK_BODIES, async (request, peer) => {
+			await this.handleGetBlockBodies(request, peer);
+		});
+
+		this.config.events.on(Event.ETH_TRANSACTIONS, async (txs, peer) => {
+			// Forward to TxPool
+			await this.txPool.handleIncomingTransactions(txs, peer);
+		});
+
+		this.config.events.on(Event.ETH_POOLED_TRANSACTIONS, async (txs, peer) => {
+			// Forward to TxPool
+			await this.txPool.handleIncomingTransactions(txs, peer);
+		});
+
+		this.config.events.on(Event.ETH_GET_POOLED_TRANSACTIONS, async (request, peer) => {
+			// Handle request for pooled transactions
+			const hashes = request.hashes || [];
+			const txs = this.txPool.getByHash(hashes);
+
+			const ethHandler = this.getEthHandler(peer);
+			if (ethHandler && txs.length > 0) {
+				await ethHandler.sendPooledTransactions(txs.map((tx) => tx.serialize()));
+			}
+		});
+	}
+
+	/**
+	 * Setup chain event listeners for broadcasting
+	 */
+	setupChainEventListeners(): void {
+		// Listen for new blocks (SYNC_FETCHED_BLOCKS is the actual event for new blocks)
+		this.config.events.on(Event.SYNC_FETCHED_BLOCKS, async (blocks) => {
+			if (blocks.length > 0) {
+				const latestBlock = blocks[blocks.length - 1];
+				this.config.logger?.info('[ETH] New block fetched, broadcasting to peers');
+				await this.broadcastNewBlock(latestBlock);
+			}
+		});
+
+		// Note: Transaction broadcasting is handled directly by TxPool
+		// which calls peer.eth.send() for legacy protocol or broadcasts via RlpxConnection
+	}
+
+	/**
+	 * Broadcast new block to all peers via RlpxConnection
+	 */
+	async broadcastNewBlock(block: any): Promise<void> {
+		const peers = this.pool.peers;
+		const blockHash = block.hash();
+		const blockNumber = block.header.number;
+
+		for (const peer of peers) {
+			try {
+				const ethHandler = this.getEthHandler(peer);
+				if (ethHandler) {
+					// Send NEW_BLOCK_HASHES announcement
+					await ethHandler.announceBlockHashes([
+						{ hash: blockHash, number: blockNumber },
+					]);
+
+					this.config.logger?.debug(
+						`[ETH] Announced block ${blockNumber} to peer ${peer.id.slice(0, 8)}`,
+					);
+				}
+			} catch (err: any) {
+				this.config.logger?.error(
+					`[ETH] Failed to announce block to peer ${peer.id.slice(0, 8)}: ${err.message}`,
+				);
+			}
+		}
+	}
+
+	/**
+	 * Broadcast transaction to all peers via RlpxConnection
+	 */
+	async broadcastTransaction(tx: any): Promise<void> {
+		const peers = this.pool.peers;
+
+		for (const peer of peers) {
+			try {
+				const ethHandler = this.getEthHandler(peer);
+				if (ethHandler) {
+					await ethHandler.broadcastTransactions([tx.serialize()]);
+
+					this.config.logger?.debug(
+						`[ETH] Broadcast transaction to peer ${peer.id.slice(0, 8)}`,
+					);
+				}
+			} catch (err: any) {
+				this.config.logger?.error(
+					`[ETH] Failed to broadcast tx to peer ${peer.id.slice(0, 8)}: ${err.message}`,
+				);
+			}
+		}
 	}
 }

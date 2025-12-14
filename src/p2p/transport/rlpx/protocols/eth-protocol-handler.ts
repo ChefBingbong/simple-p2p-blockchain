@@ -1,6 +1,21 @@
-import { BaseProtocolHandler } from '../base-protocol-handler';
-import type { RlpxConnection } from '../RlpxConnection';
 import * as RLP from '../../../../rlp/index';
+import { BaseProtocolHandler } from '../base-protocol-handler';
+import {
+    BlockBodiesHandler,
+    BlockHeadersHandler,
+    NewBlockHandler,
+    NewBlockHashesHandler,
+    PooledTransactionsHandler,
+    StatusHandler,
+    TransactionsHandler,
+    type BlockHash,
+    type GetBlockBodiesRequest,
+    type GetBlockHeadersRequest,
+    type GetPooledTransactionsRequest,
+    type HandlerContext,
+    type NewBlockPayload,
+    type StatusPayload,
+} from './handlers';
 
 // ETH protocol message codes (relative to protocol offset)
 export const ETH_CODES = {
@@ -18,163 +33,172 @@ export const ETH_CODES = {
 };
 
 export class EthProtocolHandler extends BaseProtocolHandler {
+	// Dedicated handlers for each message type
+	public statusHandler: StatusHandler;
+	public blockHeadersHandler: BlockHeadersHandler;
+	public blockBodiesHandler: BlockBodiesHandler;
+	public newBlockHashesHandler: NewBlockHashesHandler;
+	public transactionsHandler: TransactionsHandler;
+	public newBlockHandler: NewBlockHandler;
+	public pooledTransactionsHandler: PooledTransactionsHandler;
+
 	constructor(version: number = 68) {
 		super('eth', version, 16); // Reserve 16 codes
 
-		// Register handlers for each message type
+		// Create handler instances
+		this.statusHandler = new StatusHandler();
+		this.blockHeadersHandler = new BlockHeadersHandler();
+		this.blockBodiesHandler = new BlockBodiesHandler();
+		this.newBlockHashesHandler = new NewBlockHashesHandler();
+		this.transactionsHandler = new TransactionsHandler();
+		this.newBlockHandler = new NewBlockHandler();
+		this.pooledTransactionsHandler = new PooledTransactionsHandler();
+
+		// Register handlers
 		this.setupHandlers();
 	}
 
 	private setupHandlers(): void {
-		// STATUS handler
-		this.on(ETH_CODES.STATUS, async (data, conn) => {
-			const status = RLP.decode(data);
-			conn.log('[ETH] Received STATUS: %o', status);
-			// TODO: Handle STATUS message
+		// STATUS
+		this.on(this.statusHandler.code, async (data, conn) => {
+			const status = await this.statusHandler.handle(data, this.createContext());
+			// Emit event for service to handle
+			conn.dispatchEvent(new CustomEvent('eth:status', { detail: status }));
 		});
 
-		// NEW_BLOCK_HASHES handler
-		this.on(ETH_CODES.NEW_BLOCK_HASHES, async (data, conn) => {
-			const hashes = RLP.decode(data) as any[];
-			conn.log('[ETH] Received NEW_BLOCK_HASHES: %d hashes', hashes.length);
-			// TODO: Handle new block hashes
+		// NEW_BLOCK_HASHES
+		this.on(this.newBlockHashesHandler.code, async (data, conn) => {
+			const hashes = await this.newBlockHashesHandler.handle(data, this.createContext());
+			conn.dispatchEvent(new CustomEvent('eth:newBlockHashes', { detail: hashes }));
 		});
 
-		// TRANSACTIONS handler
-		this.on(ETH_CODES.TRANSACTIONS, async (data, conn) => {
-			const txs = RLP.decode(data) as any[];
-			conn.log('[ETH] Received TRANSACTIONS: %d transactions', txs.length);
-			// TODO: Handle transactions
+		// TRANSACTIONS
+		this.on(this.transactionsHandler.code, async (data, conn) => {
+			const txs = await this.transactionsHandler.handle(data, this.createContext());
+			conn.dispatchEvent(new CustomEvent('eth:transactions', { detail: txs }));
 		});
 
-		// GET_BLOCK_HEADERS handler
-		this.on(ETH_CODES.GET_BLOCK_HEADERS, async (data, conn) => {
-			const request = RLP.decode(data);
-			conn.log('[ETH] Received GET_BLOCK_HEADERS request');
-			// TODO: Handle get block headers request
+		// GET_BLOCK_HEADERS
+		this.on(this.blockHeadersHandler.code, async (data, conn) => {
+			const request = await this.blockHeadersHandler.handle(data, this.createContext());
+			conn.dispatchEvent(new CustomEvent('eth:getBlockHeaders', { detail: request }));
 		});
 
-		// BLOCK_HEADERS handler
-		this.on(ETH_CODES.BLOCK_HEADERS, async (data, conn) => {
-			const headers = RLP.decode(data) as any[];
-			conn.log('[ETH] Received BLOCK_HEADERS: %d headers', headers.length);
-			// TODO: Handle block headers
+		// BLOCK_HEADERS (response)
+		this.on(this.blockHeadersHandler.responseCode, async (data, conn) => {
+			const headers = RLP.decode(data);
+			conn.dispatchEvent(new CustomEvent('eth:blockHeaders', { detail: headers }));
 		});
 
-		// GET_BLOCK_BODIES handler
-		this.on(ETH_CODES.GET_BLOCK_BODIES, async (data, conn) => {
-			const request = RLP.decode(data);
-			conn.log('[ETH] Received GET_BLOCK_BODIES request');
-			// TODO: Handle get block bodies request
+		// GET_BLOCK_BODIES
+		this.on(this.blockBodiesHandler.code, async (data, conn) => {
+			const request = await this.blockBodiesHandler.handle(data, this.createContext());
+			conn.dispatchEvent(new CustomEvent('eth:getBlockBodies', { detail: request }));
 		});
 
-		// BLOCK_BODIES handler
-		this.on(ETH_CODES.BLOCK_BODIES, async (data, conn) => {
-			const bodies = RLP.decode(data) as any[];
-			conn.log('[ETH] Received BLOCK_BODIES: %d bodies', bodies.length);
-			// TODO: Handle block bodies
+		// BLOCK_BODIES (response)
+		this.on(this.blockBodiesHandler.responseCode, async (data, conn) => {
+			const bodies = RLP.decode(data);
+			conn.dispatchEvent(new CustomEvent('eth:blockBodies', { detail: bodies }));
 		});
 
-		// NEW_BLOCK handler
-		this.on(ETH_CODES.NEW_BLOCK, async (data, conn) => {
-			const block = RLP.decode(data);
-			conn.log('[ETH] Received NEW_BLOCK');
-			// TODO: Handle new block
+		// NEW_BLOCK
+		this.on(this.newBlockHandler.code, async (data, conn) => {
+			const block = await this.newBlockHandler.handle(data, this.createContext());
+			conn.dispatchEvent(new CustomEvent('eth:newBlock', { detail: block }));
 		});
 
-		// NEW_POOLED_TRANSACTION_HASHES handler
-		this.on(ETH_CODES.NEW_POOLED_TRANSACTION_HASHES, async (data, conn) => {
-			const hashes = RLP.decode(data) as any[];
-			conn.log(
-				'[ETH] Received NEW_POOLED_TRANSACTION_HASHES: %d hashes',
-				hashes.length,
-			);
-			// TODO: Handle pooled transaction hashes
+		// GET_POOLED_TRANSACTIONS
+		this.on(this.pooledTransactionsHandler.code, async (data, conn) => {
+			const request = await this.pooledTransactionsHandler.handle(data, this.createContext());
+			conn.dispatchEvent(new CustomEvent('eth:getPooledTransactions', { detail: request }));
 		});
 
-		// GET_POOLED_TRANSACTIONS handler
-		this.on(ETH_CODES.GET_POOLED_TRANSACTIONS, async (data, conn) => {
-			const request = RLP.decode(data);
-			conn.log('[ETH] Received GET_POOLED_TRANSACTIONS request');
-			// TODO: Handle get pooled transactions request
-		});
-
-		// POOLED_TRANSACTIONS handler
-		this.on(ETH_CODES.POOLED_TRANSACTIONS, async (data, conn) => {
-			const txs = RLP.decode(data) as any[];
-			conn.log('[ETH] Received POOLED_TRANSACTIONS: %d transactions', txs.length);
-			// TODO: Handle pooled transactions
+		// POOLED_TRANSACTIONS (response)
+		this.on(this.pooledTransactionsHandler.responseCode, async (data, conn) => {
+			const txs = RLP.decode(data);
+			conn.dispatchEvent(new CustomEvent('eth:pooledTransactions', { detail: txs }));
 		});
 	}
 
-	/**
-	 * Send STATUS message
-	 */
-	async sendStatus(status: {
-		protocolVersion: number;
-		networkId: number | bigint;
-		td: bigint;
-		bestHash: Uint8Array;
-		genesisHash: Uint8Array;
-		forkID?: {
-			hash: Uint8Array;
-			next: number | bigint;
+	private createContext(): HandlerContext {
+		return {
+			connection: this.connection!,
+			socket: (this.connection as any).socket,
+			timeout: 8000,
 		};
-	}): Promise<void> {
-		const payload = [
-			status.protocolVersion,
-			status.networkId,
-			status.td,
-			status.bestHash,
-			status.genesisHash,
-		];
+	}
 
-		if (status.forkID) {
-			payload.push([status.forkID.hash, status.forkID.next] as any);
-		}
+	// ========== Convenience Methods Using Handlers ==========
 
-		const encoded = RLP.encode(payload as any);
-		await this.send(ETH_CODES.STATUS, encoded);
+	/**
+	 * Send STATUS and wait for peer's STATUS response
+	 */
+	async sendStatus(payload: StatusPayload): Promise<StatusPayload> {
+		return this.statusHandler.sendGetStatus(payload, this.createContext());
 	}
 
 	/**
-	 * Send NEW_BLOCK_HASHES message
+	 * Request block headers and wait for response
 	 */
-	async sendNewBlockHashes(
-		hashes: Array<{ hash: Uint8Array; number: number | bigint }>,
-	): Promise<void> {
-		const payload = hashes.map((h) => [h.hash, h.number]);
-		const encoded = RLP.encode(payload as any);
-		await this.send(ETH_CODES.NEW_BLOCK_HASHES, encoded);
+	async getBlockHeaders(request: GetBlockHeadersRequest): Promise<any[]> {
+		return this.blockHeadersHandler.sendGetHeaders(request, this.createContext());
 	}
 
 	/**
-	 * Send TRANSACTIONS message
+	 * Send block headers response
 	 */
-	async sendTransactions(transactions: Uint8Array[]): Promise<void> {
-		const encoded = RLP.encode(transactions as any);
-		await this.send(ETH_CODES.TRANSACTIONS, encoded);
+	async sendBlockHeaders(headers: any[]): Promise<void> {
+		await this.blockHeadersHandler.sendHeaders(headers, this.createContext());
 	}
 
 	/**
-	 * Send GET_BLOCK_HEADERS message
+	 * Request block bodies and wait for response
 	 */
-	async sendGetBlockHeaders(request: {
-		startBlock: number | bigint | Uint8Array;
-		maxHeaders: number;
-		skip: number;
-		reverse: boolean;
-	}): Promise<void> {
-		const payload = [
-			request.startBlock,
-			request.maxHeaders,
-			request.skip,
-			request.reverse ? 1 : 0,
-		];
-		const encoded = RLP.encode(payload as any);
-		await this.send(ETH_CODES.GET_BLOCK_HEADERS, encoded);
+	async getBlockBodies(request: GetBlockBodiesRequest): Promise<any[]> {
+		return this.blockBodiesHandler.sendGetBodies(request, this.createContext());
 	}
 
-	// Add more protocol methods as needed...
+	/**
+	 * Send block bodies response
+	 */
+	async sendBlockBodies(bodies: any[]): Promise<void> {
+		await this.blockBodiesHandler.sendBodies(bodies, this.createContext());
+	}
+
+	/**
+	 * Announce new block hashes
+	 */
+	async announceBlockHashes(hashes: BlockHash[]): Promise<void> {
+		await this.newBlockHashesHandler.send(hashes, this.createContext());
+	}
+
+	/**
+	 * Broadcast transactions
+	 */
+	async broadcastTransactions(txs: Uint8Array[]): Promise<void> {
+		await this.transactionsHandler.send(txs, this.createContext());
+	}
+
+	/**
+	 * Announce new block
+	 */
+	async announceNewBlock(payload: NewBlockPayload): Promise<void> {
+		await this.newBlockHandler.send(payload, this.createContext());
+	}
+
+	/**
+	 * Request pooled transactions and wait for response
+	 */
+	async getPooledTransactions(request: GetPooledTransactionsRequest): Promise<Uint8Array[]> {
+		return this.pooledTransactionsHandler.sendGetPooledTransactions(request, this.createContext());
+	}
+
+	/**
+	 * Send pooled transactions response
+	 */
+	async sendPooledTransactions(transactions: Uint8Array[]): Promise<void> {
+		await this.pooledTransactionsHandler.sendTransactions(transactions, this.createContext());
+	}
 }
 
