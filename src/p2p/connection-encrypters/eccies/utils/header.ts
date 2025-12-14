@@ -19,7 +19,7 @@ export function createHeader(size: number, egressAes: Decipher, egressMac: MAC):
 	return concatBytes(header, tag);
 }
 
-export function parseHeader(data: Uint8Array, ingressAes: Decipher, ingressMac: MAC): number | undefined {
+export function parseHeader(data: Uint8Array, ingressAes: Decipher, ingressMac: MAC) {
 	if (data.length < HEADER_SIZE) throw new Error(`Header too short: ${data.length}`);
 
 	let header = data.subarray(0, 16);

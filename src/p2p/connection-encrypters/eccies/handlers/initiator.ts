@@ -78,10 +78,8 @@ export function sendAuthGetAck(
 					reject(new Error("Failed to parse ACK"));
 					return;
 				}
-				// Update handshake state to "ack" when ACK is received
-				ctx.handshakeState?.setState("ack");
 				log("AUTH→ACK complete");
-				resolve({ authMsg, ackMsg: ackPacket, ackResult, gotEIP8Ack: isEIP8 });
+				resolve({ authMsg: authMsg!, ackMsg: ackPacket, ackResult, gotEIP8Ack: isEIP8 });
 			} catch (err) {
 				reject(err);
 			}
@@ -109,9 +107,6 @@ export function sendAuthGetAck(
 		log("🔐 [Initiator] Attaching socket data handler for handshake");
 		ctx.socket.on("data", onData);
 		ctx.socket.once("error", onError);
-
-		// Update handshake state to "auth" when sending AUTH
-		ctx.handshakeState?.setState("auth");
 
 		log(
 			"🔐 [Initiator] Sending AUTH message (%d bytes), waiting for ACK...",

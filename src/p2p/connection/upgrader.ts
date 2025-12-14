@@ -1,4 +1,3 @@
-import { CODE_P2P } from "@multiformats/multiaddr";
 import { anySignal, ClearableSignal } from "any-signal";
 import { setMaxListeners } from "main-event";
 import { ConnectionEncrypter } from "../connection-encrypters/eccies/types";
@@ -9,7 +8,7 @@ import { AbstractMultiaddrConnection } from "./abstract-multiaddr-connection";
 import { BasicConnection, createBasicConnection } from "./basic-connection";
 import { Connection, createConnection } from "./connection";
 import { Registrar } from "./registrar";
-import { AbortOptions, PeerId } from "./types";
+import { AbortOptions, PeerId, SecureConnection } from "./types";
 
 interface CreateConnectionOptions {
 	id: string;
@@ -119,7 +118,7 @@ export class Upgrader {
 	 * Upgrade inbound connection to BasicConnection (no muxing, RLPx compatible)
 	 */
 	async upgradeInboundBasic(
-		maConn: AbstractMultiaddrConnection,
+		maConn: AbstractMultiaddrConnection | SecureConnection,
 		opts: { signal?: AbortSignal } = {},
 	): Promise<BasicConnection> {
 		const signal = this.createInboundAbortSignal(opts.signal);
@@ -138,7 +137,8 @@ export class Upgrader {
 		maConn: AbstractMultiaddrConnection,
 		opts: { signal?: AbortSignal } = {},
 	): Promise<BasicConnection> {
-		return await this._performBasicUpgrade(maConn, "outbound", opts);
+		const secureConn = maConn as SecureConnection;
+		return await this._performBasicUpgrade(secureConn.connection, "outbound", opts);
 	}
 
 	private async _performUpgrade(
@@ -154,56 +154,17 @@ export class Upgrader {
 		const id = `${(parseInt(String(Math.random() * 1e9))).toString(36)}${Date.now()}`;
 
 		try {
-			// Try to extract remote peer ID from multiaddr
-			const peerIdString = maConn.remoteAddr
-				.getComponents()
-				.findLast((c) => c.code === CODE_P2P)?.value;
-
-			// Skip encryption if no encrypter configured (testing mode)
-			if (this.connectionEncrypter) {
-				// Encrypt the connection DIRECTLY (no multi-stream-select for ECIES)
-				// ECIES from RLPx uses a custom handshake, not compatible with multistream-select
-				const encrypted =
-					direction === "inbound"
-						? await this._encryptInboundDirect(stream, opts)
-						: await this._encryptOutboundDirect(stream, opts);
-
-				stream = encrypted.connection;
-				remotePeer = encrypted.remotePeer;
-				cryptoProtocol = encrypted.protocol;
-			} else {
-				// No encryption - use peer ID from connection options
-				const maConnAny = maConn as any;
-				remotePeer = maConnAny.remotePeerId || this.id;
-				cryptoProtocol = "none";
-				maConn.log(
-					"skipping encryption (testing mode), remote peer: %s",
-					Buffer.from(remotePeer).toString("hex").slice(0, 16),
-				);
-			}
-
-			// If we had a peer ID in the multiaddr, we could verify it matches here
-			// For now we trust the encrypted connection's peer ID
-
-			// Multiplex the connection
 			let muxerFactory: StreamMuxerFactory;
 
 			if (this.skipMuxerNegotiation) {
-				// Skip multi-stream-select, use muxer directly
-				// This is necessary when ECIES encryption is used because the socket is in frame mode
-				maConn.log(
-					"skipping muxer negotiation, using %s directly",
-					this.streamMuxerFactory.protocol,
-				);
 				muxerFactory = this.streamMuxerFactory;
 			} else {
 				// Standard libp2p flow with multi-stream-select
-				muxerFactory = await (direction === "inbound"
+				muxerFactory = await (direction !== "inbound"
 					? this._multiplexInbound(stream, opts)
 					: this._multiplexOutbound(stream, opts));
 			}
 
-			maConn.log("create muxer %s", muxerFactory.protocol);
 			muxer = muxerFactory.createStreamMuxer(stream);
 		} catch (err: any) {
 			maConn.log.error(
@@ -273,6 +234,7 @@ export class Upgrader {
 
 			const secureConn = await this.connectionEncrypter.secureInBound(socket);
 
+
 			connection.log(
 				"✅ [Upgrader] ECIES handshake complete (inbound), remote peer: %s",
 				Buffer.from(secureConn.remotePeer).toString("hex").slice(0, 16),
@@ -294,6 +256,7 @@ export class Upgrader {
 				);
 				connectionAny.readBuffer.consume(connectionAny.readBuffer.byteLength);
 			}
+
 
 			return {
 				connection,
@@ -336,43 +299,10 @@ export class Upgrader {
 				throw new Error("No remote peer ID available for ECIES encryption");
 			}
 
-			connection.log(
-				"🔄 [Upgrader] Performing ECIES handshake (outbound) with peer %s...",
-				Buffer.from(remotePeerId).toString("hex").slice(0, 16),
-			);
-			connection.log(
-				"🔄 [Upgrader] Socket state - destroyed: %s, readable: %s, writable: %s",
-				socket.destroyed,
-				socket.readable,
-				socket.writable,
-			);
-
 			const secureConn = await this.connectionEncrypter.secureOutBound(
 				socket,
 				remotePeerId,
 			);
-
-			connection.log(
-				"✅ [Upgrader] ECIES handshake complete (outbound), remote peer: %s",
-				Buffer.from(secureConn.remotePeer).toString("hex").slice(0, 16),
-			);
-
-			// NOTE: Do NOT set up RLPx frame parser here - it will be set up after STATUS handshake completes
-			// Setting it up too early can interfere with the STATUS handshake
-			connection.log(
-				"⏸️ [Upgrader] Deferring RLPx frame parser setup until after STATUS handshake",
-			);
-
-			// Clear any leftover data in the read buffer after ECIES handshake
-			// This ensures a clean stream for multi-stream-select negotiation
-			const connectionAny = connection as any;
-			if (connectionAny.readBuffer?.byteLength > 0) {
-				connection.log(
-					"🧹 [Upgrader] Clearing %d bytes of leftover data from read buffer after ECIES handshake",
-					connectionAny.readBuffer.byteLength,
-				);
-				connectionAny.readBuffer.consume(connectionAny.readBuffer.byteLength);
-			}
 
 			return {
 				connection,
@@ -450,11 +380,11 @@ export class Upgrader {
 	 * Creates a BasicConnection compatible with RLPx
 	 */
 	private async _performBasicUpgrade(
-		maConn: AbstractMultiaddrConnection,
+		maConn: AbstractMultiaddrConnection |  SecureConnection,
 		direction: "inbound" | "outbound",
 		opts: AbortOptions = {},
 	): Promise<BasicConnection> {
-		let stream: AbstractMessageStream = maConn;
+		let stream: AbstractMessageStream = maConn.maConn;
 		let remotePeer: PeerId;
 		let cryptoProtocol: string;
 

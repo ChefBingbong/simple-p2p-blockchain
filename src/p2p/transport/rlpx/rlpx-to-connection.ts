@@ -3,17 +3,13 @@ import type { Socket } from "net";
 import type crypto from "node:crypto";
 import { pEvent, TimeoutError } from "p-event";
 import type { Uint8ArrayList } from "uint8arraylist";
-import { bytesToInt, concatBytes } from "../../../utils";
 import { ipPortToMultiaddr } from "../../../utils/multi-addr";
 import type { EcciesEncrypter } from "../../connection-encrypters/eccies/eccies-encrypter";
 import {
-  createBody,
-  parseBody,
+	createBody
 } from "../../connection-encrypters/eccies/utils/body";
 import {
-  createHeader,
-  HEADER_SIZE,
-  parseHeader,
+	createHeader
 } from "../../connection-encrypters/eccies/utils/header";
 import { AbstractMultiaddrConnection } from "../../connection/abstract-multiaddr-connection";
 import { AbortOptions } from "../../connection/types";
@@ -111,24 +107,11 @@ class RlpxSocketMultiaddrConnection extends AbstractMultiaddrConnection {
 			this.safeDispatchEvent("drain");
 		});
 
-    if (this.remotePeerId !== null) {
-			// Outbound: we send AUTH, wait for ACK
-			// Send AUTH immediately for outbound connections
-				this._sendAuth();
-		} 
-	}
-
-	_sendAuth() {
-		if (!this.encrypter) {
-			throw new Error("Encrypter not set");
-		}
-		const authMsg = this.encrypter.createAndSendAuth();
-		if (!authMsg) {
-			throw new Error("Failed to create AUTH");
-		}
-		this.socket.write(authMsg);
-		this._state = "Ack";
-		this._nextPacketSize = 210; // ACK message size (non-EIP8)
+    // if (this.remotePeerId !== null) {
+	// 		// Outbound: we send AUTH, wait for ACK
+	// 		// Send AUTH immediately for outbound connections
+	// 			this._sendAuth();
+	// 	} 
 	}
 
 	_onSocketData(data: Uint8Array) {
@@ -137,152 +120,28 @@ class RlpxSocketMultiaddrConnection extends AbstractMultiaddrConnection {
 			return;
 		}
 
-		this._socketData = concatBytes(this._socketData, data);
-		try {
-			while (this._socketData.length >= this._nextPacketSize) {
-				switch (this._state) {
-					case "Auth":
-						this._handleAuth();
-						break;
-					case "Ack":
-						this._handleAck();
-						break;
-					case "Header":
-						this._handleHeader();
-						break;
-					case "Body":
-						this._handleBody();
-						break;
-				}
-			}
-		} catch (err: any) {
-			this.log("Error processing socket data: %s", err.message);
-			this.abort(err);
-		}
-	}
-
-	_handleAuth() {
-		const bytesCount = this._nextPacketSize;
-		const parseData = this._socketData.subarray(0, bytesCount);
-
-		if (!this.encrypter) {
-			throw new Error("Encrypter not set");
-		}
-
-		// Check if EIP8 AUTH
-		if (!this._gotEIP8Auth) {
-			if (parseData.subarray(0, 1)[0] === 0x04) {
-				// Non-EIP8 AUTH
-				this.encrypter.parseAuthPlain(parseData);
-			} else {
-				// EIP8 AUTH - need to read size first
-				this._gotEIP8Auth = true;
-				this._nextPacketSize = bytesToInt(parseData.subarray(0, 2)) + 2;
-				return;
-			}
-		} else {
-			// EIP8 AUTH
-			this.encrypter.parseAuthEIP8(parseData);
-		}
-
-		// After parsing AUTH, send ACK and setup frames
-		this.encrypter.createAndSendAck();
-		
-		// Transition to Header state for RLPx frames
-		this._state = "Header";
-		this._nextPacketSize = HEADER_SIZE;
-		this._socketData = this._socketData.subarray(bytesCount);
-	}
-
-	_handleAck() {
-		const bytesCount = this._nextPacketSize;
-		const parseData = this._socketData.subarray(0, bytesCount);
-
-		if (!this.encrypter) {
-			throw new Error("Encrypter not set");
-		}
-
-		// Check if EIP8 ACK
-		if (!this._gotEIP8Ack) {
-			if (parseData.subarray(0, 1)[0] === 0x04) {
-				// Non-EIP8 ACK
-				this.encrypter.parseAckPlain(parseData);
-			} else {
-				// EIP8 ACK - need to read size first
-				this._gotEIP8Ack = true;
-				this._nextPacketSize = bytesToInt(parseData.subarray(0, 2)) + 2;
-				return;
-			}
-		} else {
-			// EIP8 ACK
-			this.encrypter.parseAckEIP8(parseData);
-		}
-
-		// After parsing ACK, setup frames
-		this.encrypter.setupFrameEncryptionAfterAck();
-
-		// Transition to Header state for RLPx frames
-		this._state = "Header";
-		this._nextPacketSize = HEADER_SIZE;
-		this._socketData = this._socketData.subarray(bytesCount);
-	}
-
-	_handleHeader() {
-		const bytesCount = this._nextPacketSize;
-		const parseData = this._socketData.subarray(0, bytesCount);
-
-		if (!this.encrypter) {
-			throw new Error("Encrypter not set - cannot parse RLPx header");
-		}
-
-		const ingressAes = (this.encrypter as any).ingressAes;
-		const ingressMac = (this.encrypter as any).ingressMac;
-
-		if (!ingressAes || !ingressMac) {
-			throw new Error("ECIES handshake not complete - AES/MAC not available");
-		}
-
-		const result = parseHeader(parseData, ingressAes, ingressMac);
-		if (!result || result.bodySize === undefined) {
-			this.log("Invalid header size!");
-			return;
-		}
-
-		this._bodySize = result.bodySize;
-		this._state = "Body";
-		this._nextPacketSize = result.paddedBodySize + 16; // body + MAC
-		this._socketData = this._socketData.subarray(bytesCount);
-	}
-
-	_handleBody() {
-		const bytesCount = this._nextPacketSize;
-		const parseData = this._socketData.subarray(0, bytesCount);
-
-		if (!this.encrypter) {
-			throw new Error("Encrypter not set - cannot parse RLPx body");
-		}
-
-		const ingressAes = (this.encrypter as any).ingressAes;
-		const ingressMac = (this.encrypter as any).ingressMac;
-
-		if (!ingressAes || !ingressMac || this._bodySize === null) {
-			throw new Error("ECIES handshake not complete - AES/MAC not available");
-		}
-
-		const result = parseBody(parseData, this._bodySize, ingressAes, ingressMac);
-		if (!result) {
-			this.log("Empty body!");
-			return;
-		}
-
-		// Reset state for next message
-		this._state = "Header";
-		this._nextPacketSize = HEADER_SIZE;
-		this._bodySize = null;
-		this._socketData = this._socketData.subarray(bytesCount);
-
-		// Push the payload data to the read buffer
-		this.push(result.bodyPayload);
+		// this._socketData = concatBytes(this._socketData, data);
+		// try {
+		// 	while (this._socketData.length >= this._nextPacketSize) {
+		// 		switch (this._state) {
+		// 			case "Auth":
+		// 				this._handleAuth();
+		// 				break;
+		// 			case "Ack":
+		// 				this._handleAck();
+		// 				break;
+		// 			case "Header":
+		// 				this._handleHeader();
+		// 				break;
+		// 			case "Body":
+		// 				this._handleBody();
+		// 				break;
+		// 		}
+		// 	}
+		// } catch (err: any) {
+		// 	this.log("Error processing socket data: %s", err.message);
+		// 	this.abort(err);
+		// }
 	}
 
 	sendData(data: Uint8ArrayList): SendResult {

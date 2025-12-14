@@ -61,8 +61,6 @@ export class TransportListener extends EventEmitter<TransportListenerEvents> {
 			log("incoming RLPx socket from %s:%s", remoteAddr, remotePort);
 
 		// Get encrypter before creating connection
-		const encrypter = this.context.upgrader.getConnectionEncrypter?.();
-
 		// Get the actual remote address from the socket
 		const actualRemoteAddr = remoteAddr && remotePort
 			? ipPortToMultiaddr(remoteAddr, remotePort)
@@ -77,75 +75,17 @@ export class TransportListener extends EventEmitter<TransportListenerEvents> {
 			encrypter: encrypter as any,
 		});
 
+		const encrypter = this.context.upgrader.getConnectionEncrypter();
+		const secureConn = await encrypter.secureInBound(sock);
+
+		const basicConn = await this.context.upgrader.upgradeInboundBasic(secureConn);
+
 		log("upgrading inbound RLPx connection (basic, no muxing)...");
 		
 		// Wait for ECIES handshake to complete and extract remote peer ID
 		const maConnAny = maConn as any;
 		const rlpxEncrypter = maConnAny.encrypter as any;
 		
-		let actualRemotePeer: Uint8Array;
-		
-		if (rlpxEncrypter) {
-			// Wait for handshake to complete before creating BasicConnection
-			await new Promise<void>((resolve, reject) => {
-				const timeoutId = setTimeout(() => {
-					reject(new Error("Inbound ECIES handshake timeout after 10s"));
-				}, 10000);
-				
-			const onAckComplete = async () => {
-				clearTimeout(timeoutId);
-				(maConn as any).removeEventListener('ack-complete', onAckComplete);
-				
-				if (rlpxEncrypter.remotePublicKey) {
-					const { pk2id } = await import("../../../devp2p");
-					actualRemotePeer = pk2id(rlpxEncrypter.remotePublicKey);
-					log(`✅ ECIES handshake complete, remote peer: ${Buffer.from(actualRemotePeer).toString('hex').slice(0, 16)}`);
-					resolve();
-				} else {
-					reject(new Error("ECIES handshake completed but remotePublicKey not set"));
-				}
-			};
-			
-			(maConn as any).addEventListener('ack-complete', onAckComplete);
-				
-				// Check if already complete (race condition)
-				if (rlpxEncrypter.isHandshakeComplete && rlpxEncrypter.remotePublicKey) {
-					clearTimeout(timeoutId);
-					const { pk2id } = require("../../../devp2p");
-					actualRemotePeer = pk2id(rlpxEncrypter.remotePublicKey);
-					log(`✅ ECIES handshake already complete, remote peer: ${Buffer.from(actualRemotePeer).toString('hex').slice(0, 16)}`);
-					resolve();
-				}
-			});
-		} else {
-			throw new Error("No encrypter available for inbound RLPx connection");
-		}
-		
-		// Now create BasicConnection with the correct remote peer
-		const stream = maConn as any;
-		const connId = `${(parseInt(String(Math.random() * 1e9))).toString(36)}${Date.now()}`;
-		const basicConn = new BasicConnection({
-			id: connId,
-			maConn: maConn,
-			stream: stream,
-			direction: 'inbound',
-			remotePeer: actualRemotePeer, // ✅ Now has the real peer ID!
-			cryptoProtocol: 'eccies',
-		});
-
-			// Set up RLPx frame parser for inbound connections
-			// This must be done before the connection is emitted so it can receive STATUS messages
-			// The maConn is stored in the BasicConnection's protected maConn property
-			// const basicConnAny = basicConn as any;
-			// const maConnAny = basicConnAny.maConn;
-			// if (
-			// 	maConnAny?.setupFrameParser &&
-			// 	typeof maConnAny.setupFrameParser === "function"
-			// ) {
-			// 	log("🔄 Setting up RLPx frame parser for inbound connection");
-			// 	maConnAny.setupFrameParser();
-			// }
-
 			// Store and emit the BasicConnection
 			const connKey = basicConn.id;
 			this.connections.set(connKey, basicConn);

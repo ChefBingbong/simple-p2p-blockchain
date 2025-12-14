@@ -1,4 +1,8 @@
+import type * as crypto from "crypto";
 import type { Socket } from "node:net";
+import type { MAC } from "../../../transport/rlpx/mac";
+
+type Decipher = crypto.DecipherGCM;
 
 export type HandlerContext = {
 	socket: Socket;
@@ -9,10 +13,6 @@ export type HandlerContext = {
 	ephemeralPrivateKey: Uint8Array;
 	ephemeralPublicKey: Uint8Array;
 	requireEip8: boolean;
-	handshakeState?: {
-		current: "idle" | "auth" | "ack" | "complete";
-		setState: (state: "idle" | "auth" | "ack" | "complete") => void;
-	};
 };
 
 export type AuthResult = {
@@ -38,3 +38,27 @@ export type BodyResult = {
 	payload: Uint8Array;
 };
 
+export type HelloContext = {
+	socket: Socket;
+	ingressAes: Decipher | null;
+	egressAes: Decipher | null;
+	ingressMac: MAC | null;
+	egressMac: MAC | null;
+	clientId: Uint8Array;
+	capabilities: Array<{ name: string; version: number }>;
+	port: number;
+	id: Uint8Array;
+};
+
+export type HelloMessage = {
+	protocolVersion: number;
+	clientId: string;
+	capabilities: Array<{ name: string; version: number }>;
+	port: number;
+	id: Uint8Array;
+};
+
+export type HelloResult = {
+	localHello: HelloMessage;
+	remoteHello: HelloMessage;
+};

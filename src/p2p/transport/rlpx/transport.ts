@@ -126,21 +126,18 @@ export class Transport {
 	private async onConnect(socket: net.Socket, peerAddr: Multiaddr, remotePeerId?: Uint8Array): Promise<SafeError<Error> | SafeResult<BasicConnection>> {
 		try {
 			log(`📡 RLPx connected to ${peerAddr.toString()}, creating BasicConnection...`);
-
-			// Get encrypter before creating connection
-			const encrypter = this.upgrader.getConnectionEncrypter?.();
-
 			// Create RLPx multiaddr connection from raw socket with encrypter
 			const maConn = toRlpxConnection({
 				socket,
 				remoteAddr: peerAddr,
 				direction: 'outbound',
 				remotePeerId: remotePeerId,
-				encrypter: encrypter as any
 			});
 
 			log(`🔐 Starting ECIES encryption (basic) for ${peerAddr.toString()}...`);
+			const encrypter = this.upgrader.getConnectionEncrypter();
 
+			const secureConn = await encrypter.secureOutBound(socket, remotePeerId);
 			// Always create BasicConnection (encryption only, no muxing)
 			const basicConn = await this.upgrader.upgradeOutboundBasic(maConn);
 

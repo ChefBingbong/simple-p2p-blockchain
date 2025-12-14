@@ -69,8 +69,6 @@ export function waitAuthSendAck(
 					return;
 				}
 				ctx.remotePublicKey = authResult.remotePublicKey;
-				// Update handshake state to "ack" when AUTH is received and ACK is being sent
-				ctx.handshakeState?.setState("ack");
 				const ackMsg = createAckMessage(ctx, isEIP8);
 				log(
 					"🔐 [Responder] Received AUTH, sending ACK message (%d bytes)...",
