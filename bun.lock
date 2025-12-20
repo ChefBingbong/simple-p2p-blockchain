@@ -9,6 +9,7 @@
         "@hono/node-server": "^1.19.6",
         "@hono/standard-validator": "^0.2.0",
         "@js-sdsl/ordered-map": "^4.4.2",
+        "@libp2p/interface": "^3.1.0",
         "@libp2p/interface-connection": "^5.1.1",
         "@libp2p/interfaces": "^3.3.2",
         "@multiformats/multiaddr": "^13.0.1",
@@ -162,6 +163,8 @@
     "@js-sdsl/ordered-map": ["@js-sdsl/ordered-map@4.4.2", "", {}, "sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw=="],
 
     "@leichtgewicht/ip-codec": ["@leichtgewicht/ip-codec@2.0.5", "", {}, "sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw=="],
+
+    "@libp2p/interface": ["@libp2p/interface@3.1.0", "", { "dependencies": { "@multiformats/dns": "^1.0.6", "@multiformats/multiaddr": "^13.0.1", "main-event": "^1.0.1", "multiformats": "^13.4.0", "progress-events": "^1.0.1", "uint8arraylist": "^2.4.8" } }, "sha512-RE7/XyvC47fQBe1cHxhMvepYKa5bFCUyFrrpj8PuM0E7JtzxU7F+Du5j4VXbg2yLDcToe0+j8mB7jvwE2AThYw=="],
 
     "@libp2p/interface-connection": ["@libp2p/interface-connection@5.1.1", "", { "dependencies": { "@libp2p/interface-peer-id": "^2.0.0", "@libp2p/interfaces": "^3.0.0", "@multiformats/multiaddr": "^12.0.0", "it-stream-types": "^2.0.1", "uint8arraylist": "^2.4.3" } }, "sha512-ytknMbuuNW72LYMmTP7wFGP5ZTaUSGBCmV9f+uQ55XPcFHtKXLtKWVU/HE8IqPmwtyU8AO7veGoJ/qStMHNRVA=="],
 

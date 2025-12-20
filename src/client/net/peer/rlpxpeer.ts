@@ -1,15 +1,20 @@
-import { ETH as Devp2pETH, RLPx as Devp2pRLPx } from "../../../devp2p";
-import { randomBytes, unprefixedHexToBytes } from "../../../utils";
+import type { ComponentLogger, Logger } from "@libp2p/interface";
+import { multiaddr } from "@multiformats/multiaddr";
+
+import { ETH as Devp2pETH } from "../../../devp2p";
+import type { Capabilities as Devp2pCapabilities } from "../../../devp2p";
+import {
+	RLPxTransport,
+	type RLPxConnection,
+} from "../../../p2p/transport/rlpx/index.ts";
+import { randomBytes, unprefixedHexToBytes, utf8ToBytes } from "../../../utils";
 
 import { Event } from "../../types.ts";
+import { getClientVersion } from "../../util";
 import { RlpxSender } from "../protocol";
 
 import { Peer } from "./peer.ts";
 
-import type {
-	Capabilities as Devp2pCapabilities,
-	Peer as Devp2pRlpxPeer,
-} from "../../../devp2p";
 import type { Protocol } from "../protocol";
 import type { RlpxServer } from "../server";
 import type { PeerOptions } from "./peer.ts";
@@ -30,7 +35,28 @@ export interface RlpxPeerOptions
 }
 
 /**
- * Devp2p/RLPx peer
+ * Simple logger adapter for ComponentLogger interface
+ */
+function createSimpleLogger(name: string): Logger {
+	const log = (_formatter: string, ..._args: any[]) => {};
+	log.enabled = false;
+	log.trace = (_formatter: string, ..._args: any[]) => {};
+	log.error = (formatter: string, ...args: any[]) => {
+		console.error(`[${name}] ERROR:`, formatter, ...args);
+	};
+	return log as Logger;
+}
+
+function createLoggerComponent(name: string): { logger: ComponentLogger } {
+	return {
+		logger: {
+			forComponent: (component: string) => createSimpleLogger(`${name}:${component}`),
+		},
+	};
+}
+
+/**
+ * Devp2p/RLPx peer using the new libp2p-style transport
  * @memberof module:net/peer
  * @example
  * ```ts
@@ -54,9 +80,10 @@ export interface RlpxPeerOptions
 export class RlpxPeer extends Peer {
 	private host: string;
 	private port: number;
-	public rlpx: Devp2pRLPx | null;
-	public rlpxPeer: Devp2pRlpxPeer | null;
+	public rlpxTransport: RLPxTransport | null;
+	public connection: RLPxConnection | null;
 	public connected: boolean;
+
 	/**
 	 * Create new devp2p/rlpx peer
 	 */
@@ -70,8 +97,8 @@ export class RlpxPeer extends Peer {
 
 		this.host = options.host;
 		this.port = options.port;
-		this.rlpx = null;
-		this.rlpxPeer = null;
+		this.rlpxTransport = null;
+		this.connection = null;
 		this.connected = false;
 	}
 
@@ -104,61 +131,66 @@ export class RlpxPeer extends Peer {
 		}
 		const key = randomBytes(32);
 		await Promise.all(this.protocols.map((p) => p.open()));
-		this.rlpx = new Devp2pRLPx(key, {
+
+		// Create transport for outbound connection
+		this.rlpxTransport = new RLPxTransport(createLoggerComponent("rlpx-peer"), {
+			privateKey: key,
+			clientId: utf8ToBytes(getClientVersion()),
 			capabilities: RlpxPeer.capabilities(this.protocols),
 			common: this.config.chainCommon,
-		});
-		await this.rlpx.connect({
-			id: unprefixedHexToBytes(this.id),
-			address: this.host,
-			tcpPort: this.port,
+			timeout: 10000,
 		});
 
-		const peerErrorHandler = (_: Devp2pRlpxPeer, error: Error) => {
+		// Dial the remote peer
+		const dialAddr = multiaddr(`/ip4/${this.host}/tcp/${this.port}`);
+		const remoteId = unprefixedHexToBytes(this.id);
+
+		try {
+			this.connection = await this.rlpxTransport.dial(dialAddr, {
+				remoteId,
+				signal: AbortSignal.timeout(10000),
+			});
+
+			// Bind protocols
+			await this.bindProtocols(this.connection);
+			this.config.events.emit(Event.PEER_CONNECTED, this);
+
+			// Handle connection close
+			this.connection.once("close", () => {
+				this.connection = null;
+				this.connected = false;
+				this.config.events.emit(Event.PEER_DISCONNECTED, this);
+			});
+
+			// Handle errors
+			this.connection.on("error", (err: Error) => {
+				this.config.events.emit(Event.PEER_ERROR, err, this);
+			});
+		} catch (error: any) {
 			this.config.events.emit(Event.PEER_ERROR, error, this);
-		};
-		const peerErrorHandlerBound = peerErrorHandler.bind(this);
-		const peerAddedHandler = async (rlpxPeer: Devp2pRlpxPeer) => {
-			try {
-				await this.bindProtocols(rlpxPeer);
-				this.config.events.emit(Event.PEER_CONNECTED, this);
-			} catch (error: any) {
-				this.config.events.emit(Event.PEER_ERROR, error, this);
-			}
-		};
-		const peerRemovedHandler = (rlpxPeer: Devp2pRlpxPeer) => {
-			if (rlpxPeer !== this.rlpxPeer) {
-				return;
-			}
-			this.rlpxPeer = null;
-			this.connected = false;
-			this.config.events.emit(Event.PEER_DISCONNECTED, this);
-			this.rlpx?.events.removeListener("peer:error", peerErrorHandlerBound);
-		};
-		this.rlpx.events.on("peer:error", peerErrorHandlerBound);
-		this.rlpx.events.once("peer:added", peerAddedHandler.bind(this));
-		this.rlpx.events.once("peer:removed", peerRemovedHandler.bind(this));
+			throw error;
+		}
 	}
 
 	/**
 	 * Accept new peer connection from an rlpx server
 	 */
-	async accept(rlpxPeer: Devp2pRlpxPeer, server: RlpxServer): Promise<void> {
+	async accept(connection: RLPxConnection, server: RlpxServer): Promise<void> {
 		if (this.connected) {
 			return;
 		}
-		await this.bindProtocols(rlpxPeer);
+		await this.bindProtocols(connection);
+		this.connection = connection;
 		this.server = server;
 	}
 
 	/**
-	 * Adds protocols to this peer given an rlpx native peer instance.
-	 * @param rlpxPeer rlpx native peer
+	 * Adds protocols to this peer given an RLPx connection.
+	 * @param connection RLPx connection
 	 */
-	private async bindProtocols(rlpxPeer: Devp2pRlpxPeer): Promise<void> {
-		this.rlpxPeer = rlpxPeer;
+	private async bindProtocols(connection: RLPxConnection): Promise<void> {
 		await Promise.all(
-			rlpxPeer.getProtocols().map((rlpxProtocol) => {
+			connection.getProtocols().map((rlpxProtocol) => {
 				const name = rlpxProtocol.constructor.name.toLowerCase();
 				const protocol = this.protocols.find((p) => p.name === name);
 				if (protocol) {

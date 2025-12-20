@@ -12,6 +12,7 @@ dist
 .env.node3
 .env.send
 
+test-network-old-data/
 test-network-data/
 test-network-data-p2p/
 keys/
