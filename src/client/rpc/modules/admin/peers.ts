@@ -13,8 +13,8 @@ export const peers = (client: EthereumClient) =>
 
 			return safeResult(
 				peers?.map((peer) => {
-					const rlpxPeer = peer.rlpxPeer;
-					const name = rlpxPeer?.["_hello"]?.clientId ?? null;
+					const connection = peer.connection;
+					const name = connection?.getHelloMessage()?.clientId ?? null;
 					return {
 						id: peer.id,
 						name,
