@@ -21,6 +21,7 @@ import type { IpcSocketConnectOpts, Socket, TcpSocketConnectOpts } from "net";
 import net from "net";
 import os from "os";
 import { CustomProgressEvent } from "progress-events";
+import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
 import { bytesToUnprefixedHex, utf8ToBytes } from "../../../utils/index.ts";
 import { multiaddrToNetConfig } from "../tcp/utils.ts";
 import { RLPxConnection } from "./connection.ts";
@@ -181,6 +182,83 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
 			connection.close();
 			throw err;
 		}
+	}
+
+	/**
+	 * Dial a peer and get a protocol stream
+	 * Similar to libp2p's dialProtocol
+	 *
+	 * @param ma Multiaddr to dial
+	 * @param protocol Protocol string (e.g., "/eth/68/1.0.0")
+	 * @param options Dial options including required remoteId
+	 * @returns Promise resolving to ProtocolStream after Hello exchange and protocol negotiation
+	 *
+	 * @example
+	 * ```typescript
+	 * const stream = await transport.dialProtocol(
+	 *   multiaddr('/ip4/1.2.3.4/tcp/30303'),
+	 *   '/eth/68/1.0.0',
+	 *   { remoteId: peerNodeId }
+	 * );
+	 *
+	 * stream.onMessage((code, payload) => {
+	 *   console.log('Received:', code, payload);
+	 * });
+	 *
+	 * stream.send(0x03, encodedGetBlockHeaders);
+	 * ```
+	 */
+	async dialProtocol(
+		ma: Multiaddr,
+		protocol: string,
+		options: RLPxDialOptions,
+	): Promise<ProtocolStream> {
+		// First dial the connection
+		const connection = await this.dial(ma, options);
+
+		// Parse protocol string (e.g., "/eth/68/1.0.0")
+		const match = protocol.match(/^\/(\w+)\/(\d+)\//);
+		if (!match) {
+			connection.close();
+			throw new Error(`Invalid protocol string: ${protocol}`);
+		}
+
+		const protocolName = match[1];
+		const version = parseInt(match[2], 10);
+
+		// Wait for connection to be ready (Hello exchange complete)
+		if (!connection.isConnected()) {
+			await new Promise<void>((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					reject(new Error("Connection timeout"));
+				}, this.opts.timeout ?? 10000);
+
+				connection.once("connect", () => {
+					clearTimeout(timeout);
+					resolve();
+				});
+
+				connection.once("error", (err) => {
+					clearTimeout(timeout);
+					reject(err);
+				});
+			});
+		}
+
+		// Get protocol stream
+		const stream = connection.getProtocolStream(protocolName, version);
+		if (!stream) {
+			connection.close();
+			const availableProtocols = connection
+				.getProtocols()
+				.map((p) => p.constructor.name)
+				.join(", ");
+			throw new Error(
+				`Protocol ${protocol} not negotiated. Available: ${availableProtocols}`,
+			);
+		}
+
+		return stream;
 	}
 
 	/**

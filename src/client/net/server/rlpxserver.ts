@@ -19,6 +19,8 @@ import { getHostPortFromMultiaddr } from "../../../utils/utils.ts";
 import { Event } from "../../types.ts";
 import { getClientVersion } from "../../util";
 import { RlpxPeer } from "../peer/rlpxpeer.ts";
+import type { ProtocolStream } from "../protocol/protocol-stream.ts";
+import { ProtocolRegistry } from "../protocol/registry.ts";
 import type { ServerOptions } from "./server.ts";
 import { Server } from "./server.ts";
 
@@ -102,6 +104,9 @@ export class RlpxServer extends Server {
 	private refillIntervalId: NodeJS.Timeout | null = null;
 	private refillIntervalSelectionCounter: number = 0;
 
+	// Protocol registry for libp2p-style protocol registration
+	private protocolRegistry: ProtocolRegistry;
+
 	/**
 	 * Create new DevP2P/RLPx server
 	 */
@@ -125,6 +130,9 @@ export class RlpxServer extends Server {
 
 		// Initialize peer tracking
 		this.peersLRU = new LRUCache({ max: 25000 });
+
+		// Initialize protocol registry
+		this.protocolRegistry = new ProtocolRegistry();
 	}
 
 	/**
@@ -171,6 +179,14 @@ export class RlpxServer extends Server {
 			return false;
 		}
 		await super.start();
+
+		// Register protocols with registry (optional - for libp2p-style API)
+		for (const protocol of this.protocols) {
+			if (protocol.setRegistry) {
+				protocol.setRegistry(this.protocolRegistry);
+			}
+		}
+
 		await this.initDpt();
 		await this.initRlpx();
 		this.started = true;
@@ -595,5 +611,61 @@ export class RlpxServer extends Server {
 				return true;
 			}
 		});
+	}
+
+	/**
+	 * Dial a peer with a specific protocol (libp2p-style API)
+	 *
+	 * @param peerId Peer ID (hex string)
+	 * @param protocol Protocol string (e.g., "/eth/68/1.0.0")
+	 * @returns Promise resolving to ProtocolStream
+	 *
+	 * @example
+	 * ```typescript
+	 * const stream = await server.dialProtocol(peerId, "/eth/68/1.0.0");
+	 * stream.onMessage((code, payload) => {
+	 *   console.log("Received:", code, payload);
+	 * });
+	 * stream.send(0x03, encodedGetBlockHeaders);
+	 * ```
+	 */
+	async dialProtocol(
+		peerId: string,
+		protocol: string,
+	): Promise<ProtocolStream> {
+		// Find peer
+		const peer = this.peers.get(peerId);
+		if (!peer) {
+			throw new Error(`Peer ${peerId} not found`);
+		}
+
+		// Get connection from peer
+		const connection = this.connections.get(peerId);
+		if (!connection) {
+			throw new Error(`No connection found for peer ${peerId}`);
+		}
+
+		// Parse protocol string
+		const match = protocol.match(/^\/(\w+)\/(\d+)\//);
+		if (!match) {
+			throw new Error(`Invalid protocol string: ${protocol}`);
+		}
+
+		const protocolName = match[1];
+		const version = parseInt(match[2], 10);
+
+		// Get protocol stream from connection
+		const stream = connection.getProtocolStream(protocolName, version);
+		if (!stream) {
+			const availableProtocols = connection
+				.getProtocols()
+				.map((p) => p.constructor.name)
+				.join(", ");
+			throw new Error(
+				`Protocol ${protocol} not available on peer ${peerId}. Available: ${availableProtocols}`,
+			);
+		}
+
+		return stream;
 	}
 }

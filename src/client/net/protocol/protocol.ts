@@ -1,6 +1,7 @@
 import { EthereumJSErrorWithoutCode } from "../../../utils";
 
 import type { Config } from "../../config.ts";
+import type { ProtocolRegistry } from "./registry.ts";
 import type { Sender } from "./sender.ts";
 
 export interface ProtocolOptions {
@@ -43,6 +44,11 @@ export class Protocol {
 	public opened: boolean;
 
 	/**
+	 * Optional protocol registry (set by server/client)
+	 */
+	protected registry?: ProtocolRegistry;
+
+	/**
 	 * Create new protocol
 	 */
 	constructor(options: ProtocolOptions) {
@@ -50,6 +56,13 @@ export class Protocol {
 		this.timeout = options.timeout ?? 8000;
 
 		this.opened = false;
+	}
+
+	/**
+	 * Set the protocol registry (called by server/client)
+	 */
+	setRegistry(registry: ProtocolRegistry): void {
+		this.registry = registry;
 	}
 
 	/**

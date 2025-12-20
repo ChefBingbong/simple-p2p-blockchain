@@ -9,11 +9,11 @@ import type {
 	Metrics,
 	OutboundConnectionUpgradeEvents,
 } from "@libp2p/interface";
-import type { ProgressEvent } from "progress-events";
 import type { Socket } from "net";
+import type { ProgressEvent } from "progress-events";
 import type { Common } from "../../../chain-config/index.ts";
-import type { Capabilities } from "../../../devp2p/types.ts";
 import type { Protocol } from "../../../devp2p/protocol/protocol.ts";
+import type { Capabilities } from "../../../devp2p/types.ts";
 
 /**
  * Hello message structure received from remote peer
@@ -445,10 +445,13 @@ export const BASE_PROTOCOL_LENGTH = 16;
 export const PING_INTERVAL = 15000;
 
 /**
+ * Protocol stream type (re-exported for convenience)
+ */
+export type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
+/**
  * Disconnect reasons (re-exported for convenience)
  */
 export {
 	DISCONNECT_REASON,
 	DisconnectReasonNames,
 } from "../../../devp2p/types.ts";
-
