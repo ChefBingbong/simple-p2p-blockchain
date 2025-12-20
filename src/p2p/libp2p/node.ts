@@ -6,13 +6,16 @@
  */
 
 import { defaultLogger } from "@libp2p/logger";
-import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
-import { TypedEventEmitter, setMaxListeners } from "main-event";
 import type { Multiaddr } from "@multiformats/multiaddr";
-import { createAddressManager, type AddressManager } from "./address-manager.ts";
+import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
+import { setMaxListeners, TypedEventEmitter } from "main-event";
 import {
-	createConnectionManager,
+	type AddressManager,
+	createAddressManager,
+} from "./address-manager.ts";
+import {
 	type ConnectionManager,
+	createConnectionManager,
 } from "./connection-manager.ts";
 import { createRegistrar, type Registrar } from "./registrar.ts";
 import {
@@ -23,11 +26,12 @@ import type {
 	AbortOptions,
 	ComponentLogger,
 	Connection,
-	P2PNode as P2PNodeInterface,
 	P2PNodeComponents,
 	P2PNodeEvents,
 	P2PNodeInit,
+	P2PNode as P2PNodeInterface,
 	P2PNodeStatus,
+	PeerDiscovery,
 	PeerId,
 	PeerInfo,
 	StreamHandler,
@@ -35,7 +39,7 @@ import type {
 	Topology,
 	TransportManagerDialOptions,
 } from "./types.ts";
-import { peerDiscoverySymbol, peerIdEquals, peerIdToString } from "./types.ts";
+import { peerIdEquals, peerIdToString } from "./types.ts";
 
 /**
  * Get node ID (64-byte public key) from private key
@@ -84,6 +88,9 @@ export class P2PNode
 	private readonly transportManager: TransportManager;
 	private readonly connectionManager: ConnectionManager;
 	private readonly registrar: Registrar;
+
+	// Discovery modules
+	private readonly discoveryModules: PeerDiscovery[] = [];
 
 	constructor(init: P2PNodeInit) {
 		super();
@@ -143,10 +150,13 @@ export class P2PNode
 			logger: this.logger,
 		};
 
-		this.connectionManager = createConnectionManager(connectionManagerComponents, {
-			maxConnections: init.maxConnections,
-			dialTimeout: init.dialTimeout,
-		});
+		this.connectionManager = createConnectionManager(
+			connectionManagerComponents,
+			{
+				maxConnections: init.maxConnections,
+				dialTimeout: init.dialTimeout,
+			},
+		);
 
 		// Create registrar
 		const registrarComponents = {
@@ -177,10 +187,13 @@ export class P2PNode
 			}
 		}
 
-		// Set up peer discovery modules (for future DPT integration)
+		// Set up peer discovery modules
 		if (init.peerDiscovery != null) {
 			for (const discoveryFactory of init.peerDiscovery) {
 				const discovery = discoveryFactory(this.components);
+
+				// Store reference for start/stop lifecycle
+				this.discoveryModules.push(discovery);
 
 				// Forward peer events
 				discovery.addEventListener("peer", (evt: CustomEvent<PeerInfo>) => {
@@ -218,6 +231,11 @@ export class P2PNode
 			// Start listening on configured addresses
 			await this.transportManager.afterStart();
 
+			// Start peer discovery modules
+			for (const discovery of this.discoveryModules) {
+				await discovery.start();
+			}
+
 			this.status = "started";
 			this.safeDispatchEvent("start", { detail: this });
 			this.log(
@@ -243,6 +261,11 @@ export class P2PNode
 
 		this.log("P2PNode stopping");
 		this.status = "stopping";
+
+		// Stop peer discovery modules first
+		for (const discovery of this.discoveryModules) {
+			await discovery.stop();
+		}
 
 		// Stop registrar (removes event listeners)
 		this.registrar.stop();
@@ -380,9 +403,10 @@ export async function createP2PNode(init: P2PNodeInit): Promise<P2PNode> {
 /**
  * Create and start a new P2P node
  */
-export async function createAndStartP2PNode(init: P2PNodeInit): Promise<P2PNode> {
+export async function createAndStartP2PNode(
+	init: P2PNodeInit,
+): Promise<P2PNode> {
 	const node = new P2PNode(init);
 	await node.start();
 	return node;
 }
-

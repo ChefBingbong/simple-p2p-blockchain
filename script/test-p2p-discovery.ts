@@ -1,32 +1,34 @@
 #!/usr/bin/env npx tsx
 
 /**
- * Test script for P2PNode with RLPx Transport
+ * Test script for P2PNode with DPT Peer Discovery
  *
- * Demonstrates:
- * 1. Creating two P2PNode instances with RLPx transport
- * 2. Node A listens on a port
- * 3. Node B dials Node A
- * 4. Verifying connection via peer:connect event
- * 5. Registering a topology and verifying onConnect callback
- * 6. Closing connection and verifying peer:disconnect event
+ * Demonstrates the full discovery-to-connection flow:
+ * 1. Node A starts with DPT discovery listening on UDP
+ * 2. Node B starts with DPT discovery and Node A as bootstrap
+ * 3. Node B discovers Node A via DPT ping/pong
+ * 4. DPT emits peer:added, which triggers peer:discovery
+ * 5. Connection is established automatically (autoDialBootstrap: true)
+ * 6. ETH STATUS messages are exchanged
+ * 7. Topology callbacks fire
+ *
+ * Key difference from test-p2p-node.ts:
+ * - NO manual dial() call - connection initiated by discovery
+ * - Uses DPT UDP layer for peer discovery
  */
 
 import type { ComponentLogger, Logger } from "@libp2p/interface";
-import { multiaddr } from "@multiformats/multiaddr";
 import { createHash } from "crypto";
 import debug from "debug";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { Common, Hardfork } from "../src/chain-config/index.ts";
-import {
-	ETH,
-	EthStatusEncoded,
-	type EthStatusOpts,
-} from "../src/devp2p/protocol/eth.ts";
+import { ETH, type EthStatusOpts } from "../src/devp2p/protocol/eth.ts";
 import {
 	type Connection,
 	createP2PNode,
+	dptDiscovery,
 	type PeerId,
+	type PeerInfo,
 	type Topology,
 } from "../src/p2p/libp2p/index.ts";
 import type { RLPxConnection } from "../src/p2p/transport/rlpx/connection.ts";
@@ -34,8 +36,12 @@ import { rlpx } from "../src/p2p/transport/rlpx/index.ts";
 import { bytesToUnprefixedHex } from "../src/utils/index.ts";
 
 debug.enable("p2p:*");
+
 // Test configuration
-const LISTEN_PORT = 30303;
+const TCP_PORT_A = 30303;
+const TCP_PORT_B = 30304; // Different port for Node B
+const UDP_PORT_A = 30301;
+const UDP_PORT_B = 30302;
 
 // Simple chain config for testing
 const customChainConfig = {
@@ -87,7 +93,7 @@ function createSimpleLogger(component: string): Logger {
 		console.log(`${prefix} ${formatter}`, ...args);
 	};
 	log.enabled = true;
-	log.trace = (formatter: string, ...args: any[]) => {};
+	log.trace = (_formatter: string, ..._args: any[]) => {};
 	log.error = (formatter: string, ...args: any[]) => {
 		console.error(`${prefix} ERROR: ${formatter}`, ...args);
 	};
@@ -107,7 +113,7 @@ function createComponentLogger(name: string): ComponentLogger {
 
 async function main() {
 	console.log("\n" + "=".repeat(70));
-	console.log("🔗 P2PNode Test - Two Node Handshake with Events");
+	console.log("🔍 P2PNode Test - Peer Discovery with DPT");
 	console.log("=".repeat(70) + "\n");
 
 	// Create Common instance
@@ -117,8 +123,8 @@ async function main() {
 	});
 
 	// Generate deterministic keys for both nodes
-	const nodeAPrivateKey = derivePrivateKey("p2p-node-test-a-12345");
-	const nodeBPrivateKey = derivePrivateKey("p2p-node-test-b-67890");
+	const nodeAPrivateKey = derivePrivateKey("discovery-test-node-a-12345");
+	const nodeBPrivateKey = derivePrivateKey("discovery-test-node-b-67890");
 
 	const nodeAId = getNodeId(nodeAPrivateKey);
 	const nodeBId = getNodeId(nodeBPrivateKey);
@@ -126,20 +132,25 @@ async function main() {
 	console.log("📋 Node Configuration:");
 	console.log(`   Node A ID: ${formatNodeId(nodeAId)}`);
 	console.log(`   Node B ID: ${formatNodeId(nodeBId)}`);
+	console.log(`   Node A: TCP ${TCP_PORT_A}, UDP ${UDP_PORT_A}`);
+	console.log(`   Node B: TCP ${TCP_PORT_B}, UDP ${UDP_PORT_B}`);
 	console.log("");
 
 	// Create capabilities (ETH/68)
 	const capabilities = [ETH.eth68];
 
+	// Track events
+	const events: string[] = [];
+
 	// =========================================================================
-	// Create Node A (Listener)
+	// Create Node A (Listener/Bootstrap Node)
 	// =========================================================================
-	console.log("🚀 Creating Node A (Listener)...\n");
+	console.log("🚀 Creating Node A (Bootstrap Node)...\n");
 
 	const nodeA = await createP2PNode({
 		privateKey: nodeAPrivateKey,
 		addresses: {
-			listen: [`/ip4/127.0.0.1/tcp/${LISTEN_PORT}`],
+			listen: [`/ip4/127.0.0.1/tcp/${TCP_PORT_A}`],
 		},
 		transports: [
 			(components) =>
@@ -152,16 +163,31 @@ async function main() {
 					logger: components.logger,
 				}),
 		],
+		peerDiscovery: [
+			(components) =>
+				dptDiscovery({
+					privateKey: nodeAPrivateKey,
+					bindAddr: "127.0.0.1",
+					bindPort: UDP_PORT_A,
+					// Node A has no bootstrap nodes - it IS the bootstrap node
+					bootstrapNodes: [],
+					autoDial: false,
+					autoDialBootstrap: false,
+				})(components),
+		],
 		logger: createComponentLogger("node-a"),
 	});
 
 	// =========================================================================
-	// Create Node B (Dialer)
+	// Create Node B (Discoverer)
 	// =========================================================================
-	console.log("🚀 Creating Node B (Dialer)...\n");
+	console.log("🚀 Creating Node B (Discoverer)...\n");
 
 	const nodeB = await createP2PNode({
 		privateKey: nodeBPrivateKey,
+		addresses: {
+			listen: [`/ip4/127.0.0.1/tcp/${TCP_PORT_B}`],
+		},
 		transports: [
 			(components) =>
 				rlpx({
@@ -173,6 +199,26 @@ async function main() {
 					logger: components.logger,
 				}),
 		],
+		peerDiscovery: [
+			(components) =>
+				dptDiscovery({
+					privateKey: nodeBPrivateKey,
+					bindAddr: "127.0.0.1",
+					bindPort: UDP_PORT_B,
+					// Node A is our bootstrap node
+					bootstrapNodes: [
+						{
+							id: nodeAId,
+							address: "127.0.0.1",
+							udpPort: UDP_PORT_A,
+							tcpPort: TCP_PORT_A,
+						},
+					],
+					autoDial: false,
+					autoDialBootstrap: true, // Auto-dial bootstrap node!
+					discoveryDelay: 500, // Quick startup for test
+				})(components),
+		],
 		logger: createComponentLogger("node-b"),
 	});
 
@@ -181,8 +227,21 @@ async function main() {
 	// =========================================================================
 	console.log("📡 Setting up event listeners...\n");
 
-	// Track events
-	const events: string[] = [];
+	// Connection tracking
+	const connectionPromise = new Promise<Connection>((resolve) => {
+		nodeB.addEventListener("peer:connect", (evt) => {
+			const peerId = evt.detail;
+			console.log(`✅ Node B: peer:connect - ${formatNodeId(peerId)}`);
+			events.push("nodeB:peer:connect");
+		});
+
+		nodeB.addEventListener("connection:open", (evt) => {
+			const conn = evt.detail;
+			console.log(`🔗 Node B: connection:open - ${conn.id}`);
+			events.push("nodeB:connection:open");
+			resolve(conn);
+		});
+	});
 
 	// Node A events
 	nodeA.addEventListener("peer:connect", (evt) => {
@@ -208,21 +267,10 @@ async function main() {
 	});
 
 	// Node B events
-	nodeB.addEventListener("peer:connect", (evt) => {
-		const peerId = evt.detail;
-		console.log(`✅ Node B: peer:connect - ${formatNodeId(peerId)}`);
-		events.push("nodeB:peer:connect");
-	});
-
 	nodeB.addEventListener("peer:disconnect", (evt) => {
 		const peerId = evt.detail;
 		console.log(`❌ Node B: peer:disconnect - ${formatNodeId(peerId)}`);
 		events.push("nodeB:peer:disconnect");
-	});
-
-	nodeB.addEventListener("connection:open", (evt) => {
-		console.log(`🔗 Node B: connection:open - ${evt.detail.id}`);
-		events.push("nodeB:connection:open");
 	});
 
 	nodeB.addEventListener("connection:close", (evt) => {
@@ -230,15 +278,16 @@ async function main() {
 		events.push("nodeB:connection:close");
 	});
 
-	// Peer discovery events (would fire if using DPT discovery)
-	// See test-p2p-discovery.ts for a full discovery-based connection test
-	nodeA.addEventListener("peer:discovery", (evt) => {
-		console.log(`🔍 Node A: peer:discovery - ${formatNodeId(evt.detail.id)}`);
+	// IMPORTANT: Listen for peer:discovery events
+	nodeA.addEventListener("peer:discovery", (evt: CustomEvent<PeerInfo>) => {
+		const peer = evt.detail;
+		console.log(`🔍 Node A: peer:discovery - ${formatNodeId(peer.id)}`);
 		events.push("nodeA:peer:discovery");
 	});
 
-	nodeB.addEventListener("peer:discovery", (evt) => {
-		console.log(`🔍 Node B: peer:discovery - ${formatNodeId(evt.detail.id)}`);
+	nodeB.addEventListener("peer:discovery", (evt: CustomEvent<PeerInfo>) => {
+		const peer = evt.detail;
+		console.log(`🔍 Node B: peer:discovery - ${formatNodeId(peer.id)}`);
 		events.push("nodeB:peer:discovery");
 	});
 
@@ -251,7 +300,7 @@ async function main() {
 	let topologyDisconnectCount = 0;
 
 	const ethTopology: Topology = {
-		onConnect: (peerId: PeerId, connection: Connection) => {
+		onConnect: (peerId: PeerId, _connection: Connection) => {
 			console.log(`📐 ETH Topology: onConnect - ${formatNodeId(peerId)}`);
 			topologyConnectCount++;
 			events.push("topology:onConnect");
@@ -267,7 +316,7 @@ async function main() {
 	console.log(`   Registered topology with ID: ${topologyId}`);
 
 	// =========================================================================
-	// Start nodes
+	// Start nodes - DPT will discover and connect automatically!
 	// =========================================================================
 	console.log("\n🚀 Starting nodes...\n");
 
@@ -278,7 +327,7 @@ async function main() {
 	console.log(`✅ Node B started, status: ${nodeB.status}`);
 
 	// Wait for listener to be ready
-	await new Promise((resolve) => setTimeout(resolve, 1000));
+	await new Promise((resolve) => setTimeout(resolve, 500));
 
 	const listenAddrs = nodeA.getMultiaddrs();
 	console.log(
@@ -286,18 +335,23 @@ async function main() {
 	);
 
 	// =========================================================================
-	// Node B dials Node A
+	// Wait for DPT discovery and automatic connection
 	// =========================================================================
-	console.log("\n📞 Node B dialing Node A...\n");
-
-	const dialAddr = multiaddr(`/ip4/127.0.0.1/tcp/${LISTEN_PORT}`);
+	console.log("\n⏳ Waiting for DPT discovery and automatic connection...\n");
+	console.log("   (Node B should discover Node A via UDP and auto-dial)\n");
 
 	try {
-		const connection = await nodeB.dial(dialAddr, {
-			remoteId: nodeAId,
+		// Wait for connection with timeout
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			setTimeout(
+				() => reject(new Error("Connection timeout - DPT discovery failed")),
+				15000,
+			);
 		});
 
-		console.log(`\n🎉 Connection established!`);
+		const connection = await Promise.race([connectionPromise, timeoutPromise]);
+
+		console.log(`\n🎉 Connection established via peer discovery!`);
 		console.log(`   Connection ID: ${connection.id}`);
 		console.log(`   Remote Peer: ${formatNodeId(connection.remotePeer)}`);
 		console.log(`   Direction: ${connection.direction}`);
@@ -329,23 +383,18 @@ async function main() {
 		// =========================================================================
 		console.log("\n📡 Simulating peer identify for topology notification...");
 
-		// Emit peer:identify event to trigger topology callbacks
 		const nodeAConnection = nodeAConnections[0];
-		if (nodeAConnection == null) {
-			console.log(
-				"   ⚠️ Warning: Node A has no tracked connections, using Node B's connection",
+		if (nodeAConnection) {
+			(nodeA as any).components.events.dispatchEvent(
+				new CustomEvent("peer:identify", {
+					detail: {
+						peerId: nodeBId,
+						protocols: ["/eth/68"],
+						connection: nodeAConnection,
+					},
+				}),
 			);
 		}
-
-		(nodeA as any).components.events.dispatchEvent(
-			new CustomEvent("peer:identify", {
-				detail: {
-					peerId: nodeBId,
-					protocols: ["/eth/68"],
-					connection: nodeAConnection ?? nodeBConnections[0],
-				},
-			}),
-		);
 
 		await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -357,7 +406,6 @@ async function main() {
 		console.log("\n📨 Testing ETH Protocol Status Exchange...");
 		console.log("─".repeat(50));
 
-		// Get RLPx connections from both sides
 		const nodeBRLPxConn = (connection as any).getRLPxConnection?.() as
 			| RLPxConnection
 			| undefined;
@@ -365,12 +413,7 @@ async function main() {
 			| RLPxConnection
 			| undefined;
 
-		if (!nodeBRLPxConn) {
-			console.log("   ⚠️ Could not get RLPx connection from Node B wrapper");
-		} else if (!nodeARLPxConn) {
-			console.log("   ⚠️ Could not get RLPx connection from Node A wrapper");
-		} else {
-			// Get ETH protocols from both connections
+		if (nodeBRLPxConn && nodeARLPxConn) {
 			const nodeBProtocols = nodeBRLPxConn.getProtocols();
 			const nodeAProtocols = nodeARLPxConn.getProtocols();
 
@@ -380,13 +423,6 @@ async function main() {
 			const nodeAEth = nodeAProtocols.find(
 				(p) => p.constructor.name === "ETH",
 			) as ETH | undefined;
-
-			console.log(
-				`   Node A protocols: ${nodeAProtocols.map((p) => p.constructor.name).join(", ")}`,
-			);
-			console.log(
-				`   Node B protocols: ${nodeBProtocols.map((p) => p.constructor.name).join(", ")}`,
-			);
 
 			if (nodeBEth && nodeAEth) {
 				console.log(`   Node A ETH version: ${nodeAEth.getVersion()}`);
@@ -401,7 +437,7 @@ async function main() {
 					.digest();
 
 				const statusOpts: EthStatusOpts = {
-					td: new Uint8Array([0x01]), // Total difficulty = 1
+					td: new Uint8Array([0x01]),
 					bestHash: testBestHash,
 					genesisHash: testGenesisHash,
 				};
@@ -409,8 +445,6 @@ async function main() {
 				// Set up status event handlers
 				let nodeAStatusReceived = false;
 				let nodeBStatusReceived = false;
-				let nodeAStatus: any = null;
-				let nodeBStatus: any = null;
 
 				const statusPromise = new Promise<void>((resolve, reject) => {
 					const timeout = setTimeout(() => {
@@ -418,15 +452,8 @@ async function main() {
 					}, 5000);
 
 					nodeAEth.events.on("status", (_status) => {
-						const status = nodeAEth.decodeStatus(_status as EthStatusEncoded);
 						console.log("   ✅ Node A received STATUS from Node B");
-						console.log(`      Chain ID: ${status.chainId}`);
-						console.log(`      TD: ${status.td}`);
-						console.log(
-							`      Genesis Hash: ${(status.genesisHash).slice(0, 16)}...`,
-						);
 						nodeAStatusReceived = true;
-						nodeAStatus = status;
 						events.push("nodeA:eth:status:received");
 						if (nodeAStatusReceived && nodeBStatusReceived) {
 							clearTimeout(timeout);
@@ -434,15 +461,9 @@ async function main() {
 						}
 					});
 
-					nodeBEth.events.on("status", (status) => {
+					nodeBEth.events.on("status", (_status) => {
 						console.log("   ✅ Node B received STATUS from Node A");
-						console.log(`      Chain ID: ${status.chainId}`);
-						console.log(`      TD: ${status.td.length > 0 ? status.td[0] : 0}`);
-						console.log(
-							`      Genesis Hash: ${bytesToUnprefixedHex(status.genesisHash).slice(0, 16)}...`,
-						);
 						nodeBStatusReceived = true;
-						nodeBStatus = status;
 						events.push("nodeB:eth:status:received");
 						if (nodeAStatusReceived && nodeBStatusReceived) {
 							clearTimeout(timeout);
@@ -451,7 +472,6 @@ async function main() {
 					});
 				});
 
-				// Send STATUS from both sides
 				console.log("\n   📤 Node A sending STATUS...");
 				nodeAEth.sendStatus(statusOpts);
 
@@ -461,20 +481,9 @@ async function main() {
 				try {
 					await statusPromise;
 					console.log("\n   🎉 ETH Status exchange successful!");
-					console.log("   ─".repeat(25));
-					console.log(
-						`   Node A received status: ${nodeAStatusReceived ? "✅" : "❌"}`,
-					);
-					console.log(
-						`   Node B received status: ${nodeBStatusReceived ? "✅" : "❌"}`,
-					);
 				} catch (err: any) {
 					console.log(`\n   ❌ ETH Status exchange failed: ${err.message}`);
 				}
-			} else {
-				console.log("   ⚠️ ETH protocol not found on one or both connections");
-				console.log(`   Node A ETH: ${nodeAEth ? "found" : "not found"}`);
-				console.log(`   Node B ETH: ${nodeBEth ? "found" : "not found"}`);
 			}
 		}
 
@@ -518,7 +527,7 @@ async function main() {
 		console.log(`✅ Node A stopped, status: ${nodeA.status}`);
 
 		console.log("\n" + "=".repeat(70));
-		console.log("✅ Test completed successfully!");
+		console.log("✅ DPT Discovery Test completed successfully!");
 		console.log("=".repeat(70) + "\n");
 
 		process.exit(0);

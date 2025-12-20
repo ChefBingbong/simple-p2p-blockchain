@@ -144,3 +144,10 @@ export {
 	DEFAULT_DIAL_TIMEOUT,
 } from "./types.ts";
 
+// Discovery modules
+export {
+	DPTDiscovery,
+	dptDiscovery,
+	type DPTDiscoveryInit,
+	type DPTDiscoveryComponents,
+} from "./discovery/index.ts";
