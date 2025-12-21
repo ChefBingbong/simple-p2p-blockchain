@@ -1,6 +1,4 @@
 import debug from "debug";
-import type { ETH, EthStatusOpts } from "../../devp2p/protocol/eth.ts";
-import type { Protocol } from "../../devp2p/protocol/protocol.ts";
 import type { Connection, P2PNode, PeerId } from "../../p2p/libp2p/types.ts";
 import { peerIdToString } from "../../p2p/libp2p/types.ts";
 import type { RLPxConnection } from "../../p2p/transport/rlpx/connection.ts";
@@ -11,6 +9,8 @@ import type { VMExecution } from "../execution";
 import { Event } from "../types.ts";
 import { P2PPeer } from "./peer/p2p-peer.ts";
 import type { Peer } from "./peer/peer.ts";
+import type { ETH, EthStatusOpts } from "./protocol/eth/eth.ts";
+import type { Protocol } from "./protocol/protocol.ts";
 
 const log = debug("p2p:peerpool");
 

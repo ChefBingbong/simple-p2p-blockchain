@@ -2,7 +2,7 @@ import { EventEmitter } from "eventemitter3";
 import type { BlockHeader } from "../../../block";
 import { BIGINT_0, BIGINT_1, short } from "../../../utils";
 import type { Config } from "../../config.ts";
-import type { EthProtocolMethods } from "../protocol/eth-methods.ts";
+import type { EthProtocolMethods } from "../protocol/index.ts";
 
 export interface PeerOptions {
 	/* Config */

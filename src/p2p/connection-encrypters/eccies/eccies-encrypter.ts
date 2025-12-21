@@ -3,15 +3,13 @@ import { getRandomBytesSync } from "ethereum-cryptography/random";
 import { secp256k1 } from "ethereum-cryptography/secp256k1";
 import crypto from "node:crypto";
 import type { Socket } from "node:net";
-import { genPrivateKey, id2pk, MAC } from "../../../devp2p";
 import { concatBytes } from "../../../utils";
+import { genPrivateKey, id2pk } from "../../../utils/utils";
 import type { SecureConnection } from "../../connection/types";
 import { sendAuthGetAck, waitAuthSendAck } from "./handlers";
+import { MAC } from "./mac";
 import type { ConnectionEncrypter } from "./types";
-import {
-	setupFrame,
-	type HandlerContext
-} from "./utils";
+import { type HandlerContext, setupFrame } from "./utils";
 
 const log = debug("p2p:encrypter");
 
@@ -22,7 +20,6 @@ export type EcciesEncrypterOptions = {
 };
 
 type Decipher = crypto.DecipherGCM;
-
 
 export class EcciesEncrypter implements ConnectionEncrypter {
 	private nonce: Uint8Array;
@@ -42,8 +39,8 @@ export class EcciesEncrypter implements ConnectionEncrypter {
 	protected egressMac: MAC | null = null;
 	protected bodySize: number | null = null;
 	protected initMsg: Uint8Array | null = null;
-public socket: Socket;	
-private _buffer: Uint8Array = new Uint8Array(0);
+	public socket: Socket;
+	private _buffer: Uint8Array = new Uint8Array(0);
 	public readonly options: EcciesEncrypterOptions;
 
 	constructor(privateKey: Uint8Array, options: EcciesEncrypterOptions) {
@@ -53,7 +50,10 @@ private _buffer: Uint8Array = new Uint8Array(0);
 		this.remotePublicKey = options.remoteId ? id2pk(options.remoteId) : null;
 		this.nonce = getRandomBytesSync(32);
 		this.ephemeralPrivateKey = genPrivateKey();
-		this.ephemeralPublicKey = secp256k1.getPublicKey(this.ephemeralPrivateKey, false);
+		this.ephemeralPublicKey = secp256k1.getPublicKey(
+			this.ephemeralPrivateKey,
+			false,
+		);
 	}
 
 	async secureInBound(socket: Socket): Promise<SecureConnection> {
@@ -72,11 +72,15 @@ private _buffer: Uint8Array = new Uint8Array(0);
 		return this.createResult();
 	}
 
-	async secureOutBound(socket: Socket, remotePeerId?: Uint8Array): Promise<SecureConnection> {
-	this.remotePublicKey = id2pk(remotePeerId);
+	async secureOutBound(
+		socket: Socket,
+		remotePeerId?: Uint8Array,
+	): Promise<SecureConnection> {
+		this.remotePublicKey = id2pk(remotePeerId);
 		this.socket = socket;
 		const ctx = this.createContext();
-		const { authMsg, ackMsg, ackResult, gotEIP8Ack } = await sendAuthGetAck(ctx);
+		const { authMsg, ackMsg, ackResult, gotEIP8Ack } =
+			await sendAuthGetAck(ctx);
 
 		this.initMsg = authMsg;
 		this.remoteInitMsg = ackMsg;
@@ -84,16 +88,28 @@ private _buffer: Uint8Array = new Uint8Array(0);
 		this.remoteEphemeralPublicKey = ackResult.remoteEphemeralPublicKey;
 		this.ephemeralSharedSecret = ackResult.ephemeralSharedSecret;
 
-		const sharedMacData = gotEIP8Ack ? concatBytes(ackMsg.subarray(0, 2), ackMsg) : ackMsg;
+		const sharedMacData = gotEIP8Ack
+			? concatBytes(ackMsg.subarray(0, 2), ackMsg)
+			: ackMsg;
 		this.setupFrameEncryption(sharedMacData, false);
 		return this.createResult();
 	}
 
-	private setupFrameEncryption(remoteData: Uint8Array, incoming: boolean): void {
+	private setupFrameEncryption(
+		remoteData: Uint8Array,
+		incoming: boolean,
+	): void {
 		if (!this.remoteNonce || !this.ephemeralSharedSecret || !this.initMsg) {
 			throw new Error("Cannot setup frame: missing required data");
 		}
-		const result = setupFrame(remoteData, this.nonce, this.remoteNonce, this.initMsg, this.ephemeralSharedSecret, incoming);
+		const result = setupFrame(
+			remoteData,
+			this.nonce,
+			this.remoteNonce,
+			this.initMsg,
+			this.ephemeralSharedSecret,
+			incoming,
+		);
 		if (!result) throw new Error("Failed to setup frame encryption");
 		this.ingressAes = result.ingressAes as Decipher;
 		this.egressAes = result.egressAes as Decipher;
@@ -103,10 +119,10 @@ private _buffer: Uint8Array = new Uint8Array(0);
 
 	private createResult(): SecureConnection {
 		// Convert remotePublicKey to peer ID (64 bytes without 0x04 prefix)
-		const remotePeer = this.remotePublicKey 
-			? (this.remotePublicKey.length === 65 
-				? this.remotePublicKey.slice(1)  // Remove 0x04 prefix
-				: this.remotePublicKey)
+		const remotePeer = this.remotePublicKey
+			? this.remotePublicKey.length === 65
+				? this.remotePublicKey.slice(1) // Remove 0x04 prefix
+				: this.remotePublicKey
 			: new Uint8Array(64);
 
 		return {
@@ -114,7 +130,6 @@ private _buffer: Uint8Array = new Uint8Array(0);
 			remotePeer: remotePeer,
 		};
 	}
-
 
 	private createContext(): HandlerContext {
 		return {
@@ -143,5 +158,4 @@ private _buffer: Uint8Array = new Uint8Array(0);
 	set buffer(value: Uint8Array) {
 		this._buffer = value;
 	}
-
 }

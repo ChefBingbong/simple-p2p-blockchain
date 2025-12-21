@@ -16,7 +16,6 @@ import {
 	ConsensusAlgorithm,
 	Hardfork,
 } from "../../chain-config/index.ts";
-import { ETH } from "../../devp2p/protocol/eth.ts";
 import { Ethash } from "../../eth-hash/index.ts";
 import { createP2PNode, dptDiscovery } from "../../p2p/libp2p/index.ts";
 import type { ComponentLogger } from "../../p2p/libp2p/types.ts";
@@ -32,6 +31,7 @@ import { EthereumClient } from "../client.ts";
 import { LevelDB } from "../execution/level.ts";
 import { DataDirectory, SyncMode } from "../index.ts";
 import { getLogger, type Logger } from "../logging.ts";
+import { ETH } from "../net/protocol/eth/eth.ts";
 import { P2PConfig } from "../p2p-config.ts";
 import { createP2PRpcManager, RPCArgs } from "../rpc/index.ts";
 import type { P2PFullEthereumService } from "../service/p2p-fullethereumservice.ts";

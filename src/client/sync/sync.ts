@@ -1,12 +1,10 @@
 import { BIGINT_0 } from "../../utils";
-
-import { Event } from "../types.ts";
-import { wait } from "../util/wait.ts";
-
 import type { Chain } from "../blockchain";
 import type { Config } from "../config.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import type { PeerPoolLike } from "../net/peerpool-types.ts";
+import { Event } from "../types.ts";
+import { wait } from "../util/wait.ts";
 import type { BlockFetcher } from "./fetcher";
 
 export interface SynchronizerOptions {

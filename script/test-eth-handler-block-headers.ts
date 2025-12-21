@@ -9,13 +9,12 @@
 import { createHash } from "crypto";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { Common, Hardfork } from "../src/chain-config/index.ts";
-import { Chain } from "../src/client/blockchain";
+import { ETH } from "../src/client/net/protocol/eth/eth.ts";
 import { P2PConfig } from "../src/client/p2p-config.ts";
 import { P2PFullEthereumService } from "../src/client/service/p2p-fullethereumservice.ts";
-import { EthHandler } from "../src/p2p/protocol/eth/handler";
-import { ETH } from "../src/devp2p/protocol/eth.ts";
 import { createP2PNode, dptDiscovery } from "../src/p2p/libp2p/index.ts";
 import type { ComponentLogger, Logger } from "../src/p2p/libp2p/types.ts";
+import { EthHandler } from "../src/p2p/protocol/eth/handler";
 import type { RLPxConnection } from "../src/p2p/transport/rlpx/connection.ts";
 import { rlpx } from "../src/p2p/transport/rlpx/index.ts";
 
@@ -315,10 +314,18 @@ async function testBlockHeaders() {
 			reverse: false,
 		});
 
-		console.log(`   ✅ Received response: reqId=${reqId}, headers=${headers.length}`);
+		console.log(
+			`   ✅ Received response: reqId=${reqId}, headers=${headers.length}`,
+		);
 
 		if (headers.length > 0) {
-			console.log(`   First header: block ${headers[0].number}, hash: ${headers[0].hash().slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')}...`);
+			console.log(
+				`   First header: block ${headers[0].number}, hash: ${headers[0]
+					.hash()
+					.slice(0, 8)
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join("")}...`,
+			);
 		}
 
 		// Verify we got headers
@@ -352,4 +359,3 @@ testBlockHeaders().catch((err) => {
 	console.error(err.stack);
 	process.exit(1);
 });
-

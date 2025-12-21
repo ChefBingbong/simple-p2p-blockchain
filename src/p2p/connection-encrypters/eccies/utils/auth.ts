@@ -2,10 +2,21 @@ import { keccak256 } from "ethereum-cryptography/keccak";
 import { getRandomBytesSync } from "ethereum-cryptography/random.js";
 import { ecdsaRecover } from "ethereum-cryptography/secp256k1-compat";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
-import { assertEq } from "../../../../devp2p/index.ts";
-import { id2pk, pk2id, unstrictDecode, xor } from "../../../../devp2p/util.ts";
 import * as RLP from "../../../../rlp/index.ts";
-import { bigIntToBytes, bytesToInt, concatBytes, intToBytes, setLengthLeft } from "../../../../utils/index.ts";
+import {
+	bigIntToBytes,
+	bytesToInt,
+	concatBytes,
+	intToBytes,
+	setLengthLeft,
+} from "../../../../utils/index.ts";
+import {
+	assertEq,
+	id2pk,
+	pk2id,
+	unstrictDecode,
+	xor,
+} from "../../../../utils/utils.ts";
 import { decryptMessage, eccieEncryptMessage, ecdhX } from "./crypto.ts";
 import type { AuthResult } from "./types.ts";
 
@@ -35,7 +46,11 @@ export function createAuthEIP8(
 	const pad = getRandomBytesSync(100 + Math.floor(Math.random() * 151));
 	const authMsg = concatBytes(RLP.encode(data), pad);
 	const sharedMacData = intToBytes(authMsg.length + OVERHEAD_LENGTH);
-	const encryptedMsg = eccieEncryptMessage(authMsg, remotePubKey, sharedMacData);
+	const encryptedMsg = eccieEncryptMessage(
+		authMsg,
+		remotePubKey,
+		sharedMacData,
+	);
 	if (!encryptedMsg) return;
 	return concatBytes(sharedMacData, encryptedMsg);
 }
@@ -99,16 +114,35 @@ export function parseAuthPlain(
 		}
 
 		const x = ecdhX(remotePublicKey, privateKey);
-		const remoteEphemeralPublicKey = ecdsaRecover(signature, recoveryId, xor(x, remoteNonce), false);
+		const remoteEphemeralPublicKey = ecdsaRecover(
+			signature,
+			recoveryId,
+			xor(x, remoteNonce),
+			false,
+		);
 		if (remoteEphemeralPublicKey === null) return null;
 
-		const ephemeralSharedSecret = ecdhX(remoteEphemeralPublicKey, ephemeralPrivateKey);
+		const ephemeralSharedSecret = ecdhX(
+			remoteEphemeralPublicKey,
+			ephemeralPrivateKey,
+		);
 
 		if (heId !== null) {
-			assertEq(keccak256(pk2id(remoteEphemeralPublicKey)), heId, "hash mismatch", console.log);
+			assertEq(
+				keccak256(pk2id(remoteEphemeralPublicKey)),
+				heId,
+				"hash mismatch",
+				console.log,
+			);
 		}
 
-		return { remoteInitMsg, remotePublicKey, remoteNonce, ephemeralSharedSecret, remoteEphemeralPublicKey };
+		return {
+			remoteInitMsg,
+			remotePublicKey,
+			remoteNonce,
+			ephemeralSharedSecret,
+			remoteEphemeralPublicKey,
+		};
 	} catch (error) {
 		console.error("parseAuthPlain error:", error);
 		return null;
@@ -122,7 +156,17 @@ export function parseAuthEIP8(
 	gotEIP8Auth: boolean,
 ): AuthResult | null {
 	const size = bytesToInt(data.subarray(0, 2)) + 2;
-	assertEq(data.length, size, `message length mismatch: expected ${size}, got ${data.length}`, console.log);
-	return parseAuthPlain(data.subarray(2), privateKey, ephemeralPrivateKey, gotEIP8Auth, data.subarray(0, 2));
+	assertEq(
+		data.length,
+		size,
+		`message length mismatch: expected ${size}, got ${data.length}`,
+		console.log,
+	);
+	return parseAuthPlain(
+		data.subarray(2),
+		privateKey,
+		ephemeralPrivateKey,
+		gotEIP8Auth,
+		data.subarray(0, 2),
+	);
 }
-

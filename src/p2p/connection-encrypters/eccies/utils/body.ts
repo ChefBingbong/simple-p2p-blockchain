@@ -1,14 +1,18 @@
 import type crypto from "node:crypto";
-import type { MAC } from "../../../../devp2p";
-import { zfill } from "../../../../devp2p";
 import { concatBytes } from "../../../../utils";
+import { zfill } from "../../../../utils/utils.ts";
+import type { MAC } from "../mac.ts";
 import type { BodyResult } from "./types";
 
 type Decipher = crypto.DecipherGCM;
 
 export const BODY_MAC_SIZE = 16;
 
-export function createBody(data: Uint8Array, egressAes: Decipher, egressMac: MAC): Uint8Array {
+export function createBody(
+	data: Uint8Array,
+	egressAes: Decipher,
+	egressMac: MAC,
+): Uint8Array {
 	const paddedSize = Math.ceil(data.length / 16) * 16;
 	const paddedData = zfill(data, paddedSize, false) as Uint8Array;
 	const encryptedData = Uint8Array.from(egressAes.update(paddedData));
@@ -42,4 +46,3 @@ function compareMac(a: Uint8Array, b: Uint8Array): boolean {
 	for (let i = 0; i < a.length; i++) result |= a[i] ^ b[i];
 	return result === 0;
 }
-

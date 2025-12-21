@@ -9,7 +9,7 @@ import {
 	ETH_MESSAGES,
 	EthMessageCode,
 } from "../../../client/net/protocol/eth/definitions";
-import { ETH } from "../../../devp2p/protocol/eth";
+import { ETH } from "../../../client/net/protocol/eth/eth";
 import type { TypedTransaction } from "../../../tx";
 import { BIGINT_0, bigIntToUnpaddedBytes, bytesToBigInt } from "../../../utils";
 import type { TxReceipt } from "../../../vm";

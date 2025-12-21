@@ -1,7 +1,7 @@
 import z from "zod";
-import { DPT } from "../../../../devp2p/index.ts";
 import { safeError, safeResult, safeTry } from "../../../../utils/safe.ts";
 import type { EthereumClient } from "../../../client.ts";
+import { DPT } from "../../../net/dpt-1/index.ts";
 // RPC admin addPeer - TODO: Update for P2P architecture
 // import { P2PPeer } from "../../../net/peer/p2p-peer.ts";
 import type { FullEthereumService } from "../../../service/index.ts";

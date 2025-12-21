@@ -539,6 +539,15 @@ export class VMExecution extends Execution {
 				await this.checkAndReset(startHeadBlock);
 				let canonicalHead = await this.chain.blockchain.getCanonicalHeadBlock();
 
+				// const vmHeadHash = startHeadBlock?.hash();
+				// const canonicalHeadHash = canonicalHead?.hash();
+				// const areEqual =
+				// 	vmHeadHash && canonicalHeadHash
+				// 		? equalsBytes(vmHeadHash, canonicalHeadHash)
+				// 		: false;
+				// this.config.logger?.info(
+				// 	`🔍 Execution check: VM head=${startHeadBlock?.header.number} hash=${vmHeadHash ? short(vmHeadHash) : "null"}, canonical head=${canonicalHead?.header.number} hash=${canonicalHeadHash ? short(canonicalHeadHash) : "null"}, areEqual=${areEqual}`,
+				// );
 				this.config.logger?.debug(
 					`Running execution startHeadBlock=${startHeadBlock?.header.number} canonicalHead=${canonicalHead?.header.number} loop=${loop}`,
 				);
@@ -551,6 +560,23 @@ export class VMExecution extends Execution {
 				//  i) If on start of iterator the last run state is not same as the block's parent
 				//  ii) If reorg happens on the block iterator
 				let clearCache = false;
+
+				// const headsEqual = equalsBytes(
+				// 	startHeadBlock.hash(),
+				// 	canonicalHead.hash(),
+				// );
+				// const blockDiff =
+				// 	canonicalHead.header.number - startHeadBlock.header.number;
+				// const shouldRunBatched =
+				// 	runOnlyBatched &&
+				// 	blockDiff >= BigInt(this.config.numBlocksPerIteration);
+				// const numExecutedCheck =
+				// 	numExecuted === undefined ||
+				// 	(loop && numExecuted === this.config.numBlocksPerIteration);
+
+				// this.config.logger?.info(
+				// 	`🔍 While loop check: started=${this.started}, shutdown=${this.config.shutdown}, runOnlyBatched=${runOnlyBatched}, blockDiff=${blockDiff}, shouldRunBatched=${shouldRunBatched}, numExecutedCheck=${numExecutedCheck}, headsEqual=${headsEqual}, willRun=${this.started && !this.config.shutdown && (!runOnlyBatched || shouldRunBatched) && numExecutedCheck && !headsEqual}`,
+				// );
 
 				while (
 					this.started &&

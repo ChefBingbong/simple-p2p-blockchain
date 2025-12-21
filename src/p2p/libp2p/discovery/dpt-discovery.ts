@@ -11,8 +11,8 @@ import { TypedEventEmitter } from "main-event";
 import {
 	DPT,
 	type PeerInfo as DPTPeerInfo,
-} from "../../../devp2p/dpt-1/index.ts";
-import type { DPTOptions } from "../../../devp2p/types.ts";
+} from "../../../client/net/dpt-1/index.ts";
+import type { DPTOptions } from "../../../client/net/dpt-1/types.ts";
 import type {
 	ComponentLogger,
 	ConnectionManager,

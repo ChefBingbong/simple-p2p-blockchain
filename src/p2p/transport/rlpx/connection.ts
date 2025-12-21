@@ -10,15 +10,14 @@ import debug from "debug";
 import { EventEmitter } from "eventemitter3";
 import type { Socket } from "net";
 import * as snappy from "snappyjs";
-// import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
-// import { RLPxProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
-import type { Protocol } from "../../../devp2p/protocol/protocol.ts";
-import { ECIES } from "../../../devp2p/rlpx/ecies.ts";
-import type { Capabilities } from "../../../devp2p/types.ts";
+import type { Capabilities } from "../../../client/net/dpt-1/types.ts";
 import {
 	DISCONNECT_REASON,
 	DisconnectReasonNames,
-} from "../../../devp2p/types.ts";
+} from "../../../client/net/dpt-1/types.ts";
+// import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
+// import { RLPxProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
+import type { Protocol } from "../../../client/net/protocol/protocol.ts";
 import * as RLP from "../../../rlp/index.ts";
 import {
 	bytesToInt,
@@ -29,6 +28,7 @@ import {
 	intToBytes,
 	utf8ToBytes,
 } from "../../../utils/index.ts";
+import { ECIES } from "../../connection-encrypters/eccies/ecies.ts";
 import type {
 	HelloMessage,
 	ProtocolDescriptor,

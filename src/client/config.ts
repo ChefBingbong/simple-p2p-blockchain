@@ -5,9 +5,6 @@ import { EventEmitter } from "eventemitter3";
 import { Level } from "level";
 import type { BlockHeader } from "../block";
 import { Common } from "../chain-config";
-import { genPrivateKey } from "../devp2p";
-import type { PeerInfo as DPTPeerInfo } from "../devp2p/dpt-1/index.ts";
-import { ETH } from "../devp2p/protocol/eth.ts";
 import { dptDiscovery } from "../p2p/libp2p/discovery/index.ts";
 import { P2PNode, type P2PNode as P2PNodeType } from "../p2p/libp2p/node.ts";
 import type { ComponentLogger } from "../p2p/libp2p/types.ts";
@@ -20,10 +17,12 @@ import {
 	BIGINT_256,
 } from "../utils";
 import { unprefixedHexToBytes } from "../utils/index.ts";
+import { genPrivateKey } from "../utils/utils.ts";
 import type { VM, VMProfilerOpts } from "../vm";
 import type { Logger } from "./logging.ts";
-import type { EventParams, PrometheusMetrics } from "./types.ts";
-import { Event } from "./types.ts";
+import type { PeerInfo as DPTPeerInfo } from "./net/dpt-1/index.ts";
+import { ETH } from "./net/protocol/eth/eth.ts";
+import { Event, EventParams, PrometheusMetrics } from "./types.ts";
 import { isBrowser, short } from "./util";
 
 const log = debug("p2p:config");
@@ -521,6 +520,11 @@ export class Config {
 		}
 
 		this.events.once(Event.CLIENT_SHUTDOWN, () => {
+			const stack = new Error().stack;
+			this.logger?.warn(
+				`⚠️ CLIENT_SHUTDOWN event received - setting shutdown=true`,
+			);
+			this.logger?.warn(`Stack trace: ${stack}`);
 			this.shutdown = true;
 		});
 	}
@@ -565,6 +569,9 @@ export class Config {
 					}
 
 					if (emitSyncEvent === true) {
+						this.logger?.debug(
+							`📢 Emitting SYNC_SYNCHRONIZED event: height=${height}, eventName=${Event.SYNC_SYNCHRONIZED}`,
+						);
 						this.events.emit(Event.SYNC_SYNCHRONIZED, height);
 					}
 				}

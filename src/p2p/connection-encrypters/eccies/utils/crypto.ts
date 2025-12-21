@@ -5,8 +5,9 @@ import { secp256k1 } from "ethereum-cryptography/secp256k1";
 import { ecdh } from "ethereum-cryptography/secp256k1-compat.js";
 import { hexToBytes } from "ethereum-cryptography/utils";
 import crypto from "node:crypto";
-import { assertEq, genPrivateKey, MAC, xor } from "../../../../devp2p";
-import { concatBytes } from "../../../../utils";
+import { concatBytes } from "../../../../utils/index.ts";
+import { assertEq, genPrivateKey, xor } from "../../../../utils/utils.ts";
+import { MAC } from "../mac.ts";
 
 const SHA256_BLOCK_SIZE = 64;
 
@@ -45,7 +46,10 @@ export function eccieEncryptMessage(
 	const x = ecdhX(remotePubKey, privateKey);
 	const key = concatKDF(x, 32);
 	const ekey = key.subarray(0, 16);
-	const mKey = crypto.createHash("sha256").update(key.subarray(16, 32)).digest();
+	const mKey = crypto
+		.createHash("sha256")
+		.update(key.subarray(16, 32))
+		.digest();
 
 	const cipherInitVector = getRandomBytesSync(16);
 	const cipher = crypto.createCipheriv("aes-128-ctr", ekey, cipherInitVector);
@@ -54,7 +58,10 @@ export function eccieEncryptMessage(
 
 	if (!sharedMacData) sharedMacData = Uint8Array.from([]);
 	const tag = Uint8Array.from(
-		crypto.createHmac("sha256", mKey).update(concatBytes(dataIV, sharedMacData)).digest(),
+		crypto
+			.createHmac("sha256", mKey)
+			.update(concatBytes(dataIV, sharedMacData))
+			.digest(),
 	);
 
 	const publicKey = secp256k1.getPublicKey(privateKey, false);
@@ -66,7 +73,12 @@ export function decryptMessage(
 	privateKey: Uint8Array,
 	sharedMacData: Uint8Array | null = null,
 ): Uint8Array {
-	assertEq(data.subarray(0, 1), hexToBytes("0x04"), "wrong ecies header", debug);
+	assertEq(
+		data.subarray(0, 1),
+		hexToBytes("0x04"),
+		"wrong ecies header",
+		debug,
+	);
 	const publicKey = data.subarray(0, 65);
 	const dataIV = data.subarray(65, -32);
 	const tag = data.subarray(-32);
@@ -79,7 +91,10 @@ export function decryptMessage(
 	);
 
 	if (!sharedMacData) sharedMacData = Uint8Array.from([]);
-	const _tag = crypto.createHmac("sha256", mKey).update(concatBytes(dataIV, sharedMacData)).digest();
+	const _tag = crypto
+		.createHmac("sha256", mKey)
+		.update(concatBytes(dataIV, sharedMacData))
+		.digest();
 	assertEq(_tag, tag, "should have valid tag", debug);
 
 	const IV = dataIV.subarray(0, 16);
@@ -119,4 +134,3 @@ export function setupFrame(
 
 	return { ingressAes, egressAes, ingressMac, egressMac };
 }
-

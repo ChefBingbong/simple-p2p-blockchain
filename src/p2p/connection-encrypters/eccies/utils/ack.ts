@@ -1,9 +1,13 @@
 import { getRandomBytesSync } from "ethereum-cryptography/random";
-import { assertEq } from "../../../../devp2p/index.ts";
-import { id2pk, pk2id, unstrictDecode } from "../../../../devp2p/util.ts";
 import * as RLP from "../../../../rlp/index.ts";
 import { concatBytes } from "../../../../rlp/index.ts";
 import { bytesToInt, intToBytes } from "../../../../utils/index.ts";
+import {
+	assertEq,
+	id2pk,
+	pk2id,
+	unstrictDecode,
+} from "../../../../utils/utils.ts";
 import { decryptMessage, eccieEncryptMessage, ecdhX } from "./crypto.ts";
 import type { AckResult } from "./types.ts";
 
@@ -19,7 +23,11 @@ export function createAckEIP8(
 	const ackMsg = concatBytes(dataRLP, pad);
 	const overheadLength = 113;
 	const sharedMacData = intToBytes(ackMsg.length + overheadLength);
-	const encryptedMsg = eccieEncryptMessage(ackMsg, remotePublicKey, sharedMacData);
+	const encryptedMsg = eccieEncryptMessage(
+		ackMsg,
+		remotePublicKey,
+		sharedMacData,
+	);
 	if (!encryptedMsg) return;
 	return concatBytes(sharedMacData, encryptedMsg);
 }
@@ -30,7 +38,11 @@ export function createAckOld(
 	nonce: Uint8Array,
 ): Uint8Array | undefined {
 	if (!remotePublicKey) return;
-	const data = concatBytes(pk2id(ephemeralPublicKey), nonce, new Uint8Array([0x00]));
+	const data = concatBytes(
+		pk2id(ephemeralPublicKey),
+		nonce,
+		new Uint8Array([0x00]),
+	);
 	return eccieEncryptMessage(data, remotePublicKey);
 }
 
@@ -56,7 +68,10 @@ export function parseAckPlain(
 		remoteNonce = decoded[1];
 	}
 
-	const ephemeralSharedSecret = ecdhX(remoteEphemeralPublicKey, ephemeralPrivateKey);
+	const ephemeralSharedSecret = ecdhX(
+		remoteEphemeralPublicKey,
+		ephemeralPrivateKey,
+	);
 	return { remoteEphemeralPublicKey, remoteNonce, ephemeralSharedSecret };
 }
 
@@ -67,7 +82,17 @@ export function parseAckEIP8(
 	gotEIP8Ack: boolean,
 ): AckResult {
 	const size = bytesToInt(data.subarray(0, 2)) + 2;
-	assertEq(data.length, size, `message length mismatch: expected ${size}, got ${data.length}`, console.log);
-	return parseAckPlain(data.subarray(2), privateKey, ephemeralPrivateKey, gotEIP8Ack, data.subarray(0, 2));
+	assertEq(
+		data.length,
+		size,
+		`message length mismatch: expected ${size}, got ${data.length}`,
+		console.log,
+	);
+	return parseAckPlain(
+		data.subarray(2),
+		privateKey,
+		ephemeralPrivateKey,
+		gotEIP8Ack,
+		data.subarray(0, 2),
+	);
 }
-

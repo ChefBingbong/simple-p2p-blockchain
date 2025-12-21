@@ -13,9 +13,9 @@
 import { createHash } from "crypto";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { Common, Hardfork } from "../src/chain-config/index.ts";
+import { ETH } from "../src/client/net/protocol/eth/eth.ts";
 import { P2PConfig } from "../src/client/p2p-config.ts";
 import { P2PFullEthereumService } from "../src/client/service/p2p-fullethereumservice.ts";
-import { ETH } from "../src/devp2p/protocol/eth.ts";
 import { createP2PNode, dptDiscovery } from "../src/p2p/libp2p/index.ts";
 import type { ComponentLogger, Logger } from "../src/p2p/libp2p/types.ts";
 import { rlpx } from "../src/p2p/transport/rlpx/index.ts";

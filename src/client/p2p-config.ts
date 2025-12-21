@@ -1,14 +1,14 @@
 import type { Multiaddr } from "@multiformats/multiaddr";
 import { multiaddr } from "@multiformats/multiaddr";
 import debug from "debug";
-import type { PeerInfo as DPTPeerInfo } from "../devp2p/dpt-1/index.ts";
-import { ETH } from "../devp2p/protocol/eth.ts";
 import { dptDiscovery } from "../p2p/libp2p/discovery/index.ts";
 import { P2PNode, type P2PNode as P2PNodeType } from "../p2p/libp2p/node.ts";
 import type { ComponentLogger } from "../p2p/libp2p/types.ts";
 import { rlpx } from "../p2p/transport/rlpx/index.ts";
 import { unprefixedHexToBytes } from "../utils/index.ts";
 import { Config, type ConfigOptions, SyncMode } from "./config.ts";
+import type { PeerInfo as DPTPeerInfo } from "./net/dpt-1/index.ts";
+import { ETH } from "./net/protocol/eth/eth.ts";
 import { isBrowser } from "./util";
 
 const log = debug("p2p:config");

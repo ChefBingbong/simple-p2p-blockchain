@@ -280,9 +280,9 @@ export class FullSynchronizer extends Synchronizer {
 	 */
 	async handleNewBlock(block: Block, peer?: Peer) {
 		this.config.logger?.info(
-			`🔄 FullSynchronizer.handleNewBlock: height=${block.header.number}, chainHeight=${this.chain.headers.height}, peer=${peer?.id?.slice(0, 8) || 'null'}`,
+			`🔄 FullSynchronizer.handleNewBlock: height=${block.header.number}, chainHeight=${this.chain.headers.height}, peer=${peer?.id?.slice(0, 8) || "null"}`,
 		);
-		
+
 		if (peer) {
 			// Don't send NEW_BLOCK announcement to peer that sent original new block message
 			this.addToKnownByPeer(block.hash(), peer);
