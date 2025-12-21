@@ -18,7 +18,7 @@ import {
 	EthereumJSErrorWithoutCode,
 	equalsBytes,
 } from "../../utils";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import { LevelDB } from "../execution/level.ts";
 import { Event } from "../types.ts";
 

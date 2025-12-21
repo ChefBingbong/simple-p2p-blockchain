@@ -2,7 +2,7 @@ import debug from "debug";
 import type { Block } from "../../block";
 import { concatBytes } from "../../utils";
 import { encodeReceipt } from "../../vm";
-import { SyncMode } from "../config.ts";
+import { SyncMode } from "../config/index.ts";
 import { Miner } from "../miner";
 import type { Peer } from "../net/peer/peer.ts";
 // EthProtocol removed - P2P uses EthHandler directly
@@ -41,7 +41,7 @@ export class P2PFullEthereumService extends Service {
 		log("Creating P2PFullEthereumService");
 		super(options);
 
-		this.config.logger?.info("Full sync mode (P2P)");
+		this.config.options.logger?.info("Full sync mode (P2P)");
 		log("Full sync mode (P2P)");
 
 		// Set execution in peer pool so peers can create EthHandler instances
@@ -54,7 +54,7 @@ export class P2PFullEthereumService extends Service {
 			service: this,
 		});
 
-		if (this.config.syncmode === SyncMode.Full) {
+		if (this.config.options.syncmode === SyncMode.Full) {
 			log("Creating FullSynchronizer");
 			// PoW-only mode - use full synchronizer
 			this.synchronizer = new FullSynchronizer({
@@ -66,7 +66,7 @@ export class P2PFullEthereumService extends Service {
 				interval: this.interval,
 			});
 
-			if (this.config.mine) {
+			if (this.config.options.mine) {
 				log("Creating Miner");
 				this.miner = new Miner({
 					config: this.config,
@@ -89,12 +89,12 @@ export class P2PFullEthereumService extends Service {
 			log(
 				"Preparing for sync using P2PFullEthereumService with FullSynchronizer",
 			);
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				"Preparing for sync using P2PFullEthereumService with FullSynchronizer.",
 			);
 		} else {
 			log("Starting P2PFullEthereumService with no syncing");
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				"Starting P2PFullEthereumService with no syncing.",
 			);
 		}
@@ -154,7 +154,7 @@ export class P2PFullEthereumService extends Service {
 
 		log("Opening txPool");
 		this.txPool.open();
-		if (this.config.mine) {
+		if (this.config.options.mine) {
 			log("Starting txPool (mining enabled)");
 			// Start the TxPool immediately if mining
 			this.txPool.start();
@@ -199,12 +199,14 @@ export class P2PFullEthereumService extends Service {
 			if (this.execution.started && this.synchronizer !== undefined) {
 				await this.synchronizer.runExecution();
 			} else {
-				this.config.logger?.warn(
+				this.config.options.logger?.warn(
 					"skipping building head state as execution is not started",
 				);
 			}
 		} catch (error) {
-			this.config.logger?.error(`Error building headstate error=${error}`);
+			this.config.options.logger?.error(
+				`Error building headstate error=${error}`,
+			);
 		} finally {
 			this.building = false;
 		}
@@ -341,7 +343,7 @@ export class P2PFullEthereumService extends Service {
 				if (this.synchronizer instanceof FullSynchronizer) {
 					const blockHeight = message.data[0]?.header?.number;
 					log("NewBlock: height=%d", blockHeight);
-					this.config.logger?.info(
+					this.config.options.logger?.info(
 						`📦 Handling NewBlock message: height=${blockHeight}, peer=${peer?.id?.slice(0, 8) || "null"}`,
 					);
 					await this.synchronizer.handleNewBlock(message.data[0], peer);

@@ -2,7 +2,7 @@ import { concatBytes, intToBytes } from "../../utils";
 
 import type { AbstractLevel } from "abstract-level";
 import type { Chain } from "../blockchain";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 
 const encodingOpts = { keyEncoding: "view", valueEncoding: "view" };
 

@@ -1,6 +1,6 @@
 import { BIGINT_0 } from "../../utils";
 import type { Chain } from "../blockchain";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import type { PeerPoolLike } from "../net/peerpool-types.ts";
 import { Event } from "../types.ts";
@@ -63,7 +63,7 @@ export abstract class Synchronizer {
 
 		this.config.events.on(Event.POOL_PEER_ADDED, (peer) => {
 			if (this.syncable(peer)) {
-				this.config.logger?.debug(`Found ${this.type} peer: ${peer}`);
+				this.config.options.logger?.debug(`Found ${this.type} peer: ${peer}`);
 			}
 		});
 
@@ -141,7 +141,7 @@ export abstract class Synchronizer {
 			typeof height === "bigint" && height !== BIGINT_0
 				? ` height=${height}`
 				: "";
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`Finishing up sync with the current fetcher ${heightStr}`,
 		);
 		return true;
@@ -152,10 +152,10 @@ export abstract class Synchronizer {
 			if (this._fetcher) {
 				await this._fetcher.blockingFetch();
 			}
-			this.config.logger?.debug(`Fetcher finished fetching...`);
+			this.config.options.logger?.debug(`Fetcher finished fetching...`);
 			return this.resolveSync();
 		} catch (error: any) {
-			this.config.logger?.error(
+			this.config.options.logger?.error(
 				`Received sync error, stopping sync and clearing fetcher: ${error.message ?? error}`,
 			);
 			this.clearFetcher();
@@ -171,7 +171,7 @@ export abstract class Synchronizer {
 		let peer = await this.best();
 		let numAttempts = 1;
 		while (!peer && this.opened) {
-			this.config.logger?.debug(
+			this.config.options.logger?.debug(
 				`Waiting for best peer (attempt #${numAttempts})`,
 			);
 			await wait(5000);
@@ -211,7 +211,7 @@ export abstract class Synchronizer {
 		clearInterval(this._syncedStatusCheckInterval as NodeJS.Timeout);
 		await new Promise((resolve) => setTimeout(resolve, this.interval));
 		this.running = false;
-		this.config.logger?.info("Stopped synchronization.");
+		this.config.options.logger?.info("Stopped synchronization.");
 		return true;
 	}
 

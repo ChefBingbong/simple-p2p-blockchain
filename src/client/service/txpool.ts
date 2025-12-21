@@ -12,7 +12,7 @@ import {
 	hexToBytes,
 } from "../../utils";
 import type { VM } from "../../vm";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import type { QHeap } from "../ext/qheap.ts";
 import { Heap } from "../ext/qheap.ts";
 import type { Peer } from "../net/peer/peer.ts";
@@ -232,7 +232,7 @@ export class TxPool {
 
 		this.sendNewTxHashes(txHashes, targetPeers);
 
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`Rebroadcast ${txHashes[2].length} tx hashes to ${targetPeers.length} peers`,
 		);
 	}
@@ -319,7 +319,7 @@ export class TxPool {
 		);
 
 		this.running = true;
-		this.config.logger?.info("TxPool started.");
+		this.config.options.logger?.info("TxPool started.");
 		return true;
 	}
 
@@ -361,7 +361,7 @@ export class TxPool {
 	 * @param newBlocks Blocks that became canonical
 	 */
 	async handleReorg(oldBlocks: Block[], newBlocks: Block[]): Promise<void> {
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool handling reorg: ${oldBlocks.length} old blocks, ${newBlocks.length} new blocks`,
 		);
 
@@ -387,9 +387,11 @@ export class TxPool {
 				try {
 					// Re-add as local to protect from immediate eviction
 					await this.add(tx, true);
-					this.config.logger?.debug(`Re-injected orphaned tx: ${txHash}`);
+					this.config.options.logger?.debug(
+						`Re-injected orphaned tx: ${txHash}`,
+					);
 				} catch (error: any) {
-					this.config.logger?.debug(
+					this.config.options.logger?.debug(
 						`Failed to re-inject orphaned tx ${txHash}: ${error.message}`,
 					);
 				}
@@ -659,7 +661,7 @@ export class TxPool {
 					});
 				}
 
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Promoted ${toPromote.length} txs from queued to pending for ${addr}`,
 				);
 			}
@@ -684,7 +686,7 @@ export class TxPool {
 		try {
 			await vmCopy.stateManager.setStateRoot(block.stateRoot);
 		} catch (error) {
-			this.config.logger?.error(`Error setting state root: ${error}`);
+			this.config.options.logger?.error(`Error setting state root: ${error}`);
 			return;
 		}
 
@@ -745,7 +747,7 @@ export class TxPool {
 				this.pendingCount -= toDemote.length;
 				this.queuedCount += toDemote.length;
 
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Demoted ${toDemote.length} txs from pending to queued for ${addr}`,
 				);
 			}
@@ -843,7 +845,7 @@ export class TxPool {
 
 		// Remove the tx
 		this.removeByHash(lowestTx.hash, lowestTx.tx);
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`Evicted underpriced tx ${lowestTx.hash} (price: ${lowestPrice}) from ${pool}`,
 		);
 
@@ -1076,7 +1078,7 @@ export class TxPool {
 		peerPool: PeerPoolLike,
 	) {
 		if (!this.running || txs.length === 0) return;
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: received new transactions number=${txs.length}`,
 		);
 		this.addToKnownByPeer(
@@ -1092,7 +1094,7 @@ export class TxPool {
 				newTxHashes[1].push(tx.serialize().byteLength);
 				newTxHashes[2].push(tx.hash());
 			} catch (error: any) {
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Error adding tx to TxPool: ${error.message} (tx hash: ${bytesToHex(tx.hash())})`,
 				);
 			}
@@ -1169,13 +1171,13 @@ export class TxPool {
 
 		if (reqHashes.length === 0) return;
 
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: received new tx hashes number=${reqHashes.length}`,
 		);
 
 		const reqHashesStr: UnprefixedHash[] = reqHashes.map(bytesToUnprefixedHex);
 		this.fetchingHashes = this.fetchingHashes.concat(reqHashesStr);
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: requesting txs number=${reqHashes.length} fetching=${this.fetchingHashes.length}`,
 		);
 		const getPooledTxs = await peer.eth?.getPooledTransactions({
@@ -1191,7 +1193,7 @@ export class TxPool {
 			return;
 		}
 		const [_, txs] = getPooledTxs;
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: received requested txs number=${txs.length}`,
 		);
 
@@ -1200,7 +1202,7 @@ export class TxPool {
 			try {
 				await this.add(tx);
 			} catch (error: any) {
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Error adding tx to TxPool: ${error.message} (tx hash: ${bytesToHex(tx.hash())})`,
 				);
 			}
@@ -1390,7 +1392,7 @@ export class TxPool {
 			// Accumulate the best priced transaction
 			txs.push(best);
 		}
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`txsByPriceAndNonce selected txs=${txs.length}, skipped byNonce=${skippedByNonce}`,
 		);
 		return txs;
@@ -1409,7 +1411,7 @@ export class TxPool {
 			this.rebroadcastInterval = undefined;
 		}
 		this.running = false;
-		this.config.logger?.info("TxPool stopped.");
+		this.config.options.logger?.info("TxPool stopped.");
 		return true;
 	}
 
@@ -1433,9 +1435,11 @@ export class TxPool {
 				this.txGasPrice(a.tx).tip < this.txGasPrice(b.tx).tip,
 		}) as QHeap<TxPoolObject>;
 
-		if (this.config.metrics !== undefined) {
+		if (this.config.options.prometheusMetrics !== undefined) {
 			// TODO: Only clear the metrics related to the transaction pool here
-			for (const [_, metric] of Object.entries(this.config.metrics)) {
+			for (const [_, metric] of Object.entries(
+				this.config.options.prometheusMetrics,
+			)) {
 				metric.set(0);
 			}
 		}
@@ -1476,13 +1480,13 @@ export class TxPool {
 				handlederrors++;
 			}
 		}
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool Statistics pending=${this.pendingCount} queued=${this.queuedCount} senders=${totalSenders} peers=${this.service.pool.peers.length}`,
 		);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool Statistics broadcasts=${broadcasts}/tx/peer broadcasterrors=${broadcasterrors}/tx/peer knownpeers=${knownpeers} since minutes=${this.POOLED_STORAGE_TIME_LIMIT}`,
 		);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool Statistics successfuladds=${handledadds} failedadds=${handlederrors} since minutes=${this.HANDLED_CLEANUP_TIME_LIMIT}`,
 		);
 	}

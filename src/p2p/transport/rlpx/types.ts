@@ -175,7 +175,7 @@ export interface RLPxDialOptions
 	 * Remote peer's node ID (public key without 0x04 prefix)
 	 * Required for initiating ECIES auth
 	 */
-	remoteId: Uint8Array;
+	remoteId?: Uint8Array;
 
 	/**
 	 * Use EIP-8 format for auth/ack messages

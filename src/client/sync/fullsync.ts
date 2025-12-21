@@ -90,7 +90,7 @@ export class FullSynchronizer extends Synchronizer {
 
 		this.config.events.on(Event.SYNC_FETCHED_BLOCKS, this.processBlocks);
 		this.config.events.on(Event.SYNC_EXECUTION_VM_ERROR, this.stop);
-		if (this.config.execution) {
+		if (this.config.options.execution) {
 			this.config.events.on(Event.CHAIN_UPDATED, this.runExecution);
 		}
 
@@ -99,7 +99,7 @@ export class FullSynchronizer extends Synchronizer {
 		const hash = this.chain.blocks.latest!.hash();
 		this.startingBlock = number;
 
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Latest local block number=${Number(number)} td=${td} hash=${short(
 				hash,
 			)} hardfork=${this.config.chainCommon.hardfork()}`,
@@ -119,7 +119,7 @@ export class FullSynchronizer extends Synchronizer {
 	 */
 	async best(): Promise<Peer | undefined> {
 		const peers = this.pool.peers.filter(this.syncable.bind(this));
-		if (peers.length < this.config.minPeers && !this.forceSync) return;
+		if (peers.length < this.config.options.minPeers && !this.forceSync) return;
 
 		// For PoW (Ethash) chains we want to select the peer with the highest TD
 		let best: Peer | undefined;
@@ -174,7 +174,7 @@ export class FullSynchronizer extends Synchronizer {
 			this.config.syncTargetHeight < latest.number
 		) {
 			this.config.syncTargetHeight = height;
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`New sync target height=${height} hash=${short(latest.hash())}`,
 			);
 		}
@@ -182,9 +182,9 @@ export class FullSynchronizer extends Synchronizer {
 		// Start fetcher from a safe distance behind because if the previous fetcher exited
 		// due to a reorg, it would make sense to step back and refetch.
 		const first =
-			this.chain.blocks.height >= BigInt(this.config.safeReorgDistance)
+			this.chain.blocks.height >= BigInt(this.config.options.safeReorgDistance)
 				? this.chain.blocks.height -
-					BigInt(this.config.safeReorgDistance) +
+					BigInt(this.config.options.safeReorgDistance) +
 					BIGINT_1
 				: BIGINT_1;
 		const count = height - first + BIGINT_1;
@@ -203,7 +203,7 @@ export class FullSynchronizer extends Synchronizer {
 			const fetcherHeight = this.fetcher.first + this.fetcher.count - BIGINT_1;
 			if (height > fetcherHeight) {
 				this.fetcher.count += height - fetcherHeight;
-				this.config.logger?.info(
+				this.config.options.logger?.info(
 					`Updated fetcher target to height=${height} peer=${peer} `,
 				);
 			}
@@ -217,7 +217,9 @@ export class FullSynchronizer extends Synchronizer {
 	async processBlocks(blocks: Block[]) {
 		if (blocks.length === 0) {
 			if (this.fetcher !== null) {
-				this.config.logger?.warn("No blocks fetched are applicable for import");
+				this.config.options.logger?.warn(
+					"No blocks fetched are applicable for import",
+				);
 			}
 			return;
 		}
@@ -226,7 +228,7 @@ export class FullSynchronizer extends Synchronizer {
 		const last = BigInt(blocks[blocks.length - 1].header.number);
 		const hash = short(blocks[0].hash());
 
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Imported blocks count=${
 				blocks.length
 			} first=${first} last=${last} hash=${hash} hardfork=${this.config.chainCommon.hardfork()} peers=${
@@ -279,7 +281,7 @@ export class FullSynchronizer extends Synchronizer {
 	 * @param peer `Peer` that sent `NEW_BLOCK` announcement
 	 */
 	async handleNewBlock(block: Block, peer?: Peer) {
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`🔄 FullSynchronizer.handleNewBlock: height=${block.header.number}, chainHeight=${this.chain.headers.height}, peer=${peer?.id?.slice(0, 8) || "null"}`,
 		);
 
@@ -289,7 +291,7 @@ export class FullSynchronizer extends Synchronizer {
 		}
 		if (block.header.number > this.chain.headers.height + BIGINT_1) {
 			// Block is too far ahead - we need to fetch missing blocks first
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`📡 Block ${block.header.number} is ahead of chain height ${this.chain.headers.height}, fetching missing blocks`,
 			);
 			// Request the missing blocks via handleNewBlockHashes
@@ -299,12 +301,12 @@ export class FullSynchronizer extends Synchronizer {
 		try {
 			await this.chain.blockchain.validateHeader(block.header);
 		} catch (err) {
-			this.config.logger?.debug(
+			this.config.options.logger?.debug(
 				`Error processing new block from peer ${
 					peer ? `id=${peer.id.slice(0, 8)}` : "(no peer)"
 				} hash=${short(block.hash())}`,
 			);
-			this.config.logger?.debug(err);
+			this.config.options.logger?.debug(err);
 			return;
 		}
 		// Send NEW_BLOCK to square root of total number of peers in pool
@@ -375,7 +377,7 @@ export class FullSynchronizer extends Synchronizer {
 		if (!newSyncHeight) return;
 		const [hash, height] = newSyncHeight;
 		this.config.syncTargetHeight = height;
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`New sync target height=${height} hash=${short(hash)}`,
 		);
 
@@ -385,7 +387,7 @@ export class FullSynchronizer extends Synchronizer {
 			const first = this.chain.blocks.height + BIGINT_1;
 			const count = height - first + BIGINT_1;
 			if (count > BIGINT_0) {
-				this.config.logger?.info(
+				this.config.options.logger?.info(
 					`Creating new fetcher to sync blocks ${first} to ${height}`,
 				);
 				this.fetcher = new BlockFetcher({
@@ -399,7 +401,7 @@ export class FullSynchronizer extends Synchronizer {
 				});
 				// Start the fetcher
 				this.fetcher.fetch().catch((e) => {
-					this.config.logger?.error(`Block fetcher error`, {}, e);
+					this.config.options.logger?.error(`Block fetcher error`, {}, e);
 				});
 			}
 			return;
@@ -421,7 +423,11 @@ export class FullSynchronizer extends Synchronizer {
 			this.config.syncTargetHeight !== BIGINT_0 &&
 			this.chain.blocks.height <= this.config.syncTargetHeight - BigInt(50);
 		this.execution.run(true, shouldRunOnlyBatched).catch((e) => {
-			this.config.logger?.error(`Full sync execution trigger errored`, {}, e);
+			this.config.options.logger?.error(
+				`Full sync execution trigger errored`,
+				{},
+				e,
+			);
 		});
 	}
 
@@ -431,7 +437,7 @@ export class FullSynchronizer extends Synchronizer {
 			this.processBlocks,
 		);
 		this.config.events.removeListener(Event.SYNC_EXECUTION_VM_ERROR, this.stop);
-		if (this.config.execution) {
+		if (this.config.options.execution) {
 			this.config.events.removeListener(Event.CHAIN_UPDATED, this.runExecution);
 		}
 		return super.stop();

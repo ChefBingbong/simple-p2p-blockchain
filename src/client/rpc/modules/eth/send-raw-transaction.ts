@@ -61,8 +61,8 @@ export const sendRawTransaction = (client: EthereumClient) => {
 			console.log("peerPool", peerPool.peers);
 			if (
 				peerPool.peers.length === 0 &&
-				!client.config.mine &&
-				client.config.isSingleNode === false
+				!client.config.options.mine &&
+				client.config.options.isSingleNode === false
 			) {
 				return safeError(new Error("no peer connection available"));
 			}

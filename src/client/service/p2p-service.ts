@@ -1,7 +1,7 @@
 import type { AbstractLevel } from "abstract-level";
 import debug from "debug";
 import { Chain } from "../blockchain";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import { P2PPeerPool } from "../net/p2p-peerpool.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import type { Protocol } from "../net/protocol";
@@ -121,19 +121,19 @@ export class P2PService {
 				if (this.running) {
 					try {
 						const msgName = (message as any)?.name || "unknown";
-						this.config.logger?.info(
+						this.config.options.logger?.info(
 							`📨 PROTOCOL_MESSAGE: ${msgName} from peer ${peer?.id?.slice(0, 8) || "null"}`,
 						);
 						await this.handle(message, protocol, peer);
 					} catch (error: any) {
 						const msgName = (message as any)?.name || "unknown";
-						this.config.logger?.error(
+						this.config.options.logger?.error(
 							`Error handling message (${protocol}:${msgName}): ${error.message}`,
 						);
 					}
 				} else {
 					const msgName = (message as any)?.name || "unknown";
-					this.config.logger?.debug(
+					this.config.options.logger?.debug(
 						`Ignoring PROTOCOL_MESSAGE (service not running): ${msgName}`,
 					);
 				}
@@ -178,15 +178,15 @@ export class P2PService {
 
 		this.config.events.on(Event.POOL_PEER_BANNED, (peer) => {
 			log("Peer banned: %s", peer.id.slice(0, 8));
-			this.config.logger?.debug(`Peer banned: ${peer}`);
+			this.config.options.logger?.debug(`Peer banned: ${peer}`);
 		});
 		this.config.events.on(Event.POOL_PEER_ADDED, (peer) => {
 			log("Peer added: %s", peer.id.slice(0, 8));
-			this.config.logger?.debug(`Peer added: ${peer}`);
+			this.config.options.logger?.debug(`Peer added: ${peer}`);
 		});
 		this.config.events.on(Event.POOL_PEER_REMOVED, (peer) => {
 			log("Peer removed: %s", peer.id.slice(0, 8));
-			this.config.logger?.debug(`Peer removed: ${peer}`);
+			this.config.options.logger?.debug(`Peer removed: ${peer}`);
 		});
 
 		await this.pool.open();
@@ -234,7 +234,7 @@ export class P2PService {
 			this.STATS_INTERVAL,
 		);
 		this.running = true;
-		this.config.logger?.info(`Started ${this.name} service.`);
+		this.config.options.logger?.info(`Started ${this.name} service.`);
 		log("P2PService started");
 		return true;
 	}
@@ -256,7 +256,7 @@ export class P2PService {
 		clearInterval(this._statsInterval);
 		await this.synchronizer?.stop();
 		this.running = false;
-		this.config.logger?.info(`Stopped ${this.name} service.`);
+		this.config.options.logger?.info(`Stopped ${this.name} service.`);
 		log("P2PService stopped");
 		return true;
 	}
@@ -271,17 +271,17 @@ export class P2PService {
 			const msg = `Memory stats usage=${heapUsed} MB percentage=${percentage}%`;
 
 			if (this._statsCounter % 4 === 0) {
-				this.config.logger?.info(msg);
+				this.config.options.logger?.info(msg);
 				this._statsCounter = 0;
 			} else {
-				this.config.logger?.debug(msg);
+				this.config.options.logger?.debug(msg);
 			}
 
 			if (
 				percentage >= this.MEMORY_SHUTDOWN_THRESHOLD &&
 				!this.config.shutdown
 			) {
-				this.config.logger?.error(
+				this.config.options.logger?.error(
 					"EMERGENCY SHUTDOWN DUE TO HIGH MEMORY LOAD...",
 				);
 				process.kill(process.pid, "SIGINT");

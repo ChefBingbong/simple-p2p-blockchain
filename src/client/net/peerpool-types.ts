@@ -1,4 +1,4 @@
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import type { Peer } from "./peer/peer.ts";
 import type { P2PPeerPool } from "./p2p-peerpool.ts";
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { multiaddr } from "@multiformats/multiaddr";
+import { Multiaddr, multiaddr } from "@multiformats/multiaddr";
 import type { AbstractLevel } from "abstract-level";
 import { createHash } from "crypto";
 import debug from "debug";
@@ -17,6 +17,7 @@ import {
 	Hardfork,
 } from "../../chain-config/index.ts";
 import { Ethash } from "../../eth-hash/index.ts";
+import { PeerInfo } from "../../kademlia/types.ts";
 import { createP2PNode, dptDiscovery } from "../../p2p/libp2p/index.ts";
 import type { ComponentLogger } from "../../p2p/libp2p/types.ts";
 import { rlpx } from "../../p2p/transport/rlpx/index.ts";
@@ -28,11 +29,11 @@ import {
 	hexToBytes,
 } from "../../utils/index.ts";
 import { EthereumClient } from "../client.ts";
+import { Config } from "../config/index.ts";
+import { DataDirectory, SyncMode } from "../config/types.ts";
 import { LevelDB } from "../execution/level.ts";
-import { DataDirectory, SyncMode } from "../index.ts";
 import { getLogger, type Logger } from "../logging.ts";
 import { ETH } from "../net/protocol/eth/eth.ts";
-import { P2PConfig } from "../p2p-config.ts";
 import { createP2PRpcManager, RPCArgs } from "../rpc/index.ts";
 import type { P2PFullEthereumService } from "../service/p2p-fullethereumservice.ts";
 import { Event } from "../types.ts";
@@ -285,6 +286,40 @@ function cleanDataDir(port: number): void {
 	}
 }
 
+function convertBootnodesToDPT(
+	bootnodes: Multiaddr[] | string[] | string,
+): PeerInfo[] {
+	const result: PeerInfo[] = [];
+
+	// Normalize to array
+	const bootnodeArray: Multiaddr[] = [];
+	if (typeof bootnodes === "string") {
+		bootnodeArray.push(multiaddr(bootnodes));
+	} else if (Array.isArray(bootnodes)) {
+		for (const bn of bootnodes) {
+			if (typeof bn === "string") {
+				bootnodeArray.push(multiaddr(bn));
+			} else {
+				bootnodeArray.push(bn);
+			}
+		}
+	}
+
+	// Convert each bootnode
+	for (const ma of bootnodeArray) {
+		try {
+			const peerInfo = this.multiaddrToDPTPeerInfo(ma);
+			if (peerInfo) {
+				result.push(peerInfo);
+			}
+		} catch (err) {
+			// this.logger?.warn(`Failed to convert bootnode ${ma.toString()}: ${err}`);
+		}
+	}
+
+	return result;
+}
+
 async function startClient() {
 	const port = parseInt(process.env.PORT || "8000", 10);
 	const cleanStart = process.env.CLEAN === "true";
@@ -416,9 +451,9 @@ async function startClient() {
 		maxConnections: 25,
 	} as any);
 
-	const config = new P2PConfig({
+	const config = new Config({
 		accounts: [nodeAccount], // This node's account for signing
-		bootnodes, // Keep for compatibility, but DPT uses dptBootnodes
+		bootnodes: convertBootnodesToDPT(bootnodes),
 		common,
 		datadir: getDataDir(port),
 		prometheusMetrics: setupMetrics(),
@@ -435,7 +470,6 @@ async function startClient() {
 		mine: isMiner,
 		minerCoinbase: nodeAccount[0], // Mining rewards go to this node's account
 		minPeers: 1,
-		multiaddrs: [],
 		port,
 		saveReceipts: true,
 		syncmode: SyncMode.Full,

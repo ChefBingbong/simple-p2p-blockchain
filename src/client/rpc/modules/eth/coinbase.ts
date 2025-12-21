@@ -5,7 +5,7 @@ import { coinbaseSchema } from "./schema.ts";
 
 export const coinbase = (client: EthereumClient) =>
 	createRpcMethod(coinbaseSchema, async (_params, _c) => {
-		const cb = client.config.minerCoinbase;
+		const cb = client.config.options.minerCoinbase;
 		if (cb === undefined) {
 			return safeError(new Error("Coinbase must be explicitly specified"));
 		}

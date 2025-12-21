@@ -6,6 +6,6 @@ import { logLevels, verbositySchema } from "./schema.ts";
 export const verbosity = (client: EthereumClient) =>
 	createRpcMethod(verbositySchema, async (params: [number], _c) => {
 		const [level] = params;
-		client.config.logger?.configure({ level: logLevels[level] });
-		return safeResult(`level: ${client.config.logger?.level}`);
+		client.config.options.logger?.configure({ level: logLevels[level] });
+		return safeResult(`level: ${client.config.options.logger?.level}`);
 	});

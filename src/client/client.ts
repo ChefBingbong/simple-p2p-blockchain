@@ -3,7 +3,7 @@ import debug from "debug";
 import type { Blockchain } from "../blockchain";
 import type { GenesisState } from "../chain-config";
 import { Chain } from "./blockchain";
-import { P2PConfig } from "./p2p-config.ts";
+import { Config } from "./config/index.ts";
 import { P2PFullEthereumService } from "./service/p2p-fullethereumservice.ts";
 import type { MultiaddrLike } from "./types.ts";
 import { Event } from "./types.ts";
@@ -13,7 +13,7 @@ const log = debug("p2p:client");
 
 export interface P2PEthereumClientOptions {
 	/** Client configuration */
-	config: P2PConfig;
+	config: Config;
 
 	/** Custom blockchain (optional) */
 	blockchain?: Blockchain;
@@ -76,7 +76,7 @@ export interface P2PEthereumClientOptions {
  * @memberof module:client
  */
 export class EthereumClient {
-	public config: P2PConfig;
+	public config: Config;
 	public chain: Chain;
 	public service: P2PFullEthereumService;
 
@@ -134,7 +134,7 @@ export class EthereumClient {
 			name,
 			chainId,
 		);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Initializing P2P Ethereumjs client version=v${packageJSON.version} network=${name} chainId=${chainId}`,
 		);
 
@@ -143,12 +143,12 @@ export class EthereumClient {
 			log("Setting up P2PNode event listeners");
 			this.config.node.addEventListener("peer:connect", (evt) => {
 				log("P2PNode peer:connect event");
-				this.config.logger?.info(`Peer connected: ${evt.detail}`);
+				this.config.options.logger?.info(`Peer connected: ${evt.detail}`);
 			});
 
 			this.config.node.addEventListener("peer:disconnect", (evt) => {
 				log("P2PNode peer:disconnect event");
-				this.config.logger?.info(`Peer disconnected: ${evt.detail}`);
+				this.config.options.logger?.info(`Peer disconnected: ${evt.detail}`);
 			});
 		}
 
@@ -168,7 +168,7 @@ export class EthereumClient {
 			return false;
 		}
 		log("Starting P2PEthereumClient");
-		this.config.logger?.info("Setup networking and services.");
+		this.config.options.logger?.info("Setup networking and services.");
 
 		log("Starting service");
 		await this.service.start();
@@ -182,7 +182,7 @@ export class EthereumClient {
 				"P2PNode started, listening on: %s",
 				addresses.map((a) => a.toString()).join(", "),
 			);
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`P2PNode started, listening on: ${addresses.map((a) => a.toString()).join(", ")}`,
 			);
 		}

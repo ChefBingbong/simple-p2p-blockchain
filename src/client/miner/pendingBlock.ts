@@ -11,7 +11,7 @@ import {
 	TypeOutput,
 } from "../../utils";
 import { BlockBuilder, buildBlock, BuildStatus, TxReceipt, VM } from "../../vm";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import type { TxPool } from "../service/txpool.ts";
 
 interface PendingBlockOpts {
@@ -145,7 +145,7 @@ export class PendingBlock {
 
 		// Add current txs in pool
 		const txs = await this.txPool.txsByPriceAndNonce(vm, {});
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Pending: Assembling block from ${txs.length} eligible txs`,
 		);
 
@@ -153,7 +153,7 @@ export class PendingBlock {
 			builder,
 			txs,
 		);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Pending: Added txs=${addedTxs} skippedByAddErrors=${skippedByAddErrors} from total=${txs.length} tx candidates`,
 		);
 
@@ -215,7 +215,7 @@ export class PendingBlock {
 
 		const { block } = await builder.build();
 
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Pending: Built block number=${block.header.number} txs=${
 				block.transactions.length
 			} skippedByAddErrors=${skippedByAddErrors} hash=${bytesToHex(
@@ -230,7 +230,7 @@ export class PendingBlock {
 		builder: BlockBuilder,
 		txs: TypedTransaction[],
 	) {
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Pending: Adding ${txs.length} additional eligible txs`,
 		);
 		let index = 0;
@@ -279,14 +279,14 @@ export class PendingBlock {
 					(builder as any).headerData.gasLimit - BigInt(21000)
 				) {
 					// If block has less than 21000 gas remaining, consider it full
-					this.config.logger?.info(`Pending: Assembled block full`);
+					this.config.options.logger?.info(`Pending: Assembled block full`);
 					addTxResult = AddTxResult.BlockFull;
 				} else {
 					addTxResult = AddTxResult.SkippedByGasLimit;
 				}
 			} else {
 				// If there is an error adding a tx, it will be skipped
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Pending: Skipping tx ${bytesToHex(
 						tx.hash(),
 					)}, error encountered when trying to add tx:\n${error}`,

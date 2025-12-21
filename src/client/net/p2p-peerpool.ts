@@ -4,7 +4,7 @@ import { peerIdToString } from "../../p2p/libp2p/types.ts";
 import type { RLPxConnection } from "../../p2p/transport/rlpx/connection.ts";
 import { bigIntToUnpaddedBytes } from "../../utils/index.ts";
 import type { Chain } from "../blockchain/chain.ts";
-import type { Config } from "../config.ts";
+import type { Config } from "../config/index.ts";
 import type { VMExecution } from "../execution";
 import { Event } from "../types.ts";
 import { P2PPeer } from "./peer/p2p-peer.ts";
@@ -122,7 +122,7 @@ export class P2PPeerPool {
 		});
 		this.config.events.on(Event.PEER_ERROR, (error, peer) => {
 			if (this.pool.get(peer.id)) {
-				this.config.logger?.warn(`Peer error: ${error} ${peer}`);
+				this.config.options.logger?.warn(`Peer error: ${error} ${peer}`);
 				this.ban(peer);
 			}
 		});
@@ -245,7 +245,7 @@ export class P2PPeerPool {
 	 * @param peer peer
 	 */
 	private connected(peer: Peer) {
-		if (this.size >= this.config.maxPeers) {
+		if (this.size >= this.config.options.maxPeers) {
 			log("Max peers reached, not adding peer %s", peer.id.slice(0, 8));
 			return;
 		}
@@ -282,7 +282,7 @@ export class P2PPeerPool {
 		this._reconnectTimeout = setTimeout(async () => {
 			if (this.running && this.size === 0) {
 				// For P2P, we can't easily reconnect - discovery will handle it
-				this.config.logger?.info(
+				this.config.options.logger?.info(
 					"Pool empty after ban period - waiting for discovery",
 				);
 			}
@@ -348,7 +348,7 @@ export class P2PPeerPool {
 
 		if (!rlpxConnection) {
 			log("Connection %s does not have RLPxConnection", connection.id);
-			this.config.logger?.warn(
+			this.config.options.logger?.warn(
 				`Connection ${connection.id} does not have RLPxConnection`,
 			);
 			return;
@@ -403,14 +403,14 @@ export class P2PPeerPool {
 		}
 
 		// Check max peers
-		if (this.size >= this.config.maxPeers) {
+		if (this.size >= this.config.options.maxPeers) {
 			log(
 				"Max peers reached (%d), not adding peer %s",
-				this.config.maxPeers,
+				this.config.options.maxPeers,
 				peerIdHex.slice(0, 8),
 			);
-			this.config.logger?.debug(
-				`Max peers reached (${this.config.maxPeers}), not adding peer ${peerIdHex.slice(0, 8)}...`,
+			this.config.options.logger?.debug(
+				`Max peers reached (${this.config.options.maxPeers}), not adding peer ${peerIdHex.slice(0, 8)}...`,
 			);
 			return;
 		}
@@ -429,7 +429,7 @@ export class P2PPeerPool {
 		// Check if ETH protocol is available
 		if (!peer.eth) {
 			log("Peer %s does not have ETH protocol", peerIdHex.slice(0, 8));
-			this.config.logger?.warn(
+			this.config.options.logger?.warn(
 				`Peer ${peerIdHex.slice(0, 8)}... does not have ETH protocol`,
 			);
 			return;
@@ -492,7 +492,7 @@ export class P2PPeerPool {
 					td.toString(),
 					bestHashHex,
 				);
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Sending STATUS to peer ${peerIdHex.slice(0, 8)}...`,
 				);
 				ethProtocol.sendStatus(statusOpts);
@@ -506,7 +506,7 @@ export class P2PPeerPool {
 					peerIdHex.slice(0, 8),
 					error.message,
 				);
-				this.config.logger?.warn(
+				this.config.options.logger?.warn(
 					`Failed to send STATUS to peer ${peerIdHex.slice(0, 8)}...: ${error.message}`,
 				);
 				rlpxConnection.off("protocols:ready", onProtocolsReady);
@@ -549,7 +549,7 @@ export class P2PPeerPool {
 					this.pendingPeers.delete(peerIdHex);
 					this.add(peer);
 					this.config.events.emit(Event.PEER_CONNECTED, peer);
-					this.config.logger?.debug(`Peer added to pool: ${peer}`);
+					this.config.options.logger?.debug(`Peer added to pool: ${peer}`);
 					// Clean up listener
 					ethProtocol.events.off("status", onStatusReceived);
 					clearTimeout(statusTimeout);
@@ -565,7 +565,7 @@ export class P2PPeerPool {
 						"STATUS timeout for peer %s, adding anyway",
 						peerIdHex.slice(0, 8),
 					);
-					this.config.logger?.warn(
+					this.config.options.logger?.warn(
 						`Status exchange timeout for peer ${peerIdHex.slice(0, 8)}..., adding anyway`,
 					);
 					this.pendingPeers.delete(peerIdHex);
@@ -577,7 +577,7 @@ export class P2PPeerPool {
 			}, 10000);
 		} else {
 			// No ETH protocol, add peer anyway (shouldn't happen)
-			this.config.logger?.warn(
+			this.config.options.logger?.warn(
 				`No ETH protocol found for peer ${peerIdHex.slice(0, 8)}..., adding anyway`,
 			);
 			this.pendingPeers.delete(peerIdHex);
@@ -623,18 +623,18 @@ export class P2PPeerPool {
 	 */
 	async _statusCheck() {
 		const NO_PEER_PERIOD_COUNT = 3;
-		if (this.size === 0 && this.config.maxPeers > 0) {
+		if (this.size === 0 && this.config.options.maxPeers > 0) {
 			this.noPeerPeriods += 1;
 			if (this.noPeerPeriods >= NO_PEER_PERIOD_COUNT) {
 				this.noPeerPeriods = 0;
 				// For P2P, we can't restart the node easily
 				// Discovery should handle finding new peers
-				this.config.logger?.info(
+				this.config.options.logger?.info(
 					"No peers in pool - waiting for peer discovery",
 				);
 			} else {
 				const connections = this.node.getConnections();
-				this.config.logger?.info(
+				this.config.options.logger?.info(
 					`Looking for suited peers: connections=${connections.length}, pool=${this.size}`,
 				);
 			}

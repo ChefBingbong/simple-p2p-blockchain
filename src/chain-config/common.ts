@@ -1,4 +1,5 @@
 import { EventEmitter } from "eventemitter3";
+import { unprefixedHexToBytes } from "../utils/index.ts";
 import {
 	type ChainConfig,
 	type CommonEvent,
@@ -59,7 +60,10 @@ export class Common {
 	}
 
 	bootstrapNodes() {
-		return this._chainParams.bootstrapNodes;
+		return this._chainParams.bootstrapNodes.map((node) => ({
+			...node,
+			id: unprefixedHexToBytes(node.id),
+		}));
 	}
 
 	hardfork() {

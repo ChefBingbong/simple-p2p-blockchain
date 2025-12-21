@@ -1,7 +1,7 @@
 import { EventEmitter } from "eventemitter3";
 import type { BlockHeader } from "../../../block";
 import { BIGINT_0, BIGINT_1, short } from "../../../utils";
-import type { Config } from "../../config.ts";
+import type { Config } from "../../config/config.ts";
 import type { EthProtocolMethods } from "../protocol/index.ts";
 
 export interface PeerOptions {
@@ -129,7 +129,7 @@ export abstract class Peer extends EventEmitter {
 							this.config.syncTargetHeight < latest.number)
 					) {
 						this.config.syncTargetHeight = height;
-						this.config.logger?.info(
+						this.config.options.logger?.info(
 							`New sync target height=${height} hash=${short(latest.hash())}`,
 						);
 					}
@@ -152,7 +152,7 @@ export abstract class Peer extends EventEmitter {
 						this.config.syncTargetHeight < latest.number)
 				) {
 					this.config.syncTargetHeight = height;
-					this.config.logger?.info(
+					this.config.options.logger?.info(
 						`New sync target height=${height} hash=${short(latest.hash())}`,
 					);
 				}

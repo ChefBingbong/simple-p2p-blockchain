@@ -482,7 +482,7 @@ export abstract class Fetcher<
 				this.finished += jobItems.length;
 				cb();
 			} catch (error: any) {
-				this.config.logger?.warn(
+				this.config.options.logger?.warn(
 					`Error storing received block or header result: ${error}`,
 				);
 				const { destroyFetcher, banPeer, stepBack } = this.processStoreError(

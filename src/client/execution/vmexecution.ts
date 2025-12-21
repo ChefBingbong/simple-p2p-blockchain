@@ -105,8 +105,8 @@ export class VMExecution extends Execution {
 	constructor(options: ExecutionOptions) {
 		super(options);
 
-		if (this.config.vm !== undefined) {
-			this.vm = this.config.vm;
+		if (this.config.options.vm !== undefined) {
+			this.vm = this.config.options.vm;
 			// @ts-expect-error -- Assigning to read-only property
 			this.vm.blockchain = this.chain.blockchain;
 		}
@@ -117,7 +117,7 @@ export class VMExecution extends Execution {
 				chain: this.chain,
 				config: this.config,
 			});
-			if (this.config.saveReceipts) {
+			if (this.config.options.saveReceipts) {
 				this.receiptsManager = new ReceiptsManager({
 					chain: this.chain,
 					config: this.config,
@@ -142,7 +142,7 @@ export class VMExecution extends Execution {
 					},
 				);
 			}
-			if (this.config.savePreimages) {
+			if (this.config.options.savePreimages) {
 				this.preimagesManager = new PreimagesManager({
 					chain: this.chain,
 					config: this.config,
@@ -160,41 +160,41 @@ export class VMExecution extends Execution {
 			db: new LevelDB(this.stateDB),
 			useKeyHashing: true,
 			common: this.config.chainCommon,
-			cacheSize: this.config.trieCache,
-			valueEncoding: this.config.useStringValueTrieDB
+			cacheSize: this.config.options.trieCache,
+			valueEncoding: this.config.options.useStringValueTrieDB
 				? ValueEncoding.String
 				: ValueEncoding.Bytes,
 		});
 
-		this.config.logger?.info(`Setting up merkleVM`);
-		this.config.logger?.info(
-			`Initializing account cache size=${this.config.accountCache}`,
+		this.config.options.logger?.info(`Setting up merkleVM`);
+		this.config.options.logger?.info(
+			`Initializing account cache size=${this.config.options.accountCache}`,
 		);
-		this.config.logger?.info(
-			`Initializing storage cache size=${this.config.storageCache}`,
+		this.config.options.logger?.info(
+			`Initializing storage cache size=${this.config.options.storageCache}`,
 		);
-		this.config.logger?.info(
-			`Initializing code cache size=${this.config.codeCache}`,
+		this.config.options.logger?.info(
+			`Initializing code cache size=${this.config.options.codeCache}`,
 		);
-		this.config.logger?.info(
-			`Initializing trie cache size=${this.config.trieCache}`,
+		this.config.options.logger?.info(
+			`Initializing trie cache size=${this.config.options.trieCache}`,
 		);
 
 		const stateManager = new MerkleStateManager({
 			trie,
-			prefixStorageTrieKeys: this.config.prefixStorageTrieKeys,
+			prefixStorageTrieKeys: this.config.options.prefixStorageTrieKeys,
 			caches: new Caches({
 				account: {
 					type: CacheType.LRU,
-					size: this.config.accountCache,
+					size: this.config.options.accountCache,
 				},
 				storage: {
 					type: CacheType.LRU,
-					size: this.config.storageCache,
+					size: this.config.options.storageCache,
 				},
 				code: {
 					type: CacheType.LRU,
-					size: this.config.codeCache,
+					size: this.config.options.codeCache,
 				},
 			}),
 			common: this.config.chainCommon,
@@ -206,7 +206,7 @@ export class VMExecution extends Execution {
 			common: this.config.execCommon,
 			blockchain: this.chain.blockchain,
 			stateManager,
-			profilerOpts: this.config.vmProfilerOpts,
+			profilerOpts: this.config.options.vmProfilerOpts,
 		});
 		this.vm = this.merkleVM;
 	}
@@ -243,7 +243,7 @@ export class VMExecution extends Execution {
 			}
 			this.hardfork = this.config.execCommon.hardfork();
 
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`Initializing VM merkle statemanager genesis hardfork=${this.hardfork}`,
 			);
 			await this.setupMerkleVM();
@@ -352,7 +352,7 @@ export class VMExecution extends Execution {
 					if (skipHeaderValidation) {
 						skipBlockchain = true;
 					}
-					const reportPreimages = this.config.savePreimages;
+					const reportPreimages = this.config.options.savePreimages;
 
 					const result = await runBlock(vm, {
 						clearCache,
@@ -361,7 +361,10 @@ export class VMExecution extends Execution {
 						reportPreimages,
 					});
 
-					if (this.config.savePreimages && result.preimages !== undefined) {
+					if (
+						this.config.options.savePreimages &&
+						result.preimages !== undefined
+					) {
 						await this.savePreimages(result.preimages);
 					}
 					receipts = result.receipts;
@@ -495,7 +498,7 @@ export class VMExecution extends Execution {
 	): Promise<void> {
 		return this.runWithLock<void>(async () => {
 			// check if the block is canonical in chain
-			this.config.logger?.warn(
+			this.config.options.logger?.warn(
 				`Setting execution head to hash=${short(jumpToHash)} number=${jumpToNumber}`,
 			);
 			await this.chain.blockchain.setIteratorHead("vm", jumpToHash);
@@ -511,7 +514,7 @@ export class VMExecution extends Execution {
 		if (
 			this.running ||
 			!this.started ||
-			!this.config.execution ||
+			!this.config.options.execution ||
 			this.config.shutdown
 		)
 			return 0;
@@ -522,7 +525,7 @@ export class VMExecution extends Execution {
 				await this.vmPromise;
 			} catch (error) {
 				// Ignore errors from previous execution, we're starting fresh
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					"Previous VM execution completed with error, continuing",
 				);
 			}
@@ -548,7 +551,7 @@ export class VMExecution extends Execution {
 				// this.config.logger?.info(
 				// 	`🔍 Execution check: VM head=${startHeadBlock?.header.number} hash=${vmHeadHash ? short(vmHeadHash) : "null"}, canonical head=${canonicalHead?.header.number} hash=${canonicalHeadHash ? short(canonicalHeadHash) : "null"}, areEqual=${areEqual}`,
 				// );
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Running execution startHeadBlock=${startHeadBlock?.header.number} canonicalHead=${canonicalHead?.header.number} loop=${loop}`,
 				);
 
@@ -584,9 +587,10 @@ export class VMExecution extends Execution {
 					(!runOnlyBatched ||
 						(runOnlyBatched &&
 							canonicalHead.header.number - startHeadBlock.header.number >=
-								BigInt(this.config.numBlocksPerIteration))) &&
+								BigInt(this.config.options.numBlocksPerIteration))) &&
 					(numExecuted === undefined ||
-						(loop && numExecuted === this.config.numBlocksPerIteration)) &&
+						(loop &&
+							numExecuted === this.config.options.numBlocksPerIteration)) &&
 					equalsBytes(startHeadBlock.hash(), canonicalHead.hash()) === false
 				) {
 					let txCounter = 0;
@@ -607,7 +611,7 @@ export class VMExecution extends Execution {
 
 									if (reorg) {
 										clearCache = true;
-										this.config.logger?.info(
+										this.config.options.logger?.info(
 											`VM run: Chain reorged, setting new head to block number=${headBlock.header.number} clearCache=${clearCache}.`,
 										);
 									} else {
@@ -627,7 +631,7 @@ export class VMExecution extends Execution {
 									const hardfork = this.config.execCommon.hardfork();
 									if (hardfork !== this.hardfork) {
 										const hash = short(block.hash());
-										this.config.superMsg(
+										this.config.options.logger?.info(
 											`Execution hardfork switch on block number=${number} hash=${hash} old=${this.hardfork} new=${hardfork}`,
 										);
 										this.hardfork = this.config.execCommon.hardfork();
@@ -649,7 +653,7 @@ export class VMExecution extends Execution {
 										clearCache,
 										skipBlockValidation,
 										skipHeaderValidation: true,
-										reportPreimages: this.config.savePreimages,
+										reportPreimages: this.config.options.savePreimages,
 									});
 									const afterTS = Date.now();
 									const diffSec = Math.round((afterTS - beforeTS) / 1000);
@@ -660,7 +664,7 @@ export class VMExecution extends Execution {
 										} hash=${bytesToHex(block.hash())} txs=${block.transactions.length} gasUsed=${
 											result.gasUsed
 										} time=${diffSec}secs`;
-										this.config.logger?.warn(msg);
+										this.config.options.logger?.warn(msg);
 									}
 
 									await this.receiptsManager?.saveReceipts(
@@ -675,7 +679,7 @@ export class VMExecution extends Execution {
 										);
 									}
 									if (
-										this.config.savePreimages &&
+										this.config.options.savePreimages &&
 										result.preimages !== undefined
 									) {
 										await this.savePreimages(result.preimages);
@@ -698,7 +702,7 @@ export class VMExecution extends Execution {
 									throw error;
 								}
 							},
-							this.config.numBlocksPerIteration,
+							this.config.options.numBlocksPerIteration,
 							// release lock on this callback so other blockchain ops can happen while this block is being executed
 							true,
 						)
@@ -741,7 +745,7 @@ export class VMExecution extends Execution {
 										hasParentStateRoot === true &&
 										backStepToHash !== undefined
 									) {
-										this.config.logger?.warn(
+										this.config.options.logger?.warn(
 											`${errorMsg}, backStepping vmHead to number=${backStepTo} hash=${short(
 												backStepToHash ?? "na",
 											)} hasParentStateRoot=${short(backStepToRoot ?? "na")}:\n${error}`,
@@ -751,7 +755,7 @@ export class VMExecution extends Execution {
 											backStepToHash,
 										);
 									} else {
-										this.config.logger?.error(
+										this.config.options.logger?.error(
 											`${errorMsg}, couldn't back step to vmHead number=${backStepTo} hash=${short(
 												backStepToHash ?? "na",
 											)} hasParentStateRoot=${hasParentStateRoot} backStepToRoot=${short(
@@ -767,10 +771,10 @@ export class VMExecution extends Execution {
 										status: ExecStatus.INVALID,
 									};
 
-									this.config.logger?.warn(`${errorMsg}:\n${error}`);
+									this.config.options.logger?.warn(`${errorMsg}:\n${error}`);
 								}
 
-								if (this.config.debugCode) {
+								if (this.config.options.debugCode) {
 									await debugCodeReplayBlock(this, errorBlock);
 								}
 								this.config.events.emit(Event.SYNC_EXECUTION_VM_ERROR, error);
@@ -779,7 +783,7 @@ export class VMExecution extends Execution {
 								);
 								return actualExecuted;
 							} else {
-								this.config.logger?.error(
+								this.config.options.logger?.error(
 									`VM execution failed with error`,
 									error,
 								);
@@ -800,11 +804,11 @@ export class VMExecution extends Execution {
 							const tdAdd = `td=${this.chain.blocks.td} `;
 
 							const msg = `Executed blocks count=${numExecuted} first=${firstNumber} hash=${firstHash} ${tdAdd}hardfork=${this.hardfork} last=${lastNumber} hash=${lastHash} txs=${txCounter}`;
-							this.config.logger?.info(msg);
+							this.config.options.logger?.info(msg);
 
 							await this.chain.update(false);
 						} else {
-							this.config.logger?.debug(
+							this.config.options.logger?.debug(
 								`No blocks executed past chain head hash=${short(endHeadBlock.hash())} number=${
 									endHeadBlock.header.number
 								}`,
@@ -840,15 +844,15 @@ export class VMExecution extends Execution {
 
 		const infoStr = `vmHead=${vmHeadBlock.header.number} canonicalHead=${
 			canonicalHead.header.number
-		} hardfork=${this.config.execCommon.hardfork()} execution=${this.config.execution}`;
+		} hardfork=${this.config.execCommon.hardfork()} execution=${this.config.options.execution}`;
 		if (
-			this.config.execution &&
+			this.config.options.execution &&
 			vmHeadBlock.header.number < canonicalHead.header.number
 		) {
-			this.config.logger?.info(`Starting execution run ${infoStr}`);
+			this.config.options.logger?.info(`Starting execution run ${infoStr}`);
 			void this.run(true, true);
 		} else {
-			this.config.logger?.info(`Skipped execution run ${infoStr}`);
+			this.config.options.logger?.info(`Skipped execution run ${infoStr}`);
 		}
 		return true;
 	}
@@ -888,7 +892,7 @@ export class VMExecution extends Execution {
 	 * - Range of blocks, '5-10'
 	 */
 	async executeBlocks(first: number, last: number, txHashes: string[]) {
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			"Preparing for block execution (debug mode, no services started)...",
 		);
 
@@ -920,9 +924,9 @@ export class VMExecution extends Execution {
 					block.transactions.length
 				} gasUsed=${res.gasUsed} time=${diffSec}secs`;
 				if (diffSec <= this.MAX_TOLERATED_BLOCK_TIME) {
-					this.config.logger?.info(msg);
+					this.config.options.logger?.info(msg);
 				} else {
-					this.config.logger?.warn(msg);
+					this.config.options.logger?.warn(msg);
 				}
 			} else {
 				let count = 0;
@@ -934,7 +938,7 @@ export class VMExecution extends Execution {
 					const txHash = bytesToHex(tx.hash());
 					if (allTxs || txHashes.includes(txHash)) {
 						const res = await runTx(vm, { block, tx });
-						this.config.logger?.info(
+						this.config.options.logger?.info(
 							`Executed tx hash=${txHash} gasUsed=${res.totalGasSpent} from block num=${blockNumber}`,
 						);
 						count += 1;
@@ -942,11 +946,13 @@ export class VMExecution extends Execution {
 				}
 				if (count === 0) {
 					if (!allTxs) {
-						this.config.logger?.warn(
+						this.config.options.logger?.warn(
 							`Block number ${first} contains no txs with provided hashes`,
 						);
 					} else {
-						this.config.logger?.info(`Block has 0 transactions (no execution)`);
+						this.config.options.logger?.info(
+							`Block has 0 transactions (no execution)`,
+						);
 					}
 				}
 			}
@@ -959,19 +965,19 @@ export class VMExecution extends Execution {
 			const deactivatedStats = { size: 0, reads: 0, hits: 0, writes: 0 };
 			let stats;
 			stats = sm["_caches"]?.account?.stats() ?? deactivatedStats;
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`Account cache stats size=${stats.size} reads=${stats.reads} hits=${stats.hits} writes=${stats.writes}`,
 			);
 			stats = sm["_caches"]?.storage?.stats() ?? deactivatedStats;
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`Storage cache stats size=${stats.size} reads=${stats.reads} hits=${stats.hits} writes=${stats.writes}`,
 			);
 			stats = sm["_caches"]?.code?.stats() ?? deactivatedStats;
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`Code cache stats size=${stats.size} reads=${stats.reads} hits=${stats.hits} writes=${stats.writes}`,
 			);
 			const tStats = sm["_trie"].database().stats();
-			this.config.logger?.info(
+			this.config.options.logger?.info(
 				`Trie cache stats size=${tStats.size} reads=${tStats.cache.reads} hits=${tStats.cache.hits} ` +
 					`writes=${tStats.cache.writes} readsDB=${tStats.db.reads} hitsDB=${tStats.db.hits} writesDB=${tStats.db.writes}`,
 			);
