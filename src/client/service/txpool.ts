@@ -96,6 +96,15 @@ export class TxPool {
 	private handled: Map<UnprefixedHash, HandledObject>;
 
 	/**
+	 * Hash index for O(1) lookup: hash -> {address, poolType}
+	 * Optimizes getByHash() performance
+	 */
+	private hashIndex: Map<
+		UnprefixedHash,
+		{ address: UnprefixedAddress; poolType: "pending" | "queued" }
+	>;
+
+	/**
 	 * Map for tx hashes a peer is known to have
 	 */
 	private knownByPeer: Map<PeerId, SentObject[]>;
@@ -186,6 +195,10 @@ export class TxPool {
 
 		this.handled = new Map<UnprefixedHash, HandledObject>();
 		this.knownByPeer = new Map<PeerId, SentObject[]>();
+		this.hashIndex = new Map<
+			UnprefixedHash,
+			{ address: UnprefixedAddress; poolType: "pending" | "queued" }
+		>();
 
 		this.opened = false;
 		this.running = false;
@@ -519,8 +532,10 @@ export class TxPool {
 				(obj) => obj.tx.nonce === tx.nonce,
 			);
 			if (existingIdx !== -1) {
-				// Remove old tx from priced heap
-				this.removeFromPriced(existingTxs[existingIdx]);
+				// Remove old tx from priced heap and hash index
+				const oldTxObj = existingTxs[existingIdx];
+				this.removeFromPriced(oldTxObj);
+				this.hashIndex.delete(oldTxObj.hash);
 				existingTxs = existingTxs.filter((_, idx) => idx !== existingIdx);
 				if (pool === "pending") this.pendingCount--;
 				else this.queuedCount--;
@@ -552,6 +567,9 @@ export class TxPool {
 			else this.queuedCount++;
 
 			this.handled.set(hash, { address, added });
+
+			// Update hash index for O(1) lookup
+			this.hashIndex.set(hash, { address, poolType: pool });
 
 			// Try to promote queued txs if we added to pending
 			if (pool === "pending") {
@@ -618,6 +636,7 @@ export class TxPool {
 					this.queuedCount--;
 					this.removeFromPriced(txObj);
 					this.handled.delete(txObj.hash);
+					this.hashIndex.delete(txObj.hash);
 				} else {
 					// Still has a gap - keep in queued
 					remaining.push(txObj);
@@ -631,6 +650,14 @@ export class TxPool {
 				this.pending.set(addr, newPending);
 				this.pendingCount += toPromote.length;
 				this.queuedCount -= toPromote.length;
+
+				// Update hash index for promoted txs
+				for (const txObj of toPromote) {
+					this.hashIndex.set(txObj.hash, {
+						address: addr,
+						poolType: "pending",
+					});
+				}
 
 				this.config.logger?.debug(
 					`Promoted ${toPromote.length} txs from queued to pending for ${addr}`,
@@ -844,12 +871,15 @@ export class TxPool {
 			const handled = this.handled.get(txHashStr);
 			if (!handled || handled.error !== undefined) continue;
 
-			// Search pending first (more likely)
-			let inPool = this.pending.get(handled.address);
-			if (!inPool) {
-				// Try queued
-				inPool = this.queued.get(handled.address);
-			}
+			// Optimize: Use hash index for O(1) lookup instead of searching pools
+			const indexEntry = this.hashIndex.get(txHashStr);
+			if (!indexEntry) continue;
+
+			const inPool =
+				indexEntry.poolType === "pending"
+					? this.pending.get(indexEntry.address)
+					: this.queued.get(indexEntry.address);
+
 			if (!inPool) continue;
 
 			const match = inPool.find((poolObj) => poolObj.hash === txHashStr);
@@ -900,6 +930,9 @@ export class TxPool {
 
 		// Remove from priced heap
 		this.removeFromPriced(txObj);
+
+		// Remove from hash index
+		this.hashIndex.delete(txHash);
 
 		// Remove from locals if present
 		this.locals.delete(txHash);
@@ -1209,6 +1242,7 @@ export class TxPool {
 					if (txObj.added < compDate) {
 						this.removeFromPriced(txObj);
 						this.handled.delete(txObj.hash);
+						this.hashIndex.delete(txObj.hash);
 						this.locals.delete(txObj.hash);
 					}
 				}
@@ -1231,6 +1265,7 @@ export class TxPool {
 					if (txObj.added < compDate) {
 						this.removeFromPriced(txObj);
 						this.handled.delete(txObj.hash);
+						this.hashIndex.delete(txObj.hash);
 						this.locals.delete(txObj.hash);
 					}
 				}

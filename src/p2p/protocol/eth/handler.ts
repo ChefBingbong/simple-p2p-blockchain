@@ -47,6 +47,9 @@ export class EthHandler extends EventEmitter {
 	private readonly timeout: number = 8000; // 8 second timeout
 	private nextReqId = BIGINT_0;
 
+	// Request deduplication: track in-flight requests to avoid duplicates
+	private inFlightRequests: Map<string, Promise<any>> = new Map();
+
 	// ETH protocol instance from RLPxConnection (for compatibility)
 	private ethProtocol: ETH | null = null;
 	private protocolOffset: number = 0;
@@ -323,6 +326,20 @@ export class EthHandler extends EventEmitter {
 			throw new Error("STATUS exchange not completed");
 		}
 
+		// Request deduplication: check if same request is already in flight
+		const blockKey =
+			typeof opts.block === "bigint"
+				? opts.block.toString()
+				: Array.from(opts.block.slice(0, 8))
+						.map((b) => b.toString(16).padStart(2, "0"))
+						.join("");
+		const requestKey = `headers-${blockKey}-${opts.max}-${opts.skip || 0}-${opts.reverse || false}`;
+
+		if (this.inFlightRequests.has(requestKey)) {
+			log("Deduplicating GET_BLOCK_HEADERS request: %s", requestKey);
+			return this.inFlightRequests.get(requestKey)!;
+		}
+
 		// Generate request ID if not provided
 		const reqId = opts.reqId ?? ++this.nextReqId;
 
@@ -338,10 +355,11 @@ export class EthHandler extends EventEmitter {
 		log("Sent GET_BLOCK_HEADERS request: reqId=%d", reqId);
 
 		// Wait for response
-		return new Promise<[bigint, BlockHeader[]]>((resolve, reject) => {
+		const promise = new Promise<[bigint, BlockHeader[]]>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				if (this.resolvers.has(reqId)) {
 					this.resolvers.delete(reqId);
+					this.inFlightRequests.delete(requestKey);
 					reject(
 						new Error(`GET_BLOCK_HEADERS request timed out (reqId=${reqId})`),
 					);
@@ -350,13 +368,22 @@ export class EthHandler extends EventEmitter {
 
 			this.resolvers.set(reqId, {
 				resolve: (value: unknown) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
 					const result = value as [bigint, BlockHeader[]];
 					resolve(result);
 				},
-				reject,
+				reject: (err) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
+					reject(err);
+				},
 				timeout,
 			});
 		});
+
+		this.inFlightRequests.set(requestKey, promise);
+		return promise;
 	}
 
 	/**
@@ -372,6 +399,24 @@ export class EthHandler extends EventEmitter {
 
 		if (!this._statusExchanged) {
 			throw new Error("STATUS exchange not completed");
+		}
+
+		// Request deduplication: check if same request is already in flight
+		const hashesKey = opts.hashes
+			.map((h) =>
+				Array.from(h.slice(0, 4))
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join(""),
+			)
+			.join("-");
+		const requestKey = `bodies-${hashesKey}`;
+
+		if (this.inFlightRequests.has(requestKey)) {
+			log(
+				"Deduplicating GET_BLOCK_BODIES request: %d hashes",
+				opts.hashes.length,
+			);
+			return this.inFlightRequests.get(requestKey)!;
 		}
 
 		// Generate request ID if not provided
@@ -393,10 +438,11 @@ export class EthHandler extends EventEmitter {
 		);
 
 		// Wait for response
-		return new Promise<[bigint, any[]]>((resolve, reject) => {
+		const promise = new Promise<[bigint, any[]]>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				if (this.resolvers.has(reqId)) {
 					this.resolvers.delete(reqId);
+					this.inFlightRequests.delete(requestKey);
 					reject(
 						new Error(`GET_BLOCK_BODIES request timed out (reqId=${reqId})`),
 					);
@@ -405,13 +451,22 @@ export class EthHandler extends EventEmitter {
 
 			this.resolvers.set(reqId, {
 				resolve: (value: unknown) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
 					const result = value as [bigint, any[]];
 					resolve(result);
 				},
-				reject,
+				reject: (err) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
+					reject(err);
+				},
 				timeout,
 			});
 		});
+
+		this.inFlightRequests.set(requestKey, promise);
+		return promise;
 	}
 
 	/**
@@ -427,6 +482,24 @@ export class EthHandler extends EventEmitter {
 
 		if (!this._statusExchanged) {
 			throw new Error("STATUS exchange not completed");
+		}
+
+		// Request deduplication: check if same request is already in flight
+		const hashesKey = opts.hashes
+			.map((h) =>
+				Array.from(h.slice(0, 4))
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join(""),
+			)
+			.join("-");
+		const requestKey = `pooled-txs-${hashesKey}`;
+
+		if (this.inFlightRequests.has(requestKey)) {
+			log(
+				"Deduplicating GET_POOLED_TRANSACTIONS request: %d hashes",
+				opts.hashes.length,
+			);
+			return this.inFlightRequests.get(requestKey)!;
 		}
 
 		// Generate request ID if not provided
@@ -450,10 +523,11 @@ export class EthHandler extends EventEmitter {
 		);
 
 		// Wait for response
-		return new Promise<[bigint, any[]]>((resolve, reject) => {
+		const promise = new Promise<[bigint, any[]]>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				if (this.resolvers.has(reqId)) {
 					this.resolvers.delete(reqId);
+					this.inFlightRequests.delete(requestKey);
 					reject(
 						new Error(
 							`GET_POOLED_TRANSACTIONS request timed out (reqId=${reqId})`,
@@ -464,13 +538,22 @@ export class EthHandler extends EventEmitter {
 
 			this.resolvers.set(reqId, {
 				resolve: (value: unknown) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
 					const result = value as [bigint, any[]];
 					resolve(result);
 				},
-				reject,
+				reject: (err) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
+					reject(err);
+				},
 				timeout,
 			});
 		});
+
+		this.inFlightRequests.set(requestKey, promise);
+		return promise;
 	}
 
 	/**
@@ -486,6 +569,21 @@ export class EthHandler extends EventEmitter {
 
 		if (!this._statusExchanged) {
 			throw new Error("STATUS exchange not completed");
+		}
+
+		// Request deduplication: check if same request is already in flight
+		const hashesKey = opts.hashes
+			.map((h) =>
+				Array.from(h.slice(0, 4))
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join(""),
+			)
+			.join("-");
+		const requestKey = `receipts-${hashesKey}`;
+
+		if (this.inFlightRequests.has(requestKey)) {
+			log("Deduplicating GET_RECEIPTS request: %d hashes", opts.hashes.length);
+			return this.inFlightRequests.get(requestKey)!;
 		}
 
 		// Generate request ID if not provided
@@ -507,23 +605,33 @@ export class EthHandler extends EventEmitter {
 		);
 
 		// Wait for response
-		return new Promise<[bigint, any[]]>((resolve, reject) => {
+		const promise = new Promise<[bigint, any[]]>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				if (this.resolvers.has(reqId)) {
 					this.resolvers.delete(reqId);
+					this.inFlightRequests.delete(requestKey);
 					reject(new Error(`GET_RECEIPTS request timed out (reqId=${reqId})`));
 				}
 			}, this.timeout);
 
 			this.resolvers.set(reqId, {
 				resolve: (value: unknown) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
 					const result = value as [bigint, any[]];
 					resolve(result);
 				},
-				reject,
+				reject: (err) => {
+					clearTimeout(timeout);
+					this.inFlightRequests.delete(requestKey);
+					reject(err);
+				},
 				timeout,
 			});
 		});
+
+		this.inFlightRequests.set(requestKey, promise);
+		return promise;
 	}
 
 	// Message handlers (stubs for now - will be implemented in messages.ts)

@@ -145,7 +145,7 @@ export class Service {
 		);
 
 		// this.chain = options.chain ?? new Chain(options);
-		this.interval = options.interval ?? 3000;
+		this.interval = options.interval ?? 200;
 		this.timeout = options.timeout ?? 6000;
 		this.opened = false;
 		this.running = false;

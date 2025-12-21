@@ -178,7 +178,7 @@ export abstract class Peer extends EventEmitter {
 			const bestHeaderNum = this.eth!.updatedBestHeader.number;
 			const nowSec = Math.floor(Date.now() / 1000);
 			const diffSec = nowSec - Number(this.eth!.updatedBestHeader.timestamp);
-			const SLOT_TIME = 12;
+			const SLOT_TIME = 5;
 			const diffBlocks = BigInt(Math.floor(diffSec / SLOT_TIME));
 			forwardCalculatedNum = bestHeaderNum + diffBlocks;
 		}
