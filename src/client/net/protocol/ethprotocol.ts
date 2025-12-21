@@ -94,6 +94,14 @@ export interface EthProtocolMethods {
 		opts: GetPooledTransactionsOpts,
 	) => Promise<[bigint, TypedTransaction[]]>;
 	getReceipts: (opts: GetReceiptsOpts) => Promise<[bigint, TxReceipt[]]>;
+	updatedBestHeader?: BlockHeader;
+	status?: {
+		bestHash: Uint8Array;
+		[key: string]: any;
+	};
+	handleMessageQueue?(): void;
+	send?(name: string, args?: unknown): void;
+	request?(name: string, args?: unknown): Promise<unknown>;
 }
 
 /**

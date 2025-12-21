@@ -1,5 +1,4 @@
 import type { EthereumClient } from "../../client";
-import { P2PEthereumClient } from "../../p2p-client";
 import type { RpcHandler, RpcMethodFn } from "../types";
 import { createRpcHandler } from "../validation";
 import { createAdminRpcMethods } from "./admin/admin";
@@ -43,7 +42,7 @@ export const createRpcHandlers = (
 };
 
 export const createP2PRpcHandlers = (
-	client: P2PEthereumClient,
+	client: EthereumClient,
 	debug: boolean,
 ): {
 	methods: string[];

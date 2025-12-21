@@ -28,10 +28,10 @@ import {
 	createAddressFromPrivateKey,
 	hexToBytes,
 } from "../../utils/index.ts";
+import { EthereumClient } from "../client.ts";
 import { LevelDB } from "../execution/level.ts";
 import { DataDirectory, SyncMode } from "../index.ts";
 import { getLogger, type Logger } from "../logging.ts";
-import { P2PEthereumClient } from "../p2p-client.ts";
 import { P2PConfig } from "../p2p-config.ts";
 import { createP2PRpcManager, RPCArgs } from "../rpc/index.ts";
 import type { P2PFullEthereumService } from "../service/p2p-fullethereumservice.ts";
@@ -439,7 +439,7 @@ async function startClient() {
 		port,
 		saveReceipts: true,
 		syncmode: SyncMode.Full,
-		node: p2pNode, // Provide the P2PNode instance
+		node: p2pNode,
 	});
 
 	const chainDataDir = config.getDataDirectory(DataDirectory.Chain);
@@ -497,7 +497,7 @@ async function startClient() {
 	);
 
 	// Create and start client with databases
-	const client = await P2PEthereumClient.create({
+	const client = await EthereumClient.create({
 		config,
 		blockchain,
 		genesisState,
@@ -572,7 +572,7 @@ async function startClient() {
 }
 
 const stopClient = async (
-	clientStartPromise: Promise<{ client: P2PEthereumClient } | null>,
+	clientStartPromise: Promise<{ client: EthereumClient } | null>,
 ) => {
 	console.info(
 		"\nCaught interrupt signal. Obtaining client handle for clean shutdown...",

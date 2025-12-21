@@ -3,7 +3,6 @@ import type { Env } from "hono";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import type { EthereumClient } from "../client.ts";
-import { P2PEthereumClient } from "../p2p-client.ts";
 import { createRpcHandlers } from "./modules/index.ts";
 import { rpcRequestSchema } from "./types.ts";
 import { rpcValidator } from "./validation.ts";
@@ -44,7 +43,7 @@ export const createRpcManager = (
 };
 
 export const createP2PRpcManager = (
-	ethClient: P2PEthereumClient,
+	ethClient: EthereumClient,
 	rpcArgs: RPCArgs,
 ) => {
 	const createKadApi = () => {

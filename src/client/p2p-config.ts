@@ -43,6 +43,8 @@ export class P2PConfig extends Config {
 				log("Using provided P2PNode instance");
 				// Use provided node (for testing)
 				(this as any).node = options.node;
+				// Register ETH protocol handler even when node is provided
+				this.registerEthProtocol(options.node);
 			} else if (isBrowser() !== true) {
 				log("Creating new P2PNode");
 				// Create P2PNode
@@ -50,6 +52,19 @@ export class P2PConfig extends Config {
 			}
 		}
 		log("P2PConfig created");
+	}
+
+	/**
+	 * Register ETH protocol handler with P2PNode
+	 */
+	private registerEthProtocol(node: P2PNodeType): void {
+		log("Registering ETH protocol handler with P2PNode");
+		// Register ETH protocol handler with P2PNode for discovery/routing
+		// Note: This is for protocol discovery only - messages go through RLPxConnection socket
+		node.handle("/eth/68/1.0.0", () => {
+			// Dummy handler - actual message handling is done through RLPxConnection
+			// This registration allows P2PNode to advertise ETH protocol support
+		});
 	}
 
 	/**
@@ -109,6 +124,9 @@ export class P2PConfig extends Config {
 			maxConnections: this.maxPeers,
 			logger: componentLogger as any, // Type assertion for logger compatibility
 		});
+
+		// Register ETH protocol handler
+		this.registerEthProtocol(node);
 
 		log("P2PNode created successfully");
 		return node;

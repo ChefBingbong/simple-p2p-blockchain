@@ -3,7 +3,6 @@ import type { Block } from "../../block";
 import { concatBytes } from "../../utils";
 import { encodeReceipt } from "../../vm";
 import { SyncMode } from "../config.ts";
-import { VMExecution } from "../execution";
 import { Miner } from "../miner";
 import type { Peer } from "../net/peer/peer.ts";
 import { EthProtocol } from "../net/protocol/ethprotocol.ts";
@@ -11,30 +10,25 @@ import { Protocol } from "../net/protocol/protocol.ts";
 import { FullSynchronizer } from "../sync";
 import { TxFetcher } from "../sync/fetcher/txFetcher.ts";
 import { Event } from "../types.ts";
-import type { P2PServiceOptions } from "./p2p-service.ts";
-import { P2PService } from "./p2p-service.ts";
+import type { ServiceOptions } from "./service.ts";
+import { Service } from "./service.ts";
 import { TxPool } from "./txpool.ts";
 
 const log = debug("p2p:full-ethereum-service");
 
 /**
  * Full Ethereum service using P2P networking
- * Extends P2PService and implements all ETH protocol message handlers
+ * Extends Service and implements all ETH protocol message handlers
  *
- * Key differences from FullEthereumService:
- * - Extends P2PService (uses P2PPeerPool) instead of Service (uses PeerPool)
- * - Protocols handled at transport level, so protocols getter returns empty array
- * - Otherwise identical functionality
+ * Extends Service and implements all ETH protocol message handlers
  *
  * @memberof module:service
  */
-export class P2PFullEthereumService extends P2PService {
+export class P2PFullEthereumService extends Service {
 	/* synchronizer for syncing the chain */
 	public declare synchronizer?: FullSynchronizer;
 	public miner: Miner | undefined;
 	public txPool: TxPool;
-
-	public execution: VMExecution;
 
 	/** building head state via vmexecution */
 	private building = false;
@@ -44,21 +38,16 @@ export class P2PFullEthereumService extends P2PService {
 	/**
 	 * Create new P2P ETH service
 	 */
-	constructor(options: P2PServiceOptions) {
+	constructor(options: ServiceOptions) {
 		log("Creating P2PFullEthereumService");
 		super(options);
 
 		this.config.logger?.info("Full sync mode (P2P)");
 		log("Full sync mode (P2P)");
 
-		const { metaDB } = options;
-		log("Creating VMExecution");
-		this.execution = new VMExecution({
-			config: options.config,
-			stateDB: options.stateDB,
-			metaDB,
-			chain: this.chain,
-		});
+		// Set execution in peer pool so peers can create EthHandler instances
+		log("Setting execution in P2PPeerPool");
+		this.pool.setExecution(this.execution);
 
 		log("Creating TxPool");
 		this.txPool = new TxPool({
@@ -252,15 +241,16 @@ export class P2PFullEthereumService extends P2PService {
 	/**
 	 * Close service
 	 */
-	override async close() {
+	override async close(): Promise<boolean> {
 		if (!this.opened) {
 			log("Service not opened");
-			return;
+			return false;
 		}
 		log("Closing P2PFullEthereumService");
 		this.txPool.close();
-		await super.close();
+		const result = await super.close();
 		log("P2PFullEthereumService closed");
+		return result;
 	}
 
 	/**

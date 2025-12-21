@@ -4,9 +4,11 @@ import type { PeerPoolLike } from "../net/peerpool-types.ts";
 import type { FullSynchronizer } from "../sync";
 import type { TxPool } from "./txpool.ts";
 
+import { P2PFullEthereumService } from "./p2p-fullethereumservice.ts";
+
 /**
  * Common interface for FullEthereumService implementations
- * Both FullEthereumService and P2PFullEthereumService satisfy this interface
+ * Now only P2PFullEthereumService is supported
  */
 export interface IFullEthereumService {
 	pool: PeerPoolLike;
@@ -18,7 +20,13 @@ export interface IFullEthereumService {
 
 /**
  * Type alias for FullEthereumService implementations
- * Both FullEthereumService and P2PFullEthereumService satisfy this type
+ * Now only P2PFullEthereumService is supported
  */
-export type FullEthereumServiceLike = IFullEthereumService;
+export type FullEthereumServiceLike = P2PFullEthereumService;
+
+/**
+ * Backward compatibility alias
+ * @deprecated Use P2PFullEthereumService directly
+ */
+export type FullEthereumService = P2PFullEthereumService;
 

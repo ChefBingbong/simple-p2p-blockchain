@@ -7,6 +7,7 @@ import type { RLPxConnection } from "../../p2p/transport/rlpx/connection.ts";
 import { bigIntToUnpaddedBytes } from "../../utils/index.ts";
 import type { Chain } from "../blockchain/chain.ts";
 import type { Config } from "../config.ts";
+import type { VMExecution } from "../execution";
 import { Event } from "../types.ts";
 import { P2PPeer } from "./peer/p2p-peer.ts";
 import type { Peer } from "./peer/peer.ts";
@@ -22,6 +23,9 @@ export interface P2PPeerPoolOptions {
 
 	/* Chain instance (optional, for STATUS exchange) */
 	chain?: Chain;
+
+	/* VMExecution instance (optional, for ETH handler) */
+	execution?: VMExecution;
 }
 
 /**
@@ -34,6 +38,7 @@ export class P2PPeerPool {
 	public config: Config;
 	private node: P2PNode;
 	private chain?: Chain;
+	private execution?: VMExecution;
 	private pool: Map<string, Peer>;
 	private noPeerPeriods: number;
 	private opened: boolean;
@@ -64,11 +69,20 @@ export class P2PPeerPool {
 		this.config = options.config;
 		this.node = options.node;
 		this.chain = options.chain;
+		this.execution = options.execution;
 		this.pool = new Map<string, Peer>();
 		this.noPeerPeriods = 0;
 		this.opened = false;
 		this.running = false;
 		log("P2PPeerPool created");
+	}
+
+	/**
+	 * Set execution instance (called after service creates it)
+	 */
+	setExecution(execution: VMExecution): void {
+		log("Setting execution instance in P2PPeerPool");
+		this.execution = execution;
 	}
 
 	init() {
@@ -408,6 +422,8 @@ export class P2PPeerPool {
 			connection,
 			rlpxConnection,
 			inbound: connection.direction === "inbound",
+			chain: this.chain,
+			execution: this.execution,
 		});
 
 		// Check if ETH protocol is available

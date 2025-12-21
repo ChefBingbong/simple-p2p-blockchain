@@ -87,7 +87,7 @@ export abstract class Fetcher<
 		this.timeout = options.timeout ?? 8000;
 		this.interval = options.interval ?? 1000;
 		this.banTime = options.banTime ?? 60000;
-		this.maxQueue = options.maxQueue ?? 4;
+		this.maxQueue = options.maxQueue ?? 50;
 
 		this.DEBUG &&
 			this.debug(

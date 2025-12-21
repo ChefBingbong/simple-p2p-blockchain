@@ -10,8 +10,8 @@ import debug from "debug";
 import { EventEmitter } from "eventemitter3";
 import type { Socket } from "net";
 import * as snappy from "snappyjs";
-import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
-import { RLPxProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
+// import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
+// import { RLPxProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
 import type { Protocol } from "../../../devp2p/protocol/protocol.ts";
 import { ECIES } from "../../../devp2p/rlpx/ecies.ts";
 import type { Capabilities } from "../../../devp2p/types.ts";
@@ -848,46 +848,46 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
 	 * }
 	 * ```
 	 */
-	getProtocolStream(
-		protocolName: string,
-		version: number,
-	): ProtocolStream | null {
-		if (!this._connected || this._closed) {
-			return null;
-		}
+	// getProtocolStream(
+	// 	protocolName: string,
+	// 	version: number,
+	// ): ProtocolStream | null {
+	// 	if (!this._connected || this._closed) {
+	// 		return null;
+	// 	}
 
-		// Find the protocol in negotiated protocols
-		const protocolDescriptor = this._protocols.find((desc) => {
-			const proto = desc.protocol;
-			// Get protocol name from constructor (e.g., "ETH" -> "eth")
-			const name = proto.constructor.name.toLowerCase();
+	// 	// Find the protocol in negotiated protocols
+	// 	const protocolDescriptor = this._protocols.find((desc) => {
+	// 		const proto = desc.protocol;
+	// 		// Get protocol name from constructor (e.g., "ETH" -> "eth")
+	// 		const name = proto.constructor.name.toLowerCase();
 
-			// Check if this matches the requested protocol
-			if (name !== protocolName.toLowerCase()) {
-				return false;
-			}
+	// 		// Check if this matches the requested protocol
+	// 		if (name !== protocolName.toLowerCase()) {
+	// 			return false;
+	// 		}
 
-			// Check version if protocol has a version property
-			if ((proto as any)._version !== undefined) {
-				return (proto as any)._version === version;
-			}
+	// 		// Check version if protocol has a version property
+	// 		if ((proto as any)._version !== undefined) {
+	// 			return (proto as any)._version === version;
+	// 		}
 
-			// If no version property, accept any version match
-			return true;
-		});
+	// 		// If no version property, accept any version match
+	// 		return true;
+	// 	});
 
-		if (!protocolDescriptor) {
-			return null;
-		}
+	// 	if (!protocolDescriptor) {
+	// 		return null;
+	// 	}
 
-		// Create and return protocol stream
-		return new RLPxProtocolStream(
-			protocolName,
-			version,
-			this,
-			protocolDescriptor,
-		);
-	}
+	// 	// Create and return protocol stream
+	// 	return new RLPxProtocolStream(
+	// 		protocolName,
+	// 		version,
+	// 		this,
+	// 		protocolDescriptor,
+	// 	);
+	// }
 
 	/**
 	 * Add first peer debugger - called by subprotocols on first STATUS exchange
