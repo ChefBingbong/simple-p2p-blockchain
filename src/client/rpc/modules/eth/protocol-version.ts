@@ -11,6 +11,7 @@ export const protocolVersion = (client: EthereumClient) => {
 	const ethProtocol = service.protocols.find(
 		(p) => p.name === "eth",
 	) as EthProtocol;
+
 	const ethVersion = Math.max(...ethProtocol.versions);
 	return createRpcMethod(protocolVersionSchema, async (_params, _c) => {
 		return safeResult(intToHex(ethVersion));

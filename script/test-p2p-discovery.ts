@@ -493,44 +493,44 @@ async function main() {
 		console.log("\n⏳ Keeping connections alive for 2 seconds...");
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 
-		// =========================================================================
-		// Close connection
-		// =========================================================================
-		console.log("\n🔒 Closing connection...");
-		await connection.close();
+		// // =========================================================================
+		// // Close connection
+		// // =========================================================================
+		// console.log("\n🔒 Closing connection...");
+		// await connection.close();
 
 		// Wait for disconnect events
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 
 		console.log(`   Topology onDisconnect calls: ${topologyDisconnectCount}`);
 
 		// =========================================================================
 		// Event summary
 		// =========================================================================
-		console.log("\n📋 Events received:");
-		console.log("─".repeat(50));
-		for (const event of events) {
-			console.log(`   - ${event}`);
-		}
+		// console.log("\n📋 Events received:");
+		// console.log("─".repeat(50));
+		// for (const event of events) {
+		// 	console.log(`   - ${event}`);
+		// }
 
-		// =========================================================================
-		// Cleanup
-		// =========================================================================
-		console.log("\n🧹 Cleaning up...");
+		// // =========================================================================
+		// // Cleanup
+		// // =========================================================================
+		// console.log("\n🧹 Cleaning up...");
 
-		nodeA.unregister(topologyId);
+		// nodeA.unregister(topologyId);
 
-		await nodeB.stop();
-		console.log(`✅ Node B stopped, status: ${nodeB.status}`);
+		// await nodeB.stop();
+		// console.log(`✅ Node B stopped, status: ${nodeB.status}`);
 
-		await nodeA.stop();
-		console.log(`✅ Node A stopped, status: ${nodeA.status}`);
+		// await nodeA.stop();
+		// console.log(`✅ Node A stopped, status: ${nodeA.status}`);
 
-		console.log("\n" + "=".repeat(70));
-		console.log("✅ DPT Discovery Test completed successfully!");
-		console.log("=".repeat(70) + "\n");
+		// console.log("\n" + "=".repeat(70));
+		// console.log("✅ DPT Discovery Test completed successfully!");
+		// console.log("=".repeat(70) + "\n");
 
-		process.exit(0);
+		// process.exit(0);
 	} catch (err: any) {
 		console.error("\n❌ Test failed:", err.message);
 		console.error(err.stack);

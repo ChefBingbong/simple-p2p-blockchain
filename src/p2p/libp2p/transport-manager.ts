@@ -23,6 +23,30 @@ import type {
 	TransportManager as TransportManagerInterface,
 } from "./types.ts";
 
+// Debug logging helper to avoid verbose fetch calls
+const DEBUG_LOG_ENDPOINT =
+	"http://127.0.0.1:7242/ingest/0eeace01-3679-4faf-afd2-c243f94d4f5a";
+function debugLog(
+	location: string,
+	message: string,
+	data: any,
+	hypothesisId: string,
+): void {
+	fetch(DEBUG_LOG_ENDPOINT, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			location,
+			message,
+			data,
+			timestamp: Date.now(),
+			sessionId: "debug-session",
+			runId: "run1",
+			hypothesisId,
+		}),
+	}).catch(() => {});
+}
+
 /**
  * Error when no transport is available for an address
  */
@@ -186,12 +210,63 @@ export class TransportManager implements TransportManagerInterface {
 		);
 
 		// For RLPx, we need to pass remoteId in options
-		const connection = await (transport as any).dial(ma, {
-			...options,
-			signal: options?.signal ?? AbortSignal.timeout(10000),
-		});
-
-		return connection as RLPxConnection;
+		// Use AbortController instead of AbortSignal.timeout() so we can cancel it on success
+		// #region agent log
+		let abortController: AbortController | undefined;
+		let timeoutId: NodeJS.Timeout | undefined;
+		const signal =
+			options?.signal ??
+			(() => {
+				abortController = new AbortController();
+				timeoutId = setTimeout(() => {
+					// #region agent log
+					debugLog(
+						"transport-manager.ts:195",
+						"Dial timeout firing, aborting",
+						{ timeout: 10000, multiaddr: ma.toString() },
+						"A",
+					);
+					// #endregion
+					abortController.abort();
+				}, 10000);
+				// #region agent log
+				debugLog(
+					"transport-manager.ts:191",
+					"Created AbortController with timeout for dial",
+					{ timeout: 10000, multiaddr: ma.toString() },
+					"A",
+				);
+				// #endregion
+				return abortController.signal;
+			})();
+		// #endregion
+		try {
+			const connection = await (transport as any).dial(ma, {
+				...options,
+				signal,
+			});
+			// #region agent log
+			// Clear timeout on successful dial to prevent abort after completion
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				debugLog(
+					"transport-manager.ts:240",
+					"Dial succeeded, cleared timeout",
+					{ multiaddr: ma.toString() },
+					"A",
+				);
+			}
+			// #endregion
+			return connection as RLPxConnection;
+		} catch (err: any) {
+			// #region agent log
+			// Clear timeout on error as well
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+			}
+			// #endregion
+			throw err;
+		}
 	}
 
 	/**

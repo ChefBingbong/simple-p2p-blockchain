@@ -1,4 +1,5 @@
 import type { EthereumClient } from "../../client";
+import { P2PEthereumClient } from "../../p2p-client";
 import type { RpcHandler, RpcMethodFn } from "../types";
 import { createRpcHandler } from "../validation";
 import { createAdminRpcMethods } from "./admin/admin";
@@ -22,6 +23,27 @@ export * from "./web3";
 
 export const createRpcHandlers = (
 	client: EthereumClient,
+	debug: boolean,
+): {
+	methods: string[];
+	rpcHandlers: RpcHandler<Record<string, RpcMethodFn>>;
+} => {
+	const methods: Record<AllRpcMethods, RpcMethodFn> = {
+		...createAdminRpcMethods(client),
+		...createEthRpcMethods(client),
+		...createNetRpcMethods(client),
+		...createTxPoolRpcMethods(client),
+		...createWeb3RpcMethods(client),
+		...createDebugRpcMethods(client),
+	};
+	return {
+		rpcHandlers: createRpcHandler(methods, { debug }),
+		methods: Object.keys(methods),
+	};
+};
+
+export const createP2PRpcHandlers = (
+	client: P2PEthereumClient,
 	debug: boolean,
 ): {
 	methods: string[];

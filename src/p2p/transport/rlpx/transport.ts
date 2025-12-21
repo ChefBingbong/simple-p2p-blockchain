@@ -59,7 +59,7 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
 		components: RLPxComponents,
 		options: RLPxTransportOptions & { listeningPort?: number },
 	) {
-		this.log = log;
+		this.log = components.logger.forComponent("rlpx:transport");
 		this.opts = options;
 		this.components = components;
 		this.listeningPort = options.listeningPort ?? 0;
@@ -145,7 +145,9 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
 				clientId: this.clientId,
 				capabilities: this.opts.capabilities,
 				common: this.opts.common,
-				timeout: this.opts.timeout ?? 100000,
+				// Timeout should be longer than PING_INTERVAL (15s) to prevent premature disconnects
+				// Use at least 20 seconds to allow for PING messages every 15 seconds
+				timeout: this.opts.timeout ?? 20000,
 				listenPort: this.listeningPort, // Our listen port (if any)
 				remoteClientIdFilter: this.opts.remoteClientIdFilter,
 				useEIP8: options.useEIP8 ?? true,
@@ -231,7 +233,8 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
 			await new Promise<void>((resolve, reject) => {
 				const timeout = setTimeout(() => {
 					reject(new Error("Connection timeout"));
-				}, this.opts.timeout ?? 10000);
+					// Timeout should be longer than PING_INTERVAL (15s) to prevent premature disconnects
+				}, this.opts.timeout ?? 20000);
 
 				connection.once("connect", () => {
 					clearTimeout(timeout);
@@ -406,7 +409,9 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
 			clientId: this.clientId,
 			capabilities: this.opts.capabilities,
 			common: this.opts.common,
-			timeout: this.opts.timeout ?? 10000,
+			// Timeout should be longer than PING_INTERVAL (15s) to prevent premature disconnects
+			// Use at least 20 seconds to allow for PING messages every 15 seconds
+			timeout: this.opts.timeout ?? 20000,
 			listenPort: options.listeningPort ?? 0, // Will be set when listen() is called
 			remoteClientIdFilter: this.opts.remoteClientIdFilter,
 			maxConnections: this.opts.maxConnections,

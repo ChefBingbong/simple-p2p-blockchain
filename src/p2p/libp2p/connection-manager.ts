@@ -19,7 +19,31 @@ import type {
 	TransportManager,
 	TransportManagerDialOptions,
 } from "./types.ts";
-import { DEFAULT_MAX_CONNECTIONS, peerIdEquals, peerIdToString } from "./types.ts";
+import { DEFAULT_MAX_CONNECTIONS, peerIdToString } from "./types.ts";
+
+// Debug logging helper
+const DEBUG_LOG_ENDPOINT =
+	"http://127.0.0.1:7242/ingest/0eeace01-3679-4faf-afd2-c243f94d4f5a";
+function debugLog(
+	location: string,
+	message: string,
+	data: any,
+	hypothesisId: string,
+): void {
+	fetch(DEBUG_LOG_ENDPOINT, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			location,
+			message,
+			data,
+			timestamp: Date.now(),
+			sessionId: "debug-session",
+			runId: "run1",
+			hypothesisId,
+		}),
+	}).catch(() => {});
+}
 
 /**
  * Connection wrapper to adapt RLPxConnection to our Connection interface
@@ -37,11 +61,11 @@ class ConnectionWrapper implements Connection {
 		this.rlpxConnection = rlpxConn;
 		this.id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 		this.remoteAddr = remoteAddr;
-		
+
 		// Get remote peer ID from RLPx Hello message
 		const hello = rlpxConn.getHelloMessage();
 		this.remotePeer = hello?.id ?? new Uint8Array(64);
-		
+
 		// RLPx connections are outbound when we initiate
 		this.direction = (rlpxConn as any)._direction ?? "outbound";
 		this.timeline = { open: Date.now() };
@@ -53,7 +77,7 @@ class ConnectionWrapper implements Connection {
 
 	async close(_options?: AbortOptions): Promise<void> {
 		if (this._status !== "open") return;
-		
+
 		this._status = "closing";
 		this.rlpxConnection.close();
 		this._status = "closed";
@@ -136,7 +160,8 @@ export class ConnectionManager implements ConnectionManagerInterface {
 		this.components = components;
 		this.connections = new Map();
 		this.maxConnections = init.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
-		this.maxIncomingPendingConnections = init.maxIncomingPendingConnections ?? 10;
+		this.maxIncomingPendingConnections =
+			init.maxIncomingPendingConnections ?? 10;
 		this.incomingPendingConnections = 0;
 		this.started = false;
 
@@ -181,9 +206,11 @@ export class ConnectionManager implements ConnectionManagerInterface {
 		for (const connectionList of this.connections.values()) {
 			for (const connection of connectionList) {
 				tasks.push(
-					connection.close({ signal: AbortSignal.timeout(500) }).catch((err) => {
-						connection.abort(err);
-					}),
+					connection
+						.close({ signal: AbortSignal.timeout(500) })
+						.catch((err) => {
+							connection.abort(err);
+						}),
 				);
 			}
 		}
@@ -210,6 +237,14 @@ export class ConnectionManager implements ConnectionManagerInterface {
 		ma: Multiaddr,
 		options?: TransportManagerDialOptions,
 	): Promise<Connection> {
+		// #region agent log
+		debugLog(
+			"connection-manager.ts:209",
+			"openConnection called",
+			{ multiaddr: ma.toString(), hasSignal: !!options?.signal },
+			"E",
+		);
+		// #endregion
 		if (!this.started) {
 			throw new Error("ConnectionManager not started");
 		}
@@ -217,7 +252,35 @@ export class ConnectionManager implements ConnectionManagerInterface {
 		this.log("opening connection to %s", ma.toString());
 
 		// Dial using transport manager
-		const rlpxConn = await this.components.transportManager.dial(ma, options);
+		// #region agent log
+		let rlpxConn: RLPxConnection;
+		try {
+			// #endregion
+			rlpxConn = await this.components.transportManager.dial(ma, options);
+			// #region agent log
+			debugLog(
+				"connection-manager.ts:220",
+				"dial completed successfully",
+				{ multiaddr: ma.toString() },
+				"E",
+			);
+		} catch (err: any) {
+			// #region agent log
+			debugLog(
+				"connection-manager.ts:220",
+				"dial failed",
+				{
+					multiaddr: ma.toString(),
+					error: err.message,
+					errorName: err.name,
+					errorCode: err.code,
+				},
+				"E",
+			);
+			// #endregion
+			throw err;
+		}
+		// #endregion
 
 		// Wrap in our Connection interface
 		const connection = new ConnectionWrapper(rlpxConn, ma);
@@ -260,7 +323,10 @@ export class ConnectionManager implements ConnectionManagerInterface {
 	/**
 	 * Close all connections to a peer
 	 */
-	async closeConnections(peerId: PeerId, options?: AbortOptions): Promise<void> {
+	async closeConnections(
+		peerId: PeerId,
+		options?: AbortOptions,
+	): Promise<void> {
 		const connections = this.connections.get(peerIdToString(peerId)) ?? [];
 
 		await Promise.all(
@@ -325,9 +391,9 @@ export class ConnectionManager implements ConnectionManagerInterface {
 
 		// Track the connection
 		const storedConns = this.connections.get(peerKey) ?? [];
-		
+
 		// Check if already tracked
-		if (!storedConns.some(c => c.id === connection.id)) {
+		if (!storedConns.some((c) => c.id === connection.id)) {
 			storedConns.push(connection);
 			this.connections.set(peerKey, storedConns);
 		}
@@ -391,4 +457,3 @@ export function createConnectionManager(
 
 // Re-export the wrapper for external use
 export { ConnectionWrapper };
-

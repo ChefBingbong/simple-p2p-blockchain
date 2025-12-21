@@ -6,6 +6,7 @@
  */
 
 import { multiaddr } from "@multiformats/multiaddr";
+import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { TypedEventEmitter } from "main-event";
 import {
 	DPT,
@@ -21,7 +22,7 @@ import type {
 	PeerDiscoveryEvents,
 	PeerInfo,
 } from "../types.ts";
-import { peerDiscoverySymbol, peerIdToString } from "../types.ts";
+import { peerDiscoverySymbol, peerIdEquals, peerIdToString } from "../types.ts";
 
 // ============================================================================
 // Constants
@@ -151,12 +152,18 @@ export class DPTDiscovery
 	private started = false;
 	private bootstrapTimer?: ReturnType<typeof setTimeout>;
 
+	// Local peer ID derived from private key
+	private readonly localPeerId: Uint8Array;
+
 	constructor(components: DPTDiscoveryComponents, init: DPTDiscoveryInit) {
 		super();
 
 		this.log = components.logger.forComponent("p2p:dpt-discovery");
 		this.components = components;
 		this.init = init;
+
+		// Derive local peer ID from private key (64-byte public key)
+		this.localPeerId = secp256k1.getPublicKey(init.privateKey, false).slice(1);
 
 		// Configuration
 		this.maxCachedPeers = init.maxCachedPeers ?? DEFAULT_MAX_CACHED_PEERS;
@@ -226,6 +233,15 @@ export class DPTDiscovery
 			return;
 		}
 
+		// Check for self-discovery - prevent connecting to ourselves
+		if (peerIdEquals(peerInfo.id, this.localPeerId)) {
+			this.log(
+				"ignoring self-discovery: %s",
+				peerIdToString(peerInfo.id).slice(0, 16),
+			);
+			return;
+		}
+
 		const peerIdStr = peerIdToString(peerInfo.id);
 		this.log(
 			"peer added: %s at %s:%d",
@@ -262,6 +278,11 @@ export class DPTDiscovery
 
 		const peerInfo = this.dptPeerToPeerInfo(dptPeer);
 		if (!peerInfo) {
+			return;
+		}
+
+		// Check for self-discovery - prevent logging self as discovered peer
+		if (peerIdEquals(peerInfo.id, this.localPeerId)) {
 			return;
 		}
 
@@ -426,6 +447,15 @@ export class DPTDiscovery
 				) {
 					const peerInfo = this.dptPeerToPeerInfo(peer);
 					if (peerInfo) {
+						// Check for self-discovery in bootstrap nodes
+						if (peerIdEquals(peerInfo.id, this.localPeerId)) {
+							this.log(
+								"ignoring self in bootstrap nodes: %s",
+								peerIdToString(peerInfo.id).slice(0, 16),
+							);
+							continue;
+						}
+
 						this.log(
 							"auto-dialing bootstrap node %s",
 							peerIdToString(peerInfo.id).slice(0, 16),

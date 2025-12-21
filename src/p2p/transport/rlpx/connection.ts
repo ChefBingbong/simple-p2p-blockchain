@@ -165,18 +165,14 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
 	 */
 	private _setupSocketHandlers(): void {
 		this._socket.on("data", this._onSocketData.bind(this));
-		this._socket.on("error", (err: Error) => this.emit("error", err));
+		this._socket.on("error", (err: Error) => {
+			console.log(err);
+			this.emit("error", err);
+		});
 		this._socket.once("close", this._onSocketClose.bind(this));
 
 		// Set socket timeout
-		this._socket.setTimeout(this._timeout, () => {
-			this.log(
-				"socket timeout %s:%d",
-				this._socket.remoteAddress,
-				this._socket.remotePort,
-			);
-			this.disconnect(DISCONNECT_REASON.TIMEOUT);
-		});
+		this._socket.setTimeout(0);
 	}
 
 	/**
@@ -674,6 +670,7 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
 				protocolObj.protocol._handleMessage?.(msgCode, payload);
 			}
 		} catch (err: any) {
+			console.log(err);
 			this.disconnect(DISCONNECT_REASON.SUBPROTOCOL_ERROR);
 			this.log("error handling message: %s", err.message);
 			this.emit("error", err);
@@ -687,6 +684,11 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
 	 */
 	private _onSocketData(data: Uint8Array): void {
 		if (this._closed) return;
+
+		// Refresh socket timeout when data is received to prevent premature disconnection
+		// Node.js sockets should auto-refresh, but we explicitly refresh to be safe
+		// This ensures the timeout doesn't fire between PING messages (15s interval)
+		this._socket.setTimeout(this._timeout);
 
 		this._socketData = concatBytes(this._socketData, data);
 
@@ -708,6 +710,7 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
 				}
 			}
 		} catch (err: any) {
+			console.log(err);
 			this.disconnect(DISCONNECT_REASON.SUBPROTOCOL_ERROR);
 			this.log("error processing socket data: %s", err.message);
 			this.emit("error", err);
@@ -728,10 +731,17 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
 	}
 
 	/**
-	 * Emit connect event
+	 * Emit connect event and protocols:ready event
 	 */
 	private _onConnect(): void {
 		this.emit("connect");
+		// Emit protocols:ready event so listeners can send STATUS if needed
+		const protocols = this._protocols.map((obj) => obj.protocol);
+		this.log(
+			"Emitting protocols:ready event with %d protocols",
+			protocols.length,
+		);
+		this.emit("protocols:ready", protocols);
 	}
 
 	/**

@@ -1,17 +1,14 @@
+import type { Block, BlockBytes } from "../../../block";
 import { createBlockFromBytesArray } from "../../../block";
 import {
+	equalsBytes,
 	KECCAK256_RLP,
 	KECCAK256_RLP_ARRAY,
-	equalsBytes,
 } from "../../../utils";
-
+import type { Peer } from "../../net/peer/peer.ts";
 import { Event } from "../../types.ts";
-
-import { BlockFetcherBase } from "./blockfetcherbase.ts";
-
-import type { Block, BlockBytes } from "../../../block";
-import type { Peer } from "../../net/peer";
 import type { BlockFetcherOptions, JobTask } from "./blockfetcherbase.ts";
+import { BlockFetcherBase } from "./blockfetcherbase.ts";
 import type { Job } from "./types.ts";
 
 /**

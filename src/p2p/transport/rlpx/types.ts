@@ -375,6 +375,7 @@ export interface RLPxConnectionOptions {
  * RLPx connection events
  */
 export interface RLPxConnectionEvents {
+	"protocols:ready": [protocols: Protocol[]];
 	/**
 	 * Emitted when Hello exchange is complete
 	 */

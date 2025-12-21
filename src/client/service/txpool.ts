@@ -16,8 +16,8 @@ import type { Config } from "../config.ts";
 import type { QHeap } from "../ext/qheap.ts";
 import { Heap } from "../ext/qheap.ts";
 import type { Peer } from "../net/peer/peer.ts";
-import type { PeerPool } from "../net/peerpool.ts";
-import type { FullEthereumService } from "./fullethereumservice.ts";
+import type { PeerPoolLike } from "../net/peerpool-types.ts";
+import type { FullEthereumServiceLike } from "./fullethereumservice-types.ts";
 
 // Configuration constants
 const MIN_GAS_PRICE_BUMP_PERCENT = 10;
@@ -34,8 +34,8 @@ export interface TxPoolOptions {
 	/* Config */
 	config: Config;
 
-	/* FullEthereumService */
-	service: FullEthereumService;
+	/* FullEthereumService or P2PFullEthereumService */
+	service: FullEthereumServiceLike;
 }
 
 type TxPoolObject = {
@@ -76,7 +76,7 @@ type GasPrice = {
  */
 export class TxPool {
 	private config: Config;
-	private service: FullEthereumService;
+	private service: FullEthereumServiceLike;
 
 	private opened: boolean;
 
@@ -824,6 +824,15 @@ export class TxPool {
 	}
 
 	/**
+	 * Check if a transaction hash has been handled (added to pool or rejected)
+	 * @param txHash Transaction hash (unprefixed hex string)
+	 * @returns true if the tx has been handled
+	 */
+	hasHandled(txHash: UnprefixedHash): boolean {
+		return this.handled.has(txHash);
+	}
+
+	/**
 	 * Returns the available txs from the pool
 	 * @param txHashes
 	 * @returns Array of tx objects
@@ -1031,7 +1040,7 @@ export class TxPool {
 	async handleAnnouncedTxs(
 		txs: TypedTransaction[],
 		peer: Peer,
-		peerPool: PeerPool,
+		peerPool: PeerPoolLike,
 	) {
 		if (!this.running || txs.length === 0) return;
 		this.config.logger?.debug(
@@ -1106,7 +1115,7 @@ export class TxPool {
 	async handleAnnouncedTxHashes(
 		txHashes: Uint8Array[],
 		peer: Peer,
-		peerPool: PeerPool,
+		peerPool: PeerPoolLike,
 	) {
 		if (!this.running || txHashes === undefined || txHashes.length === 0)
 			return;

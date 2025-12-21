@@ -3,7 +3,7 @@ import debugDefault from "debug";
 import { EventEmitter } from "eventemitter3";
 import type { Peer } from "../rlpx/peer.ts";
 import type { ProtocolEvent, SendMethod } from "../types.ts";
-import { DISCONNECT_REASON, ProtocolType } from "../types.ts";
+import { ProtocolType } from "../types.ts";
 import { devp2pDebug } from "../util.ts";
 
 type MessageCodes = { [key: number | string]: number | string };
@@ -40,7 +40,7 @@ export abstract class Protocol {
 		this._version = version;
 		this._messageCodes = messageCodes;
 		this._statusTimeoutId = setTimeout(() => {
-			this._peer.disconnect(DISCONNECT_REASON.TIMEOUT);
+			// this._peer.disconnect(DISCONNECT_REASON.TIMEOUT);
 		}, 5000); // 5 sec * 1000
 
 		this._debug = devp2pDebug.extend(protocol);
