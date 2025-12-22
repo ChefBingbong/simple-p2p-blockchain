@@ -5,7 +5,7 @@ import type { Chain } from "../blockchain";
 import type { Config } from "../config/index.ts";
 import type { VMExecution } from "../execution";
 import type { Miner } from "../miner";
-import type { P2PPeerPool } from "../net/p2p-peerpool.ts";
+import type { Network } from "../net/network.ts";
 import type { FullSynchronizer } from "../sync";
 import type { TxFetcher } from "../sync/fetcher/txFetcher.ts";
 import type { TxPool } from "../service/txpool.ts";
@@ -83,7 +83,7 @@ export type ExecutionNodeModules = {
 	config: Config;
 	chain: Chain;
 	execution: VMExecution;
-	pool: P2PPeerPool;
+	network: Network;
 	synchronizer: FullSynchronizer;
 	txPool: TxPool;
 	miner?: Miner;

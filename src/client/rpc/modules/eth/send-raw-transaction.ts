@@ -55,10 +55,10 @@ export const sendRawTransaction = (node: ExecutionNode) => {
 				return safeError(new Error(error.message ?? error.toString()));
 			}
 
-			const peerPool = node.pool;
-			console.log("peerPool", peerPool.peers);
+			const network = node.network;
+			console.log("network", network.getConnectedPeers());
 			if (
-				peerPool.peers.length === 0 &&
+				network.getPeerCount() === 0 &&
 				!node.config.options.mine &&
 				node.config.options.isSingleNode === false
 			) {

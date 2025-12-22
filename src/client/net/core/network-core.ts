@@ -1,104 +1,80 @@
 import debug from "debug";
-import type { Connection, P2PNode, PeerId } from "../../p2p/libp2p/types.ts";
-import { peerIdToString } from "../../p2p/libp2p/types.ts";
-import type { RLPxConnection } from "../../p2p/transport/rlpx/connection.ts";
-import { bigIntToUnpaddedBytes } from "../../utils/index.ts";
-import type { Chain } from "../blockchain/chain.ts";
-import type { Config } from "../config/index.ts";
-import type { VMExecution } from "../execution";
-import { Event } from "../types.ts";
-import { P2PPeer } from "./peer/p2p-peer.ts";
-import type { Peer } from "./peer/peer.ts";
-import type { ETH, EthStatusOpts } from "./protocol/eth/eth.ts";
-import type { Protocol } from "./protocol/protocol.ts";
+import type { Connection, P2PNode, PeerId } from "../../../p2p/libp2p/types.ts";
+import { peerIdToString } from "../../../p2p/libp2p/types.ts";
+import type { RLPxConnection } from "../../../p2p/transport/rlpx/connection.ts";
+import { bigIntToUnpaddedBytes } from "../../../utils/index.ts";
+import type { Chain } from "../../blockchain/chain.ts";
+import type { Config } from "../../config/index.ts";
+import type { VMExecution } from "../../execution";
+import { Event } from "../../types.ts";
+import { P2PPeer } from "../peer/p2p-peer.ts";
+import type { Peer } from "../peer/peer.ts";
+import type { ETH, EthStatusOpts } from "../protocol/eth/eth.ts";
+import type { Protocol } from "../protocol/protocol.ts";
+import type { NetworkCoreOptions } from "./types.ts";
 
-const log = debug("p2p:peerpool");
-
-export interface P2PPeerPoolOptions {
-	/* Config */
-	config: Config;
-
-	/* P2PNode instance */
-	node: P2PNode;
-
-	/* Chain instance (optional, for STATUS exchange) */
-	chain?: Chain;
-
-	/* VMExecution instance (optional, for ETH handler) */
-	execution?: VMExecution;
-}
+const log = debug("p2p:network-core");
 
 /**
- * P2P Peer Pool - Adapter that wraps P2PNode's ConnectionManager
- * to provide the same interface as the old PeerPool
+ * NetworkCore - Core network functionality that manages peer connections,
+ * peer pool, and protocol handling. Absorbs all P2PPeerPool logic.
  *
- * @memberof module:net
+ * Similar to lodestar's NetworkCore, but adapted for execution layer.
  */
-export class P2PPeerPool {
-	public config: Config;
-	private node: P2PNode;
-	private chain?: Chain;
+export class NetworkCore {
+	public readonly config: Config;
+	private readonly node: P2PNode;
+	private readonly chain?: Chain;
 	private execution?: VMExecution;
-	private pool: Map<string, Peer>;
-	private noPeerPeriods: number;
-	private opened: boolean;
-	public running: boolean;
+
+	// Peer management (from P2PPeerPool)
+	private readonly peers: Map<string, Peer> = new Map();
+	private readonly pendingPeers: Map<string, P2PPeer> = new Map();
+	private noPeerPeriods: number = 0;
+	private opened: boolean = false;
+	public running: boolean = false;
 
 	/**
 	 * Default status check interval (in ms)
 	 */
-	private DEFAULT_STATUS_CHECK_INTERVAL = 20000;
+	private readonly DEFAULT_STATUS_CHECK_INTERVAL = 20000;
 
 	/**
 	 * Default peer best header update interval (in ms)
 	 */
-	private DEFAULT_PEER_BEST_HEADER_UPDATE_INTERVAL = 5000;
+	private readonly DEFAULT_PEER_BEST_HEADER_UPDATE_INTERVAL = 5000;
 
-	private _statusCheckInterval: NodeJS.Timeout | undefined;
-	private _peerBestHeaderUpdateInterval: NodeJS.Timeout | undefined;
-	private _reconnectTimeout: NodeJS.Timeout | undefined;
+	private statusCheckInterval: NodeJS.Timeout | undefined;
+	private peerBestHeaderUpdateInterval: NodeJS.Timeout | undefined;
+	private reconnectTimeout: NodeJS.Timeout | undefined;
 
-	// Track pending peers (waiting for status exchange)
-	private pendingPeers: Map<string, P2PPeer> = new Map();
-
-	/**
-	 * Create new P2P peer pool
-	 */
-	constructor(options: P2PPeerPoolOptions) {
-		log("Creating P2PPeerPool");
+	constructor(options: NetworkCoreOptions) {
+		log("Creating NetworkCore");
 		this.config = options.config;
 		this.node = options.node;
 		this.chain = options.chain;
 		this.execution = options.execution;
-		this.pool = new Map<string, Peer>();
-		this.noPeerPeriods = 0;
-		this.opened = false;
-		this.running = false;
-		log("P2PPeerPool created");
+		log("NetworkCore created");
 	}
 
 	/**
 	 * Set execution instance (called after service creates it)
 	 */
 	setExecution(execution: VMExecution): void {
-		log("Setting execution instance in P2PPeerPool");
+		log("Setting execution instance in NetworkCore");
 		this.execution = execution;
 	}
 
-	init() {
-		this.opened = false;
-	}
-
 	/**
-	 * Open pool
+	 * Open network core
 	 */
-	async open(): Promise<boolean | void> {
+	async open(): Promise<boolean> {
 		if (this.opened) {
-			log("Pool already opened");
+			log("NetworkCore already opened");
 			return false;
 		}
 
-		log("Opening P2PPeerPool");
+		log("Opening NetworkCore");
 		// Listen for P2PNode connection events
 		this.node.addEventListener(
 			"connection:open",
@@ -121,62 +97,63 @@ export class P2PPeerPool {
 			this.disconnected(peer);
 		});
 		this.config.events.on(Event.PEER_ERROR, (error, peer) => {
-			if (this.pool.get(peer.id)) {
+			if (this.peers.get(peer.id)) {
 				this.config.options.logger?.warn(`Peer error: ${error} ${peer}`);
-				this.ban(peer);
+				this.banPeer(peer);
 			}
 		});
 
 		this.opened = true;
-		log("P2PPeerPool opened");
+		log("NetworkCore opened");
+		return true;
 	}
 
 	/**
-	 * Start peer pool
+	 * Start network core
 	 */
 	async start(): Promise<boolean> {
 		if (this.running) {
-			log("Pool already running");
+			log("NetworkCore already running");
 			return false;
 		}
 
-		log("Starting P2PPeerPool");
-		this._statusCheckInterval = setInterval(
-			() => this._statusCheck(),
+		log("Starting NetworkCore");
+		this.statusCheckInterval = setInterval(
+			() => this.statusCheck(),
 			this.DEFAULT_STATUS_CHECK_INTERVAL,
 		);
 
-		this._peerBestHeaderUpdateInterval = setInterval(
-			() => this._peerBestHeaderUpdate(),
+		this.peerBestHeaderUpdateInterval = setInterval(
+			() => this.peerBestHeaderUpdate(),
 			this.DEFAULT_PEER_BEST_HEADER_UPDATE_INTERVAL,
 		);
 
 		this.running = true;
-		log("P2PPeerPool started");
+		log("NetworkCore started");
 		return true;
 	}
 
 	/**
-	 * Stop peer pool
+	 * Stop network core
 	 */
 	async stop(): Promise<boolean> {
-		log("Stopping P2PPeerPool");
+		log("Stopping NetworkCore");
 		if (this.opened) {
 			await this.close();
 		}
-		clearInterval(this._statusCheckInterval as NodeJS.Timeout);
-		clearInterval(this._peerBestHeaderUpdateInterval as NodeJS.Timeout);
-		clearTimeout(this._reconnectTimeout as NodeJS.Timeout);
+		clearInterval(this.statusCheckInterval as NodeJS.Timeout);
+		clearInterval(this.peerBestHeaderUpdateInterval as NodeJS.Timeout);
+		clearTimeout(this.reconnectTimeout as NodeJS.Timeout);
 		this.running = false;
-		log("P2PPeerPool stopped");
+		log("NetworkCore stopped");
 		return true;
 	}
 
 	/**
-	 * Close pool
+	 * Close network core
 	 */
-	async close() {
-		log("Closing P2PPeerPool");
+	async close(): Promise<void> {
+		log("Closing NetworkCore");
 		// Remove P2PNode event listeners
 		this.node.removeEventListener(
 			"connection:open",
@@ -196,43 +173,43 @@ export class P2PPeerPool {
 		this.config.events.removeAllListeners(Event.PEER_DISCONNECTED);
 		this.config.events.removeAllListeners(Event.PEER_ERROR);
 
-		this.pool.clear();
+		this.peers.clear();
 		this.pendingPeers.clear();
 		this.opened = false;
-		log("P2PPeerPool closed");
+		log("NetworkCore closed");
+	}
+
+	// ============================================================================
+	// Peer Management API (from P2PPeerPool)
+	// ============================================================================
+
+	/**
+	 * Get connected peers
+	 */
+	getConnectedPeers(): Peer[] {
+		return Array.from(this.peers.values());
 	}
 
 	/**
-	 * Connected peers
+	 * Get peer count
 	 */
-	get peers(): Peer[] {
-		return Array.from(this.pool.values());
+	getPeerCount(): number {
+		return this.peers.size;
 	}
 
 	/**
-	 * Number of peers in pool
+	 * Check if pool contains the specified peer
 	 */
-	get size() {
-		return this.peers.length;
-	}
-
-	/**
-	 * Return true if pool contains the specified peer
-	 * @param peer peer object or id
-	 */
-	contains(peer: Peer | string): boolean {
-		if (typeof peer !== "string") {
-			peer = peer.id;
-		}
-		return !!this.pool.get(peer);
+	containsPeer(peer: Peer | string): boolean {
+		const peerId = typeof peer !== "string" ? peer.id : peer;
+		return !!this.peers.get(peerId);
 	}
 
 	/**
 	 * Returns a random idle peer from the pool
-	 * @param filterFn filter function to apply before finding idle peers
 	 */
-	idle(filterFn = (_peer: Peer) => true): Peer | undefined {
-		const idle = this.peers.filter((p) => p.idle && filterFn(p));
+	getIdlePeer(filterFn = (_peer: Peer) => true): Peer | undefined {
+		const idle = this.getConnectedPeers().filter((p) => p.idle && filterFn(p));
 		if (idle.length > 0) {
 			const index = Math.floor(Math.random() * idle.length);
 			return idle[index];
@@ -241,46 +218,49 @@ export class P2PPeerPool {
 	}
 
 	/**
-	 * Handler for peer connections
-	 * @param peer peer
+	 * Add peer to pool
 	 */
-	private connected(peer: Peer) {
-		if (this.size >= this.config.options.maxPeers) {
-			log("Max peers reached, not adding peer %s", peer.id.slice(0, 8));
-			return;
+	addPeer(peer?: Peer): void {
+		if (peer?.id !== undefined && !this.peers.get(peer.id)) {
+			log("Adding peer to pool: %s", peer.id.slice(0, 8));
+			this.peers.set(peer.id, peer);
+			peer.pooled = true;
+			this.config.events.emit(Event.POOL_PEER_ADDED, peer);
+			log("Pool size: %d", this.getPeerCount());
 		}
-		log("Peer connected: %s", peer.id.slice(0, 8));
-		this.add(peer);
-		peer.handleMessageQueue();
 	}
 
 	/**
-	 * Handler for peer disconnections
-	 * @param peer peer
+	 * Remove peer from pool
 	 */
-	private disconnected(peer: Peer) {
-		log("Peer disconnected: %s", peer.id.slice(0, 8));
-		this.remove(peer);
+	removePeer(peer?: Peer): void {
+		if (peer && peer.id) {
+			if (this.peers.delete(peer.id)) {
+				log("Removing peer from pool: %s", peer.id.slice(0, 8));
+				peer.pooled = false;
+				this.config.events.emit(Event.POOL_PEER_REMOVED, peer);
+				log("Pool size: %d", this.getPeerCount());
+			}
+			// Also remove from pending if present
+			this.pendingPeers.delete(peer.id);
+		}
 	}
 
 	/**
 	 * Ban peer from being added to the pool for a period of time
-	 * @param peer peer
-	 * @param maxAge ban period in ms
-	 * @emits {@link Event.POOL_PEER_BANNED}
 	 */
-	ban(peer: Peer, maxAge: number = 60000) {
+	banPeer(peer: Peer, maxAge: number = 60000): void {
 		log("Banning peer: %s for %d ms", peer.id.slice(0, 8), maxAge);
 		// For P2P peers, use node.hangUp() instead of server.ban()
 		if (peer instanceof P2PPeer) {
 			this.node.hangUp(peer.connection.remotePeer).catch(() => {});
 		}
-		this.remove(peer);
+		this.removePeer(peer);
 		this.config.events.emit(Event.POOL_PEER_BANNED, peer);
 
 		// Reconnect to peer after ban period if pool is empty
-		this._reconnectTimeout = setTimeout(async () => {
-			if (this.running && this.size === 0) {
+		this.reconnectTimeout = setTimeout(async () => {
+			if (this.running && this.getPeerCount() === 0) {
 				// For P2P, we can't easily reconnect - discovery will handle it
 				this.config.options.logger?.info(
 					"Pool empty after ban period - waiting for discovery",
@@ -289,37 +269,29 @@ export class P2PPeerPool {
 		}, maxAge + 1000);
 	}
 
+	// ============================================================================
+	// Connection Handlers (from P2PPeerPool)
+	// ============================================================================
+
 	/**
-	 * Add peer to pool
-	 * @param peer peer
-	 * @emits {@link Event.POOL_PEER_ADDED}
+	 * Handler for peer connections
 	 */
-	add(peer?: Peer) {
-		if (peer?.id !== undefined && !this.pool.get(peer.id)) {
-			log("Adding peer to pool: %s", peer.id.slice(0, 8));
-			this.pool.set(peer.id, peer);
-			peer.pooled = true;
-			this.config.events.emit(Event.POOL_PEER_ADDED, peer);
-			log("Pool size: %d", this.size);
+	private connected(peer: Peer): void {
+		if (this.getPeerCount() >= this.config.options.maxPeers) {
+			log("Max peers reached, not adding peer %s", peer.id.slice(0, 8));
+			return;
 		}
+		log("Peer connected: %s", peer.id.slice(0, 8));
+		this.addPeer(peer);
+		peer.handleMessageQueue();
 	}
 
 	/**
-	 * Remove peer from pool
-	 * @param peer peer
-	 * @emits {@link Event.POOL_PEER_REMOVED}
+	 * Handler for peer disconnections
 	 */
-	remove(peer?: Peer) {
-		if (peer && peer.id) {
-			if (this.pool.delete(peer.id)) {
-				log("Removing peer from pool: %s", peer.id.slice(0, 8));
-				peer.pooled = false;
-				this.config.events.emit(Event.POOL_PEER_REMOVED, peer);
-				log("Pool size: %d", this.size);
-			}
-			// Also remove from pending if present
-			this.pendingPeers.delete(peer.id);
-		}
+	private disconnected(peer: Peer): void {
+		log("Peer disconnected: %s", peer.id.slice(0, 8));
+		this.removePeer(peer);
 	}
 
 	/**
@@ -341,10 +313,11 @@ export class P2PPeerPool {
 		}
 
 		// Extract RLPxConnection from Connection wrapper
-		const connectionWrapper = connection as any;
-		const rlpxConnection = connectionWrapper.getRLPxConnection?.() as
-			| RLPxConnection
-			| undefined;
+		// Connection may have getRLPxConnection method for RLPx transport
+		const connectionWrapper = connection as Connection & {
+			getRLPxConnection?: () => RLPxConnection;
+		};
+		const rlpxConnection = connectionWrapper.getRLPxConnection?.();
 
 		if (!rlpxConnection) {
 			log("Connection %s does not have RLPxConnection", connection.id);
@@ -397,13 +370,13 @@ export class P2PPeerPool {
 		log("Creating peer from connection: %s", peerIdHex.slice(0, 8));
 
 		// Check if peer already exists
-		if (this.pool.has(peerIdHex) || this.pendingPeers.has(peerIdHex)) {
+		if (this.peers.has(peerIdHex) || this.pendingPeers.has(peerIdHex)) {
 			log("Peer %s already exists, skipping", peerIdHex.slice(0, 8));
 			return;
 		}
 
 		// Check max peers
-		if (this.size >= this.config.options.maxPeers) {
+		if (this.getPeerCount() >= this.config.options.maxPeers) {
 			log(
 				"Max peers reached (%d), not adding peer %s",
 				this.config.options.maxPeers,
@@ -547,7 +520,7 @@ export class P2PPeerPool {
 				// Status received, add peer to pool
 				if (this.pendingPeers.has(peerIdHex)) {
 					this.pendingPeers.delete(peerIdHex);
-					this.add(peer);
+					this.addPeer(peer);
 					this.config.events.emit(Event.PEER_CONNECTED, peer);
 					this.config.options.logger?.debug(`Peer added to pool: ${peer}`);
 					// Clean up listener
@@ -569,7 +542,7 @@ export class P2PPeerPool {
 						`Status exchange timeout for peer ${peerIdHex.slice(0, 8)}..., adding anyway`,
 					);
 					this.pendingPeers.delete(peerIdHex);
-					this.add(peer);
+					this.addPeer(peer);
 					this.config.events.emit(Event.PEER_CONNECTED, peer);
 					// Clean up listener
 					ethProtocol.events.off("status", onStatusReceived);
@@ -581,7 +554,7 @@ export class P2PPeerPool {
 				`No ETH protocol found for peer ${peerIdHex.slice(0, 8)}..., adding anyway`,
 			);
 			this.pendingPeers.delete(peerIdHex);
-			this.add(peer);
+			this.addPeer(peer);
 			this.config.events.emit(Event.PEER_CONNECTED, peer);
 		}
 	}
@@ -595,9 +568,9 @@ export class P2PPeerPool {
 
 		log("Connection closed: %s", peerIdHex.slice(0, 8));
 		// Find and remove peer
-		const peer = this.pool.get(peerIdHex) || this.pendingPeers.get(peerIdHex);
+		const peer = this.peers.get(peerIdHex) || this.pendingPeers.get(peerIdHex);
 		if (peer) {
-			this.remove(peer);
+			this.removePeer(peer);
 			this.config.events.emit(Event.PEER_DISCONNECTED, peer);
 		}
 	}
@@ -611,19 +584,23 @@ export class P2PPeerPool {
 
 		log("Peer disconnected: %s", peerIdHex.slice(0, 8));
 		// Find and remove peer
-		const peer = this.pool.get(peerIdHex) || this.pendingPeers.get(peerIdHex);
+		const peer = this.peers.get(peerIdHex) || this.pendingPeers.get(peerIdHex);
 		if (peer) {
-			this.remove(peer);
+			this.removePeer(peer);
 			this.config.events.emit(Event.PEER_DISCONNECTED, peer);
 		}
 	}
 
+	// ============================================================================
+	// Periodic Tasks (from P2PPeerPool)
+	// ============================================================================
+
 	/**
 	 * Peer pool status check on a repeated interval
 	 */
-	async _statusCheck() {
+	private async statusCheck(): Promise<void> {
 		const NO_PEER_PERIOD_COUNT = 3;
-		if (this.size === 0 && this.config.options.maxPeers > 0) {
+		if (this.getPeerCount() === 0 && this.config.options.maxPeers > 0) {
 			this.noPeerPeriods += 1;
 			if (this.noPeerPeriods >= NO_PEER_PERIOD_COUNT) {
 				this.noPeerPeriods = 0;
@@ -635,7 +612,7 @@ export class P2PPeerPool {
 			} else {
 				const connections = this.node.getConnections();
 				this.config.options.logger?.info(
-					`Looking for suited peers: connections=${connections.length}, pool=${this.size}`,
+					`Looking for suited peers: connections=${connections.length}, pool=${this.getPeerCount()}`,
 				);
 			}
 		} else {
@@ -646,8 +623,8 @@ export class P2PPeerPool {
 	/**
 	 * Periodically update the latest best known header for peers
 	 */
-	async _peerBestHeaderUpdate() {
-		for (const p of this.peers) {
+	private async peerBestHeaderUpdate(): Promise<void> {
+		for (const p of this.getConnectedPeers()) {
 			if (p.idle && p.eth !== undefined && p instanceof P2PPeer) {
 				p.idle = false;
 				await p.latest();

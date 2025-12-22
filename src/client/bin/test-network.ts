@@ -32,7 +32,7 @@ import { Config } from "../config/index.ts";
 import { DataDirectory, SyncMode } from "../config/types.ts";
 import { LevelDB } from "../execution/level.ts";
 import { getLogger, type Logger } from "../logging.ts";
-import { dptDiscovery } from "../net/peer/discover.ts";
+import { dptDiscovery } from "../net/discovery/dpt-discovery.ts";
 import { ETH } from "../net/protocol/eth/eth.ts";
 import { ExecutionNode } from "../node/index.ts";
 import { setupMetrics } from "../util/metrics.ts";

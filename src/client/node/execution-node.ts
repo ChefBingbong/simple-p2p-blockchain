@@ -7,7 +7,7 @@ import { Chain } from "../blockchain";
 import { Config } from "../config/index.ts";
 import { VMExecution } from "../execution/vmexecution.ts";
 import { Miner } from "../miner";
-import { P2PPeerPool } from "../net/p2p-peerpool.ts";
+import { Network } from "../net/network.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import {
 	type EthHandlerContext,
@@ -61,7 +61,7 @@ export class ExecutionNode {
 	public config: Config;
 	public chain: Chain;
 	public execution: VMExecution;
-	public pool: P2PPeerPool;
+	public network: Network;
 	public synchronizer: FullSynchronizer;
 	public txPool: TxPool;
 	public miner?: Miner;
@@ -96,26 +96,26 @@ export class ExecutionNode {
 			chain,
 		});
 
-		log("Creating P2PPeerPool");
-		const pool = new P2PPeerPool({
+		log("Creating Network");
+		const network = new Network({
 			config: options.config,
 			node: options.config.node,
 			chain,
 			execution,
 		});
 
-		pool.setExecution(execution);
+		network.setExecution(execution);
 
 		const txPool = new TxPool({
 			config: options.config,
-			pool,
+			pool: network,
 			chain,
 			execution,
 		});
 
 		const synchronizer = new FullSynchronizer({
 			config: options.config,
-			pool,
+			pool: network,
 			chain,
 			txPool,
 			execution,
@@ -132,7 +132,7 @@ export class ExecutionNode {
 
 		const txFetcher = new TxFetcher({
 			config: options.config,
-			pool,
+			pool: network,
 			txPool,
 		});
 
@@ -140,7 +140,7 @@ export class ExecutionNode {
 			config: options.config,
 			chain,
 			execution,
-			pool,
+			network,
 			synchronizer,
 			txPool,
 			miner,
@@ -152,7 +152,7 @@ export class ExecutionNode {
 		this.config = modules.config;
 		this.chain = modules.chain;
 		this.execution = modules.execution;
-		this.pool = modules.pool;
+		this.network = modules.network;
 		this.synchronizer = modules.synchronizer;
 		this.txPool = modules.txPool;
 		this.miner = modules.miner;
@@ -231,7 +231,7 @@ export class ExecutionNode {
 
 			this.setupBasicEventListeners();
 
-			await this.pool.open();
+			await this.network.open();
 			await this.chain.open();
 			await this.synchronizer?.open();
 			this.opened = true;
@@ -258,7 +258,7 @@ export class ExecutionNode {
 
 			if (this.running) return false;
 
-			await this.pool.start();
+			await this.network.start();
 			void this.synchronizer?.start();
 
 			if (!this.v8Engine) {
@@ -335,7 +335,7 @@ export class ExecutionNode {
 				await this.synchronizer?.close();
 			}
 
-			await this.pool.stop();
+			await this.network.stop();
 			clearInterval(this.statsInterval);
 			await this.synchronizer?.stop();
 
@@ -362,7 +362,7 @@ export class ExecutionNode {
 
 			const result = !!this.opened;
 			if (this.opened) {
-				await this.pool.close();
+				await this.network.close();
 				this.opened = false;
 			}
 
@@ -399,7 +399,7 @@ export class ExecutionNode {
 			txPool: this.txPool,
 			synchronizer: this.synchronizer,
 			execution: this.execution,
-			pool: this.pool,
+			pool: this.network,
 		};
 
 		try {
@@ -586,13 +586,10 @@ export class ExecutionNode {
 	}
 
 	public peers = () => {
-		return this.pool.peers
-			.values()
-			.toArray()
-			.map((p) => p.id);
+		return this.network.getConnectedPeers().map((p) => p.id);
 	};
 
 	public node = () => this.config.node;
 	public server = () => this.config.node;
-	public peerCount = () => this.pool.size;
+	public peerCount = () => this.network.getPeerCount();
 }

@@ -9,7 +9,7 @@ import { peersSchema } from "./schema.ts";
 export const peers = (node: ExecutionNode) =>
 	createRpcMethod(peersSchema, async (_params, _c) => {
 		try {
-			const peers = node.pool.peers;
+			const peers = node.network.getConnectedPeers();
 
 			return safeResult(
 				peers?.map((peer) => {

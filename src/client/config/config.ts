@@ -9,7 +9,7 @@ import { rlpx } from "../../p2p/transport/rlpx/index.ts";
 import { BIGINT_0 } from "../../utils";
 import { safeTry } from "../../utils/safe.ts";
 import { genPrivateKey } from "../../utils/utils.ts";
-import { dptDiscovery } from "../net/peer/discover.ts";
+import { dptDiscovery } from "../net/discovery/dpt-discovery.ts";
 import { ETH } from "../net/protocol/eth/eth.ts";
 import { Event, type EventParams } from "../types.ts";
 import { short } from "../util";

@@ -12,8 +12,8 @@ export const addPeer = (node: ExecutionNode, dpt: DPT) =>
 		const [error, peerInfo] = await safeTry(() => dpt.addPeer(params[0]));
 		if (error) return safeError(error);
 
-		// TODO: Update for P2P architecture - P2PPeer creation is handled by P2PPeerPool
-		// service.pool.add(...);
+		// TODO: Update for P2P architecture - Peer creation is handled by Network
+		// node.network.addPeer(...);
 
 		return safeResult(peerInfo !== undefined);
 	});

@@ -5,7 +5,7 @@ import { encodeReceipt } from "../../../../vm";
 import type { Chain } from "../../../blockchain";
 import type { VMExecution } from "../../../execution";
 import type { TxReceiptWithType } from "../../../execution/receipt";
-import type { P2PPeerPool } from "../../../net/p2p-peerpool";
+import type { Network } from "../../../net/network.ts";
 import type { TxPool } from "../../../service/txpool";
 import { FullSynchronizer } from "../../../sync";
 import type { Peer } from "../../peer/peer";
@@ -37,7 +37,7 @@ export interface EthHandlerContext {
 	txPool: TxPool;
 	synchronizer?: FullSynchronizer;
 	execution: VMExecution;
-	pool: P2PPeerPool;
+	pool: Network;
 }
 
 /**
