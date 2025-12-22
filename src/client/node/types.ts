@@ -3,12 +3,9 @@ import type { Blockchain } from "../../blockchain";
 import type { GenesisState } from "../../chain-config";
 import type { Chain } from "../blockchain";
 import type { Config } from "../config/index.ts";
-import type { VMExecution } from "../execution";
-import type { Miner } from "../miner";
-import type { Network } from "../net/network.ts";
-import type { FullSynchronizer } from "../sync";
+import type { ExecutionService } from "../execution/execution-service.ts";
+import type { NetworkService } from "../net/network-service.ts";
 import type { TxFetcher } from "../sync/fetcher/txFetcher.ts";
-import type { TxPool } from "../service/txpool.ts";
 import type { MultiaddrLike } from "../types.ts";
 
 /**
@@ -82,10 +79,8 @@ export interface ExecutionNodeInitOptions {
 export type ExecutionNodeModules = {
 	config: Config;
 	chain: Chain;
-	execution: VMExecution;
-	network: Network;
-	synchronizer: FullSynchronizer;
-	txPool: TxPool;
-	miner?: Miner;
+	network: NetworkService;
+	execution: ExecutionService;
 	txFetcher: TxFetcher;
+	p2pNode: import("../../p2p/libp2p/types.ts").P2PNode;
 };

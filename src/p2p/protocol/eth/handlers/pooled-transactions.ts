@@ -22,11 +22,13 @@ export function handlePooledTransactions(
 ): void {
 	try {
 		const decoded = ETH_MESSAGES[EthMessageCode.POOLED_TRANSACTIONS].decode(
-			payload,
+			payload as any,
 			{ chainCommon: handler.config.chainCommon },
-		) as [bigint, unknown[]];
-		const reqId = decoded[0] as bigint;
-		const txs = decoded[1] as unknown[];
+		) as { reqId: bigint; txs: unknown[] } | [bigint, unknown[]];
+
+		// Handle both object and tuple formats
+		const reqId = Array.isArray(decoded) ? decoded[0] : decoded.reqId;
+		const txs = Array.isArray(decoded) ? decoded[1] : decoded.txs;
 
 		log("POOLED_TRANSACTIONS response: reqId=%d, txs=%d", reqId, txs.length);
 

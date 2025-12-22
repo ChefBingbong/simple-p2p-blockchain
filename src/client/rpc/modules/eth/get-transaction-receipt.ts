@@ -15,8 +15,8 @@ export const getTransactionReceipt = (node: ExecutionNode) => {
 	const chain = node.chain;
 	const vm: VM | undefined = node.execution?.vm;
 	const receiptsManager: ReceiptsManager | undefined =
-		node.execution?.receiptsManager;
-	const txIndex: TxIndex | undefined = node.execution?.txIndex;
+		node.execution.execution.receiptsManager;
+	const txIndex: TxIndex | undefined = node.execution.execution.txIndex;
 	return createRpcMethod(
 		getTransactionReceiptSchema,
 		async (params: [PrefixedHexString], _c) => {

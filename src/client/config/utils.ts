@@ -60,7 +60,7 @@ export function createConfigFromDefaults(
 		datadir: constants.DATADIR_DEFAULT,
 		key: genPrivateKey(),
 		port: constants.PORT_DEFAULT,
-		saveReceipts: false,
+		saveReceipts: true,
 		txLookupLimit: constants.TX_LOOKUP_LIMIT_DEFAULT,
 		maxPerRequest: constants.MAXPERREQUEST_DEFAULT,
 		maxFetcherJobs: constants.MAXFETCHERJOBS_DEFAULT,

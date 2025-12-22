@@ -1,19 +1,19 @@
+import type { P2PNode as P2PNodeType } from "../../p2p/libp2p/types.ts";
 import { Chain } from "../blockchain";
-import { Config } from "../config/index.ts";
+import type { Config } from "../config/index.ts";
+import { ExecutionService } from "../execution/execution-service.ts";
 import { VMExecution } from "../execution/vmexecution.ts";
-import { Miner } from "../miner";
-import { Network } from "../net/network.ts";
+import { NetworkService } from "../net/network-service.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import { RpcServer } from "../rpc/server/index.ts";
-import { TxPool } from "../service/txpool.ts";
-import { FullSynchronizer } from "../sync";
 import { TxFetcher } from "../sync/fetcher/txFetcher.ts";
 import { Event } from "../types.ts";
 import type { V8Engine } from "../util/index.ts";
 import { getV8Engine } from "../util/index.ts";
+import { createP2PNodeFromConfig } from "./createP2pNode.ts";
 import type {
-    ExecutionNodeInitOptions,
-    ExecutionNodeModules,
+	ExecutionNodeInitOptions,
+	ExecutionNodeModules,
 } from "./types.ts";
 
 export const STATS_INTERVAL = 1000 * 30; // 30 seconds
@@ -28,10 +28,10 @@ export type ProtocolMessage = {
 export class ExecutionNode {
 	public config: Config;
 	public chain: Chain;
-	public execution: VMExecution;
-	public network: Network;
-	public synchronizer: FullSynchronizer;
+	public network: NetworkService;
+	public execution: ExecutionService;
 	public txFetcher: TxFetcher;
+	public p2pNode: P2PNodeType;
 	public rpcServer?: RpcServer;
 	public isRpcReady: boolean;
 
@@ -53,6 +53,18 @@ export class ExecutionNode {
 	): Promise<ExecutionNode> {
 		const chain = await Chain.create(options);
 
+		// Create P2P node first (needed for NetworkService)
+		const bootnodes =
+			options.config.options.bootnodes ??
+			options.config.chainCommon.bootstrapNodes();
+
+		const p2pNode = createP2PNodeFromConfig({
+			...options.config.options,
+			accounts: [...options.config.options.accounts],
+			bootnodes: [...bootnodes],
+		});
+
+		// Create Execution first (needed for NetworkService protocol handlers)
 		const execution = new VMExecution({
 			config: options.config,
 			stateDB: options.stateDB,
@@ -60,34 +72,50 @@ export class ExecutionNode {
 			chain,
 		});
 
-		const network = await Network.init({
+		// Create NetworkService (needs Chain and Execution for protocol handlers)
+		const network = await NetworkService.init({
 			config: options.config,
-			node: options.config.node,
+			node: p2pNode,
 			chain,
 			execution,
+		});
+
+		// Create ExecutionService (receives NetworkCore via dependency injection)
+		const executionService = await ExecutionService.init({
+			config: options.config,
+			chain,
+			execution,
+			networkCore: network.core,
+			stateDB: options.stateDB,
+			metaDB: options.metaDB,
+		});
+
+		// Set handler context for protocol message routing
+		network.setHandlerContext({
+			chain,
+			txPool: executionService.txPool,
+			synchronizer: executionService.synchronizer,
+			execution,
+			networkCore: network.core,
 		});
 
 		const txFetcher = new TxFetcher({
 			config: options.config,
 			pool: network.core,
-			txPool: network.txPool,
+			txPool: executionService.txPool,
 		});
 
 		const node = new ExecutionNode({
 			config: options.config,
 			chain,
-			execution,
 			network,
-			synchronizer: network.synchronizer,
+			execution: executionService,
 			txFetcher: txFetcher,
-			txPool: network.txPool,
+			p2pNode,
 		});
 
-		node.config.updateSynchronizedState(node.chain.headers.latest, true);
-		node.network.txPool.checkRunState();
-
 		if (node.running) return;
-		void node.synchronizer?.start();
+		void node.execution.synchronizer?.start();
 
 		if (!node.v8Engine) {
 			node.v8Engine = await getV8Engine();
@@ -96,19 +124,19 @@ export class ExecutionNode {
 		node.statsInterval = setInterval(node.stats.bind(node), STATS_INTERVAL);
 
 		node.running = true;
-		node.network.miner?.start();
+		node.execution.miner?.start();
 
-		await node.execution.start();
-		await node.execution.run();
+		await node.execution.execution.start();
+		await node.execution.execution.run();
 
 		void node.buildHeadState();
 		node.txFetcher.start();
-		await node.config.node.start();
+		await node.p2pNode.start();
 
 		const rpcServer = new RpcServer(
 			{
 				enabled: true,
-				address:  "127.0.0.1",
+				address: "127.0.0.1",
 				port: options.config.options.port + 300,
 				cors: "*",
 				debug: false,
@@ -120,9 +148,9 @@ export class ExecutionNode {
 			},
 		);
 
-		const onRpcReady = async() => {
-            await rpcServer.listen();
-            node.rpcServer = rpcServer;
+		const onRpcReady = async () => {
+			await rpcServer.listen();
+			node.rpcServer = rpcServer;
 			node.isRpcReady = true;
 			node.config.events.off(Event.SYNC_SYNCHRONIZED, onRpcReady);
 		};
@@ -134,10 +162,10 @@ export class ExecutionNode {
 	protected constructor(modules: ExecutionNodeModules) {
 		this.config = modules.config;
 		this.chain = modules.chain;
-		this.execution = modules.execution;
 		this.network = modules.network;
-		this.synchronizer = modules.synchronizer;
+		this.execution = modules.execution;
 		this.txFetcher = modules.txFetcher;
+		this.p2pNode = modules.p2pNode;
 
 		this.name = "eth";
 		this.protocols = [];
@@ -151,6 +179,29 @@ export class ExecutionNode {
 			if (this.rpcServer !== undefined) return;
 			await this.close();
 		});
+
+		this.setHandlerContext();
+
+		// Update sync state if synchronizer is available
+		if (this.synchronizer) {
+			this.synchronizer.updateSynchronizedState(
+				this.chain.headers.latest,
+				true,
+			);
+		}
+		this.execution.txPool.checkRunState();
+	}
+
+	private setHandlerContext(): void {
+		const handlerContext = {
+			chain: this.chain,
+			txPool: this.execution.txPool,
+			synchronizer: this.execution.synchronizer,
+			execution: this.execution.execution,
+			networkCore: this.network.core,
+		};
+
+		this.network.setHandlerContext(handlerContext);
 	}
 
 	async stop(): Promise<boolean> {
@@ -160,9 +211,13 @@ export class ExecutionNode {
 			clearInterval(this.statsInterval);
 
 			await this.rpcServer?.close?.();
-			await this.close?.();
+			await this.execution.stop();
+			await this.network.stop();
+			this.txFetcher.stop();
+			this.running = false;
+			this.isRpcReady = false;
 			return true;
-		} catch (error) {
+		} catch {
 			this.running = false;
 			return false;
 		}
@@ -171,13 +226,14 @@ export class ExecutionNode {
 	async close(): Promise<boolean> {
 		try {
 			if (!this.opened) return false;
+			await this.execution.close();
 			await this.network.close();
 			this.txFetcher.stop();
 			this.opened = false;
 			this.running = false;
 			this.isRpcReady = false;
 			return true;
-		} catch (error) {
+		} catch {
 			this.opened = false;
 			return false;
 		}
@@ -188,9 +244,10 @@ export class ExecutionNode {
 			if (this.building) return;
 			this.building = true;
 
-			if (!this.execution.started) return;
-			await this.synchronizer.runExecution();
-		} catch (error) {
+			if (!this.execution.execution.started) return;
+			await this.execution.synchronizer.runExecution();
+		} catch {
+			// Ignore errors during head state building
 		} finally {
 			this.building = false;
 		}
@@ -215,15 +272,19 @@ export class ExecutionNode {
 		return this.network.core.getConnectedPeers().map((p) => p.id);
 	};
 
-	public node = () => this.config.node;
-	public server = () => this.config.node;
+	public node = () => this.p2pNode;
+	public server = () => this.p2pNode;
 	public peerCount = () => this.network.core.getPeerCount();
 
-	public get txPool(): TxPool {
-		return this.network.txPool;
+	public get txPool() {
+		return this.execution.txPool;
 	}
 
-	public get miner(): Miner | undefined {
-		return this.network.miner;
+	public get miner() {
+		return this.execution.miner;
+	}
+
+	public get synchronizer() {
+		return this.execution.synchronizer;
 	}
 }

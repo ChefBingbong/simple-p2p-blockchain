@@ -29,14 +29,18 @@ export async function handleGetPooledTransactions(
 
 		log("GET_POOLED_TRANSACTIONS: reqId=%d, hashes=%d", reqId, hashes.length);
 
-		// Get transactions from tx pool
-		// Note: txPool is accessed via service, not config
-		// For now, we'll need to access it through the service if available
-		// This will be fixed when we integrate with P2PFullEthereumService
-		const txs: TypedTransaction[] = [];
-		// TODO: Access txPool from service when handler is integrated with service
-		// For now, return empty array
-		log("GET_POOLED_TRANSACTIONS: txPool not accessible from handler yet");
+		// Get transactions from tx pool via context
+		let txs: TypedTransaction[] = [];
+		if (handler.context?.txPool) {
+			for (const hash of hashes) {
+				const tx = handler.context.txPool.get(hash);
+				if (tx) {
+					txs.push(tx);
+				}
+			}
+		} else {
+			log("GET_POOLED_TRANSACTIONS: txPool not available in context");
+		}
 
 		log("Sending %d transactions in response to reqId=%d", txs.length, reqId);
 

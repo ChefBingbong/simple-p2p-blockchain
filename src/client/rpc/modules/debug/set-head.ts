@@ -17,7 +17,7 @@ export const setHead = (node: ExecutionNode) => {
 
 		const block = await getBlockByOption(blockOpt, chain);
 		try {
-			await node.execution.setHead([block]);
+			await node.execution.execution.setHead([block]);
 			return safeResult(null);
 		} catch (error: any) {
 			const err = error instanceof Error ? error : new Error(String(error));

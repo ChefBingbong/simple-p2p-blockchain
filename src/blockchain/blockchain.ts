@@ -4,7 +4,8 @@ import { EventEmitter } from "eventemitter3";
 import type { HeaderData } from "../block";
 import { Block, BlockHeader, createBlock } from "../block";
 import type { GenesisState } from "../chain-config";
-import { Common } from "../chain-config";
+import { Common, ConsensusAlgorithm } from "../chain-config";
+import { Ethash } from "../eth-hash/index.ts";
 import type { BigIntLike, DB, DBObject } from "../utils";
 import {
 	BIGINT_0,
@@ -17,6 +18,7 @@ import {
 	Lock,
 	MapDB,
 } from "../utils";
+import { EthashConsensus } from "./consensus/ethash.ts";
 // PoW/Ethash only - no Casper or Clique consensus
 import {
 	DBOp,
@@ -121,11 +123,11 @@ export class Blockchain implements BlockchainInterface {
 
 		this.events = new EventEmitter<BlockchainEvent>();
 
-		this._consensusDict = {};
-		// Only Ethash consensus is supported
-		if (opts.consensusDict !== undefined) {
-			this._consensusDict = { ...opts.consensusDict };
-		}
+		this._consensusDict = {
+			[ConsensusAlgorithm.Ethash]: new EthashConsensus(
+				new Ethash(this.db as any),
+			),
+		};
 		this._consensusCheck();
 
 		this._heads = {};

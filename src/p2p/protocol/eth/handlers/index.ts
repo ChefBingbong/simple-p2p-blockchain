@@ -6,26 +6,23 @@
 
 import { EthMessageCode } from "../../../../client/net/protocol/eth/definitions";
 import type { EthHandlerRegistry } from "../registry";
-
-// Request handlers
-import { handleGetBlockHeaders } from "./get-block-headers";
-import { handleGetBlockBodies } from "./get-block-bodies";
-import { handleGetReceipts } from "./get-receipts";
-import { handleGetNodeData } from "./get-node-data";
-import { handleGetPooledTransactions } from "./get-pooled-transactions";
-
+import { handleBlockBodies } from "./block-bodies";
 // Response handlers
 import { handleBlockHeaders } from "./block-headers";
-import { handleBlockBodies } from "./block-bodies";
-import { handleReceipts } from "./receipts";
-import { handleNodeData } from "./node-data";
-import { handlePooledTransactions } from "./pooled-transactions";
-
+import { handleGetBlockBodies } from "./get-block-bodies";
+// Request handlers
+import { handleGetBlockHeaders } from "./get-block-headers";
+import { handleGetNodeData } from "./get-node-data";
+import { handleGetPooledTransactions } from "./get-pooled-transactions";
+import { handleGetReceipts } from "./get-receipts";
+import { handleNewBlock } from "./new-block";
 // Announcement handlers
 import { handleNewBlockHashes } from "./new-block-hashes";
-import { handleTransactions } from "./transactions";
-import { handleNewBlock } from "./new-block";
 import { handleNewPooledTransactionHashes } from "./new-pooled-transaction-hashes";
+import { handleNodeData } from "./node-data";
+import { handlePooledTransactions } from "./pooled-transactions";
+import { handleReceipts } from "./receipts";
+import { handleTransactions } from "./transactions";
 
 /**
  * Register all default handlers with the registry
@@ -33,57 +30,57 @@ import { handleNewPooledTransactionHashes } from "./new-pooled-transaction-hashe
  */
 export function registerDefaultHandlers(registry: EthHandlerRegistry): void {
 	// Register request handlers
-	registry.registerRequestHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.GET_BLOCK_HEADERS,
 		handleGetBlockHeaders,
 	);
-	registry.registerRequestHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.GET_BLOCK_BODIES,
 		handleGetBlockBodies,
 	);
-	registry.registerRequestHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.GET_POOLED_TRANSACTIONS,
 		handleGetPooledTransactions,
 	);
-	registry.registerRequestHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.GET_RECEIPTS,
 		handleGetReceipts,
 	);
-	registry.registerRequestHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.GET_NODE_DATA,
 		handleGetNodeData,
 	);
 
 	// Register response handlers
-	registry.registerResponseHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.BLOCK_HEADERS,
 		handleBlockHeaders,
 	);
-	registry.registerResponseHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.BLOCK_BODIES,
 		handleBlockBodies,
 	);
-	registry.registerResponseHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.POOLED_TRANSACTIONS,
 		handlePooledTransactions,
 	);
-	registry.registerResponseHandler(EthMessageCode.RECEIPTS, handleReceipts);
-	registry.registerResponseHandler(EthMessageCode.NODE_DATA, handleNodeData);
+	registry.registerProtocolHandler(EthMessageCode.RECEIPTS, handleReceipts);
+	registry.registerProtocolHandler(EthMessageCode.NODE_DATA, handleNodeData);
 
 	// Register announcement handlers
-	registry.registerAnnouncementHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.NEW_BLOCK_HASHES,
 		handleNewBlockHashes,
 	);
-	registry.registerAnnouncementHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.TRANSACTIONS,
 		handleTransactions,
 	);
-	registry.registerAnnouncementHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.NEW_BLOCK,
 		handleNewBlock,
 	);
-	registry.registerAnnouncementHandler(
+	registry.registerProtocolHandler(
 		EthMessageCode.NEW_POOLED_TRANSACTION_HASHES,
 		handleNewPooledTransactionHashes,
 	);
@@ -91,21 +88,14 @@ export function registerDefaultHandlers(registry: EthHandlerRegistry): void {
 
 // Export all handlers for direct access if needed
 export {
-	// Requests
-	handleGetBlockHeaders,
-	handleGetBlockBodies,
-	handleGetReceipts,
-	handleGetNodeData,
-	handleGetPooledTransactions,
-	// Responses
-	handleBlockHeaders,
 	handleBlockBodies,
-	handleReceipts,
-	handleNodeData,
-	handlePooledTransactions,
+	// Responses
+	handleBlockHeaders, handleGetBlockBodies,
+	// Requests
+	handleGetBlockHeaders, handleGetNodeData,
+	handleGetPooledTransactions, handleGetReceipts, handleNewBlock,
 	// Announcements
-	handleNewBlockHashes,
-	handleTransactions,
-	handleNewBlock,
-	handleNewPooledTransactionHashes,
+	handleNewBlockHashes, handleNewPooledTransactionHashes, handleNodeData,
+	handlePooledTransactions, handleReceipts, handleTransactions
 };
+

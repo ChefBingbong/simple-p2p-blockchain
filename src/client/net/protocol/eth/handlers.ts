@@ -5,9 +5,9 @@ import { encodeReceipt } from "../../../../vm";
 import type { Chain } from "../../../blockchain";
 import type { VMExecution } from "../../../execution";
 import type { TxReceiptWithType } from "../../../execution/receipt";
-import type { Network } from "../../../net/network.ts";
 import type { TxPool } from "../../../service/txpool";
 import { FullSynchronizer } from "../../../sync";
+import type { NetworkCore } from "../../core/network-core.ts";
 import type { Peer } from "../../peer/peer";
 
 export interface GetBlockHeadersData {
@@ -37,7 +37,7 @@ export interface EthHandlerContext {
 	txPool: TxPool;
 	synchronizer?: FullSynchronizer;
 	execution: VMExecution;
-	pool: Network;
+	networkCore: NetworkCore;
 }
 
 /**
@@ -103,8 +103,8 @@ export async function handleTransactions(
 	peer: Peer,
 	context: EthHandlerContext,
 ) {
-	const { txPool, pool } = context;
-	await txPool.handleAnnouncedTxs(data, peer, pool.core);
+	const { txPool, networkCore } = context;
+	await txPool.handleAnnouncedTxs(data, peer, networkCore);
 }
 
 /**
@@ -128,7 +128,7 @@ export async function handleNewPooledTransactionHashes(
 	peer: Peer,
 	context: EthHandlerContext,
 ) {
-	const { txPool, pool } = context;
+	const { txPool, networkCore } = context;
 
 	let hashes: Uint8Array[];
 	if (Array.isArray(data) && data.length === 3 && Array.isArray(data[0])) {
@@ -137,7 +137,7 @@ export async function handleNewPooledTransactionHashes(
 		hashes = data as Uint8Array[];
 	}
 
-	await txPool.handleAnnouncedTxHashes(hashes, peer, pool.core);
+	await txPool.handleAnnouncedTxHashes(hashes, peer, networkCore);
 }
 
 /**

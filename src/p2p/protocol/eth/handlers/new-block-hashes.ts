@@ -9,6 +9,7 @@ import {
 	EthMessageCode,
 } from "../../../../client/net/protocol/eth/definitions";
 import type { EthHandler } from "../handler";
+import { handleNewBlockHashes as handleNewBlockHashesExec } from "../../../../client/net/protocol/eth/handlers.ts";
 
 const log = debug("p2p:eth:handlers:new-block-hashes");
 
@@ -23,6 +24,14 @@ export function handleNewBlockHashes(
 	try {
 		const decoded =
 			ETH_MESSAGES[EthMessageCode.NEW_BLOCK_HASHES].decode(payload);
+
+		// If context is available, call execution handler directly
+		if (handler.context) {
+			handleNewBlockHashesExec(decoded, handler.context);
+			return;
+		}
+
+		// Otherwise emit event for backward compatibility
 		handler.emit("message", {
 			code: EthMessageCode.NEW_BLOCK_HASHES,
 			name: "NewBlockHashes",

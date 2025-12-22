@@ -9,6 +9,8 @@ import {
 	EthMessageCode,
 } from "../../../../client/net/protocol/eth/definitions";
 import type { EthHandler } from "../handler";
+import { handleNewPooledTransactionHashes as handleNewPooledTransactionHashesExec } from "../../../../client/net/protocol/eth/handlers.ts";
+import type { Peer } from "../../../../client/net/peer/peer.ts";
 
 const log = debug("p2p:eth:handlers:new-pooled-transaction-hashes");
 
@@ -16,15 +18,26 @@ const log = debug("p2p:eth:handlers:new-pooled-transaction-hashes");
  * Handle NEW_POOLED_TRANSACTION_HASHES announcement
  * Payload is already decoded: array or tuple format
  */
-export function handleNewPooledTransactionHashes(
+export async function handleNewPooledTransactionHashes(
 	handler: EthHandler,
 	payload: unknown,
-): void {
+): Promise<void> {
 	try {
 		const decoded =
 			ETH_MESSAGES[EthMessageCode.NEW_POOLED_TRANSACTION_HASHES].decode(
 				payload,
 			);
+
+		// If context is available, call execution handler directly
+		if (handler.context) {
+			const peer = handler.findPeer();
+			if (peer) {
+				await handleNewPooledTransactionHashesExec(decoded, peer, handler.context);
+				return;
+			}
+		}
+
+		// Otherwise emit event for backward compatibility
 		handler.emit("message", {
 			code: EthMessageCode.NEW_POOLED_TRANSACTION_HASHES,
 			name: "NewPooledTransactionHashes",

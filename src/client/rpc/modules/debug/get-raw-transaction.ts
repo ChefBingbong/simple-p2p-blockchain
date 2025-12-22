@@ -14,12 +14,12 @@ export const getRawTransaction = (node: ExecutionNode) => {
 	return createRpcMethod(
 		getRawTransactionSchema,
 		async (params: [PrefixedHexString], _c) => {
-			const [txHash] = params;
-			if (!node.execution.receiptsManager)
+			const [txHash] = params;	
+			if (!node.execution.execution.receiptsManager)
 				return safeError(EthereumJSErrorWithoutCode("missing receiptsManager"));
-			if (!node.execution.txIndex)
+			if (!node.execution.execution.txIndex)
 				return safeError(EthereumJSErrorWithoutCode("missing txIndex"));
-			const txHashIndex = await node.execution.txIndex.getIndex(
+			const txHashIndex = await node.execution.execution.txIndex.getIndex(
 				hexToBytes(txHash),
 			);
 			if (!txHashIndex) return safeResult(null);
