@@ -4,6 +4,7 @@ import type * as promClient from "prom-client";
 import type { Config, SyncMode } from ".";
 import type { Block, BlockHeader } from "../block";
 import { Blockchain } from "../blockchain";
+import type { GenesisState } from "../chain-config";
 import type { Address } from "../utils";
 import type { Peer } from "./net/peer";
 
@@ -32,6 +33,7 @@ export const Event = {
 	PROTOCOL_ERROR: "protocol:error",
 	PROTOCOL_MESSAGE: "protocol:message",
 	CHAIN_REORG: "blockchain:chain:reorg",
+	RPC_READY: "rpc:ready",
 } as const;
 
 export interface EventParams {
@@ -64,6 +66,7 @@ export interface EventParams {
 			peer: Peer;
 		},
 	];
+	[Event.RPC_READY]: [{ address: string; port: number }];
 }
 
 /**

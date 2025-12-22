@@ -1,4 +1,3 @@
-import debug from "debug";
 import type { Block } from "../../block";
 import type { P2PNode } from "../../p2p/libp2p/types.ts";
 import type { Chain } from "../blockchain/chain.ts";
@@ -22,11 +21,6 @@ import {
 	handleTransactions,
 } from "./protocol/eth/handlers.ts";
 
-const log = debug("p2p:network");
-
-/**
- * Network service initialization options
- */
 export interface NetworkInitOptions {
 	config: Config;
 	node: P2PNode;
@@ -34,9 +28,6 @@ export interface NetworkInitOptions {
 	execution: VMExecution;
 }
 
-/**
- * Modules for Network constructor (following lodestar pattern)
- */
 export interface NetworkModules {
 	config: Config;
 	node: P2PNode;
@@ -48,12 +39,6 @@ export interface NetworkModules {
 	synchronizer?: FullSynchronizer;
 }
 
-/**
- * Network - Main network service that wraps NetworkCore
- * Provides a clean public API for network operations
- *
- * Similar to lodestar's Network class, but adapted for execution layer.
- */
 export class Network {
 	public readonly core: NetworkCore;
 	public readonly chain: Chain;
@@ -62,14 +47,9 @@ export class Network {
 	public miner: Miner;
 	public synchronizer: FullSynchronizer;
 
-	/**
-	 * Initialize Network with static init method (following lodestar pattern)
-	 */
 	static async init(options: NetworkInitOptions): Promise<Network> {
-		log("Initializing Network");
 		const core = await NetworkCore.init(options);
 
-		// Create TxPool with network as pool
 		const txPool = new TxPool({
 			config: options.config,
 			pool: core,
@@ -91,7 +71,7 @@ export class Network {
 			chain: options.chain,
 			execution: options.execution,
 		});
-		// Create Network instance first
+
 		const network = new Network({
 			config: options.config,
 			node: options.node,
@@ -104,7 +84,6 @@ export class Network {
 		});
 
 		await options.execution.open();
-		
 		txPool.open();
 		await synchronizer?.open();
 		synchronizer.opened = true;
@@ -113,7 +92,6 @@ export class Network {
 	}
 
 	constructor(modules: NetworkModules) {
-		log("Creating Network service");
 		this.core = modules.core;
 		this.chain = modules.chain;
 		this.execution = modules.execution;
@@ -121,9 +99,7 @@ export class Network {
 		this.miner = modules.miner;
 		this.synchronizer = modules.synchronizer;
 
-		// Set up event handlers
 		this.setupEventListeners();
-		log("Network service created");
 	}
 
 	private setupEventListeners(): void {
@@ -133,9 +109,6 @@ export class Network {
 		this.config.events.on(Event.CHAIN_REORG, this.onChainReorg);
 	}
 
-	/**
-	 * Remove event listeners
-	 */
 	private removeEventListeners(): void {
 		this.config.events.off(Event.PROTOCOL_MESSAGE, this.onProtocolMessage);
 		this.config.events.off(Event.POOL_PEER_ADDED, this.onPoolPeerAdded);
@@ -143,9 +116,6 @@ export class Network {
 		this.config.events.off(Event.CHAIN_REORG, this.onChainReorg);
 	}
 
-	/**
-	 * Handle protocol messages (following lodestar pattern - separate handler method)
-	 */
 	private onProtocolMessage = async (message: {
 		message: { name: string; data: unknown };
 		protocol: string;
@@ -231,18 +201,9 @@ export class Network {
 					);
 					break;
 			}
-		} catch (error) {
-			const err = error as Error;
-			this.config.options.logger?.error(err);
-			this.config.options.logger?.debug(
-				`Error handling ${message.message.name}: ${err.message}`,
-			);
-		}
+		} catch (error) {}
 	};
 
-	/**
-	 * Handle pool peer added event
-	 */
 	private onPoolPeerAdded = (peer: Peer): void => {
 		if (!this.txPool) return;
 
@@ -266,9 +227,6 @@ export class Network {
 		if (txs[0].length > 0) this.txPool.sendNewTxHashes(txs, [peer]);
 	};
 
-	/**
-	 * Handle sync new blocks event
-	 */
 	private onSyncNewBlocks = async (blocks: Block[]): Promise<void> => {
 		if (!this.txPool) return;
 
@@ -284,15 +242,9 @@ export class Network {
 				this.txPool.demoteUnexecutables(),
 				this.txPool.promoteExecutables(),
 			]);
-		} catch (error) {
-			this.config.options.logger?.error(error as Error);
-			this.config.options.logger?.debug(`${(error as Error).message}`);
-		}
+		} catch (error) {}
 	};
 
-	/**
-	 * Handle chain reorg event
-	 */
 	private onChainReorg = async (
 		oldBlocks: Block[],
 		newBlocks: Block[],
@@ -301,38 +253,22 @@ export class Network {
 
 		try {
 			await this.txPool.handleReorg(oldBlocks, newBlocks);
-		} catch (error) {
-			this.config.options.logger?.error(error as Error);
-			this.config.options.logger?.debug(`${(error as Error).message}`);
-		}
+		} catch (error) {}
 	};
 
-	/**
-	 * Stop network service
-	 */
 	async stop(): Promise<boolean> {
 		return this.core.stop();
 	}
 
-	/**
-	 * Close network service
-	 */
 	async close(): Promise<void> {
 		this.removeEventListeners();
 		return this.core.close();
 	}
 
-	
-	/**
-	 * Running state (backward compatibility)
-	 */
 	get running(): boolean {
 		return this.core.running;
 	}
 
-	/**
-	 * Config (backward compatibility)
-	 */
 	get config(): Config {
 		return this.core.config;
 	}

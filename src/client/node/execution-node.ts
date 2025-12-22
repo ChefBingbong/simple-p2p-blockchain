@@ -1,17 +1,10 @@
-import { ServerType, serve } from "@hono/node-server";
-import debug from "debug";
-import { Env, Hono } from "hono";
-import { requestId } from "hono/request-id";
 import { Chain } from "../blockchain";
 import { Config } from "../config/index.ts";
 import { VMExecution } from "../execution/vmexecution.ts";
 import { Miner } from "../miner";
 import { Network } from "../net/network.ts";
 import type { Peer } from "../net/peer/peer.ts";
-import { RPCArgs } from "../rpc/index.ts";
-import { createRpcHandlers } from "../rpc/modules/index.ts";
-import { rpcRequestSchema } from "../rpc/types.ts";
-import { rpcValidator } from "../rpc/validation.ts";
+import { RpcServer } from "../rpc/server/index.ts";
 import { TxPool } from "../service/txpool.ts";
 import { FullSynchronizer } from "../sync";
 import { TxFetcher } from "../sync/fetcher/txFetcher.ts";
@@ -23,8 +16,6 @@ import type {
     ExecutionNodeModules,
 } from "./types.ts";
 
-const log = debug("p2p:node");
-
 export const STATS_INTERVAL = 1000 * 30; // 30 seconds
 export const MEMORY_SHUTDOWN_THRESHOLD = 92;
 
@@ -34,17 +25,6 @@ export type ProtocolMessage = {
 	peer: Peer;
 };
 
-type RpcManager = {
-	server: ServerType;
-	client: Hono<Env>;
-	methods: string[];
-	namespaces: string[];
-};
-
-/**
- * ExecutionNode - Main execution layer node combining client and service functionality
- * Following lodestar's beacon-node architecture pattern
- */
 export class ExecutionNode {
 	public config: Config;
 	public chain: Chain;
@@ -52,7 +32,8 @@ export class ExecutionNode {
 	public network: Network;
 	public synchronizer: FullSynchronizer;
 	public txFetcher: TxFetcher;
-	public rpcManager?: RpcManager;
+	public rpcServer?: RpcServer;
+	public isRpcReady: boolean;
 
 	public opened: boolean;
 	public running: boolean;
@@ -79,7 +60,6 @@ export class ExecutionNode {
 			chain,
 		});
 
-		log("Creating Network");
 		const network = await Network.init({
 			config: options.config,
 			node: options.config.node,
@@ -127,37 +107,36 @@ export class ExecutionNode {
 
 		await node.config.node.start();
 
-		node.log("Waiting for synchronization...");
 
-		const chainHeight = await new Promise<bigint | null>((resolve) => {
-			const timeout = setTimeout(() => {
-				cleanup();
-				resolve(null);
-			}, 30000);
+		// Create and start RPC server
+		// Use defaults: RPC enabled by default, port + 300, localhost
+		const rpcPort = (node.config.options.port ?? 8000) + 300;
+		const rpcAddr = "127.0.0.1";
 
-			const onSynchronized = (chainHeight: bigint) => {
-				cleanup();
-				resolve(chainHeight);
-			};
-
-			const cleanup = () => {
-				clearTimeout(timeout);
-				node.config.events.off(Event.SYNC_SYNCHRONIZED, onSynchronized);
-			};
-			node.config.events.on(Event.SYNC_SYNCHRONIZED, onSynchronized);
-		});
-
-		node.started = true;
-		if (chainHeight === null) return;
-
-		node.rpcManager = await node.createRpcManager({
-			rpc: true,
-			rpcAddr: "127.0.0.1",
-			rpcPort: node.config.options.port + 300,
-		});
-		node.log(
-			`RPC server listening on http://127.0.0.1:${node.config.options.port + 300}`,
+		const rpcServer = new RpcServer(
+			{
+				enabled: true,
+				address: rpcAddr,
+				port: rpcPort,
+				cors: undefined, // Can be configured via environment or config extension
+				debug: false,
+				stacktraces: false,
+			},
+			{
+				logger: node.config.options.logger!,
+				node,
+			},
 		);
+
+		// Listen for RPC_READY event
+		const onRpcReady = () => {
+			node.isRpcReady = true;
+			node.config.events.off(Event.RPC_READY, onRpcReady);
+		};
+		node.config.events.on(Event.RPC_READY, onRpcReady);
+
+		await rpcServer.listen();
+		node.rpcServer = rpcServer;
 
 		return node;
 	}
@@ -176,44 +155,14 @@ export class ExecutionNode {
 		this.running = false;
 		this.interval = 200;
 		this.timeout = 6000;
+		this.isRpcReady = false;
 
 		this.config.events.on(Event.CLIENT_SHUTDOWN, async () => {
-			if (this.rpcManager !== undefined) return;
+			if (this.rpcServer !== undefined) return;
 			await this.close();
 		});
-
-		log("ExecutionNode created");
 	}
 
-	private createRpcManager = async (rpcArgs: RPCArgs) => {
-		return await new Promise<RpcManager>((resolve, reject) => {
-			const { rpcHandlers, methods } = createRpcHandlers(this, true);
-			const namespaces = methods.map((m) => m.split("_")[0]);
-
-			const onTimeout = () => {
-				reject(new Error("RPC server timed out"));
-			};
-
-			const timeout = setTimeout(onTimeout, 30000);
-
-			const client = new Hono<Env>()
-				.use("*", requestId({ generator: () => Date.now().toString() }))
-				.post("/", rpcValidator(rpcRequestSchema), rpcHandlers);
-
-			const server = serve(
-				{
-					fetch: client.fetch,
-					port: rpcArgs.rpcPort,
-					hostname: rpcArgs.rpcAddr,
-				},
-				(i) => {
-					console.log(`Rpc listening on ${i?.address}`);
-					clearTimeout(timeout);
-					resolve({ server, client, methods, namespaces });
-				},
-			);
-		});
-	};
 
 	async stop(): Promise<boolean> {
 		try {
@@ -236,16 +185,19 @@ export class ExecutionNode {
 			clearInterval(this.statsInterval);
 			await this.synchronizer?.stop();
 
+			// Close RPC server if it exists
+			if (this.rpcServer) {
+				await this.rpcServer.close();
+				this.isRpcReady = false;
+			}
+
 			await this.config.node.stop();
 
 			this.running = false;
 			this.txFetcher.stop();
 
-			log("ExecutionNode stopped");
 			return true;
 		} catch (error) {
-			this.error(error as Error);
-			this.debug(`Error stopping: ${(error as Error).message}`);
 			this.running = false;
 			return false;
 		}
@@ -263,8 +215,6 @@ export class ExecutionNode {
 
 			return result;
 		} catch (error) {
-			this.error(error as Error);
-			this.debug(`Error closing: ${(error as Error).message}`);
 			this.opened = false;
 			return false;
 		}
@@ -277,10 +227,7 @@ export class ExecutionNode {
 
 			if (!this.execution.started) return;
 			await this.synchronizer.runExecution();
-		} catch (error) {
-			this.error(error as Error);
-			this.debug(`Error building headstate: ${(error as Error).message}`);
-		} finally {
+		} catch (error) {} finally {
 			this.building = false;
 		}
 	}
@@ -291,50 +238,29 @@ export class ExecutionNode {
 		const heapStats = this.v8Engine.getHeapStatistics();
 		const { used_heap_size, heap_size_limit } = heapStats;
 
-		const heapUsed = Math.round(used_heap_size / 1000 / 1000); // MB
+		const heapUsed = Math.round(used_heap_size / 1000 / 1000);
 		const percentage = Math.round((100 * used_heap_size) / heap_size_limit);
-
-		this.log(`Memory stats usage=${heapUsed} MB percentage=${percentage}%`);
 
 		if (this.statsCounter % 4 === 0) this.statsCounter = 0;
 
 		if (percentage >= MEMORY_SHUTDOWN_THRESHOLD && !this.config.shutdown) {
-			this.log("EMERGENCY SHUTDOWN DUE TO HIGH MEMORY LOAD...");
 			process.kill(process.pid, "SIGINT");
 		}
 		this.statsCounter += 1;
 	}
 
-	protected log(message: string) {
-		this.config.options.logger?.info(`ExecutionNode log: ${message}`);
-	}
-
-	protected error(err: Error) {
-		this.config.options.logger?.error(
-			`ExecutionNode error: ${err} stack: ${err.stack}`,
-		);
-	}
-
-	protected debug(message: string, method: string = "debug") {
-		this.config.options.logger?.debug(
-			`ExecutionNode ${method} msg: ${message}}`,
-		);
-	}
-
 	public peers = () => {
-		return this.network.getConnectedPeers().map((p) => p.id);
+		return this.network.core.getConnectedPeers().map((p) => p.id);
 	};
 
 	public node = () => this.config.node;
 	public server = () => this.config.node;
-	public peerCount = () => this.network.getPeerCount();
+	public peerCount = () => this.network.core.getPeerCount();
 
-	// Access txPool through network
 	public get txPool(): TxPool {
 		return this.network.txPool;
 	}
 
-	// Access miner through network
 	public get miner(): Miner | undefined {
 		return this.network.miner;
 	}
