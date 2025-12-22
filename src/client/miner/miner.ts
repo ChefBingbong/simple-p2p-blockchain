@@ -1,4 +1,3 @@
-import { MemoryLevel } from "memory-level";
 import type { Block, BlockHeader } from "../../block";
 import {
 	Ethash,
@@ -10,7 +9,6 @@ import { buildBlock, type TxReceipt } from "../../vm";
 import { Chain } from "../blockchain/chain.ts";
 import type { Config } from "../config/index.ts";
 import type { VMExecution } from "../execution";
-import { LevelDB } from "../execution/level.ts";
 import { IndexOperation, IndexType } from "../execution/txIndex.ts";
 import { TxPool } from "../service/txpool.ts";
 import type { FullSynchronizer } from "../sync";
@@ -69,10 +67,7 @@ export class Miner {
 		this.skipHardForkValidation = options.skipHardForkValidation;
 		// PoW only - use default period
 		this.period = this.DEFAULT_PERIOD * 1000; // defined in ms for setTimeout use
-		this.ethash = new Ethash(new LevelDB(new MemoryLevel()) as any);
-		// PoW only - use default period
-		this.period = this.DEFAULT_PERIOD * 1000; // defined in ms for setTimeout use
-		this.ethash = new Ethash(new LevelDB(new MemoryLevel()) as any);
+		this.ethash = new Ethash(this.chain.blockchain.db as any);
 	}
 
 	/**
