@@ -4,7 +4,7 @@ import { Readable, Writable } from "stream";
 import type { Config } from "../../config/index.ts";
 import type { QHeap } from "../../ext/qheap.ts";
 import { Heap } from "../../ext/qheap.ts";
-import type { Peer } from "../../net/peer";
+import type { Peer } from "../../net/peer/index.ts";
 import type { PeerPoolLike } from "../../net/peerpool-types.ts";
 import { Event } from "../../types.ts";
 import type { JobTask as BlockFetcherJobTask } from "./blockfetcherbase.ts";

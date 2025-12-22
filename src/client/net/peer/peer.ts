@@ -1,6 +1,6 @@
 import { EventEmitter } from "eventemitter3";
-import type { BlockHeader } from "../../../block";
-import { BIGINT_0, BIGINT_1, short } from "../../../utils";
+import type { BlockHeader } from "../../../block/index.ts";
+import { BIGINT_0, BIGINT_1, short } from "../../../utils/index.ts";
 import type { Config } from "../../config/config.ts";
 import type { EthProtocolMethods } from "../protocol/index.ts";
 

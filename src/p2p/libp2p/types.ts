@@ -420,7 +420,7 @@ export interface PeerDiscoveryEvents {
 /**
  * Symbol to identify peer discovery modules
  */
-export const peerDiscoverySymbol = Symbol.for("@libp2p/peer-discovery");
+export const peerDiscoverySymbol = Symbol.for("@libp2p/peeriscovery");
 
 /**
  * P2P Node initialization options
@@ -509,7 +509,10 @@ export interface P2PNode extends TypedEventTarget<P2PNodeEvents> {
 	/**
 	 * Dial a peer
 	 */
-	dial(ma: Multiaddr, options?: TransportManagerDialOptions): Promise<Connection>;
+	dial(
+		ma: Multiaddr,
+		options?: TransportManagerDialOptions,
+	): Promise<Connection>;
 
 	/**
 	 * Register a protocol handler
@@ -591,4 +594,3 @@ export const DEFAULT_MAX_INBOUND_STREAMS = 32;
 export const DEFAULT_MAX_OUTBOUND_STREAMS = 64;
 export const DEFAULT_MAX_CONNECTIONS = 100;
 export const DEFAULT_DIAL_TIMEOUT = 10000;
-

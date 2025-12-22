@@ -18,7 +18,7 @@ import {
 } from "../../chain-config/index.ts";
 import { Ethash } from "../../eth-hash/index.ts";
 import { PeerInfo } from "../../kademlia/types.ts";
-import { createP2PNode, dptDiscovery } from "../../p2p/libp2p/index.ts";
+import { createP2PNode } from "../../p2p/libp2p/index.ts";
 import type { ComponentLogger } from "../../p2p/libp2p/types.ts";
 import { rlpx } from "../../p2p/transport/rlpx/index.ts";
 import {
@@ -33,6 +33,7 @@ import { Config } from "../config/index.ts";
 import { DataDirectory, SyncMode } from "../config/types.ts";
 import { LevelDB } from "../execution/level.ts";
 import { getLogger, type Logger } from "../logging.ts";
+import { dptDiscovery } from "../net/peer/discover.ts";
 import { ETH } from "../net/protocol/eth/eth.ts";
 import { setupMetrics } from "../util/metrics.ts";
 

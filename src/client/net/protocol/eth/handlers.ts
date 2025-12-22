@@ -6,9 +6,9 @@ import type { Chain } from "../../../blockchain";
 import type { VMExecution } from "../../../execution";
 import type { TxReceiptWithType } from "../../../execution/receipt";
 import type { P2PPeerPool } from "../../../net/p2p-peerpool";
-import type { Peer } from "../../../net/peer/peer";
 import type { TxPool } from "../../../service/txpool";
 import { FullSynchronizer } from "../../../sync";
+import type { Peer } from "../../peer/peer";
 
 export interface GetBlockHeadersData {
 	reqId: bigint;

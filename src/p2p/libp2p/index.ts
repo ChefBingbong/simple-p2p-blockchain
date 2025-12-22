@@ -44,110 +44,91 @@
  * ```
  */
 
-// Main node class and factory
-export { P2PNode, createP2PNode, createAndStartP2PNode } from "./node.ts";
-
 // Address manager
 export {
 	AddressManager,
 	createAddressManager,
-	type AddressManagerInit,
 	type AddressManagerComponents,
+	type AddressManagerInit,
 } from "./address-manager.ts";
-
-// Transport manager
-export {
-	TransportManager,
-	createTransportManager,
-	TransportUnavailableError,
-	UnsupportedListenAddressError,
-	type TransportManagerInit,
-	type TransportManagerComponents,
-} from "./transport-manager.ts";
-
 // Connection manager
 export {
 	ConnectionManager,
 	ConnectionWrapper,
 	createConnectionManager,
-	type ConnectionManagerInit,
 	type ConnectionManagerComponents,
+	type ConnectionManagerInit,
 } from "./connection-manager.ts";
-
+// Main node class and factory
+export { createAndStartP2PNode, createP2PNode, P2PNode } from "./node.ts";
 // Registrar
 export {
-	Registrar,
 	createRegistrar,
 	DuplicateProtocolHandlerError,
+	Registrar,
 	UnhandledProtocolError,
 	type RegistrarComponents,
 } from "./registrar.ts";
+// Transport manager
+export {
+	createTransportManager,
+	TransportManager,
+	TransportUnavailableError,
+	UnsupportedListenAddressError,
+	type TransportManagerComponents,
+	type TransportManagerInit,
+} from "./transport-manager.ts";
 
 // Types
 export type {
+	AbortOptions,
+	// Configuration types
+	AddressConfig,
+	AddressManager as AddressManagerInterface,
+	ComponentLogger,
+	Connection,
+	ConnectionDirection,
+	ConnectionManager as ConnectionManagerInterface,
+	ConnectionStatus,
+	// Connection types
+	ConnectionTimeline,
+	IdentifyResult,
+	// Component types
+	Logger,
+	P2PNodeComponents,
+	// Event types
+	P2PNodeEvents,
+	P2PNodeInit,
+	P2PNode as P2PNodeInterface,
+	P2PNodeStatus,
+	Peer,
+	PeerDiscovery,
+	PeerDiscoveryEvents,
 	// Core types
 	PeerId,
-	P2PNodeStatus,
-	ConnectionDirection,
-	ConnectionStatus,
-	AbortOptions,
-
+	// Peer types
+	PeerInfo,
+	PeerUpdate,
+	Registrar as RegistrarInterface,
 	// Stream handler types
 	StreamHandler,
 	StreamHandlerOptions,
 	StreamHandlerRecord,
-
+	Topology,
 	// Topology types
 	TopologyFilter,
-	Topology,
-
-	// Peer types
-	PeerInfo,
-	Peer,
-	PeerUpdate,
-
-	// Connection types
-	ConnectionTimeline,
-	Connection,
-
-	// Event types
-	P2PNodeEvents,
-	IdentifyResult,
-
-	// Component types
-	Logger,
-	ComponentLogger,
-	TransportManagerDialOptions,
-	AddressManager as AddressManagerInterface,
-	TransportManager as TransportManagerInterface,
-	ConnectionManager as ConnectionManagerInterface,
-	Registrar as RegistrarInterface,
-
-	// Configuration types
-	AddressConfig,
 	TransportFactory,
-	PeerDiscovery,
-	PeerDiscoveryEvents,
-	P2PNodeInit,
-	P2PNodeComponents,
-	P2PNode as P2PNodeInterface,
+	TransportManagerDialOptions,
+	TransportManager as TransportManagerInterface,
 } from "./types.ts";
 
 // Utility functions
 export {
-	peerIdToString,
-	peerIdEquals,
-	peerDiscoverySymbol,
+	DEFAULT_DIAL_TIMEOUT,
+	DEFAULT_MAX_CONNECTIONS,
 	DEFAULT_MAX_INBOUND_STREAMS,
 	DEFAULT_MAX_OUTBOUND_STREAMS,
-	DEFAULT_MAX_CONNECTIONS,
-	DEFAULT_DIAL_TIMEOUT,
+	peerDiscoverySymbol,
+	peerIdEquals,
+	peerIdToString,
 } from "./types.ts";
-
-// Discovery modules
-export {
-	DPTDiscovery,
-	dptDiscovery,
-	type DPTDiscoveryInit,
-	type DPTDiscoveryComponents,
-} from "./discovery/index.ts";
