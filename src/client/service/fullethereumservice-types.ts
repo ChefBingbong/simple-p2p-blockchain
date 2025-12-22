@@ -3,13 +3,13 @@ import type { Chain } from "../blockchain";
 import type { Config } from "../config/index.ts";
 import type { VMExecution } from "../execution";
 import type { PeerPoolLike } from "../net/peerpool-types.ts";
+import type { ExecutionNode } from "../node/index.ts";
 import type { FullSynchronizer } from "../sync";
-import type { P2PFullEthereumService } from "./p2p-fullethereumservice.ts";
 import type { TxPool } from "./txpool.ts";
 
 /**
- * Common interface for FullEthereumService implementations
- * Now only P2PFullEthereumService is supported
+ * Common interface for execution node
+ * @deprecated Use ExecutionNode directly
  */
 export interface IFullEthereumService {
 	pool: PeerPoolLike;
@@ -20,16 +20,16 @@ export interface IFullEthereumService {
 }
 
 /**
- * Type alias for FullEthereumService implementations
- * Now only P2PFullEthereumService is supported
+ * Type alias for execution node
+ * @deprecated Use ExecutionNode directly
  */
-export type FullEthereumServiceLike = P2PFullEthereumService;
+export type FullEthereumServiceLike = ExecutionNode;
 
 /**
  * Backward compatibility alias
- * @deprecated Use P2PFullEthereumService directly
+ * @deprecated Use ExecutionNode directly
  */
-export type FullEthereumService = P2PFullEthereumService;
+export type FullEthereumService = ExecutionNode;
 
 export interface ServiceOptions {
 	/* Config (should have node property - Config now creates P2PNode automatically) */

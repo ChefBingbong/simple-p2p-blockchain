@@ -1,13 +1,12 @@
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { getBlockByOption } from "../../helpers.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { toJSONRPCBlock } from "./helpers.ts";
 import { getBlockByNumberSchema } from "./schema.ts";
 
-export const getBlockByNumber = (client: EthereumClient) => {
-	const service = client.service as any;
-	const chain = service.chain;
+export const getBlockByNumber = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(
 		getBlockByNumberSchema,
 		async (params: [string, boolean], _c) => {

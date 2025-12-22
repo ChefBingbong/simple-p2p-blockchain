@@ -1,4 +1,4 @@
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { DebugRpcMethods, RpcMethods } from "../types.ts";
 import { getRawBlock } from "./get-raw-block.ts";
 import { getRawHeader } from "./get-raw-header.ts";
@@ -8,14 +8,14 @@ import { setHead } from "./set-head.ts";
 import { verbosity } from "./verbosity.ts";
 
 export const createDebugRpcMethods = (
-	client: EthereumClient,
+	node: ExecutionNode,
 ): RpcMethods<typeof DebugRpcMethods> => {
 	return {
-		debug_getRawBlock: getRawBlock(client),
-		debug_getRawHeader: getRawHeader(client),
-		debug_getRawReceipts: getRawReceipts(client),
-		debug_getRawTransaction: getRawTransaction(client),
-		debug_setHead: setHead(client),
-		debug_verbosity: verbosity(client),
+		debug_getRawBlock: getRawBlock(node),
+		debug_getRawHeader: getRawHeader(node),
+		debug_getRawReceipts: getRawReceipts(node),
+		debug_getRawTransaction: getRawTransaction(node),
+		debug_setHead: setHead(node),
+		debug_verbosity: verbosity(node),
 	};
 };

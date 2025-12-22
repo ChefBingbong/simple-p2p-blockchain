@@ -28,13 +28,13 @@ import {
 	createAddressFromPrivateKey,
 	hexToBytes,
 } from "../../utils/index.ts";
-import { EthereumClient } from "../client.ts";
 import { Config } from "../config/index.ts";
 import { DataDirectory, SyncMode } from "../config/types.ts";
 import { LevelDB } from "../execution/level.ts";
 import { getLogger, type Logger } from "../logging.ts";
 import { dptDiscovery } from "../net/peer/discover.ts";
 import { ETH } from "../net/protocol/eth/eth.ts";
+import { ExecutionNode } from "../node/index.ts";
 import { setupMetrics } from "../util/metrics.ts";
 
 debug.enable("p2p:*");
@@ -528,8 +528,8 @@ async function startClient() {
 		`⛓️  Genesis block hash: ${bytesToHex(blockchain.genesisBlock.hash())}\n`,
 	);
 
-	// Create and start client with databases
-	const client = await EthereumClient.create({
+	// Create and start node with databases
+	const node = await ExecutionNode.init({
 		config,
 		blockchain,
 		genesisState,
@@ -538,7 +538,7 @@ async function startClient() {
 		metaDB,
 	});
 
-	await client.start();
+	await node.start();
 
 	console.log("\n" + "=".repeat(60));
 	console.log("✅ Node started successfully!");
@@ -551,36 +551,36 @@ async function startClient() {
 	console.log(`   Enode:     enode://${nodeIdHex}@127.0.0.1:${port}`);
 	console.log("=".repeat(60) + "\n");
 
-	return { client };
+	return { client: node };
 }
 
 const stopClient = async (
-	clientStartPromise: Promise<{ client: EthereumClient } | null>,
+	clientStartPromise: Promise<{ client: ExecutionNode } | null>,
 ) => {
 	console.info(
-		"\nCaught interrupt signal. Obtaining client handle for clean shutdown...",
+		"\nCaught interrupt signal. Obtaining node handle for clean shutdown...",
 	);
 	console.info(
-		"(This might take a little longer if client not yet fully started)",
+		"(This might take a little longer if node not yet fully started)",
 	);
 
 	let timeoutHandle: NodeJS.Timeout | undefined;
 	if (clientStartPromise?.toString().includes("Promise") === true) {
 		timeoutHandle = setTimeout(() => {
-			console.warn("Client has become unresponsive while starting up.");
+			console.warn("Node has become unresponsive while starting up.");
 			console.warn("Check logging output for potential errors. Exiting...");
 			process.exit(1);
 		}, 30000);
 	}
 
-	const clientHandle = await clientStartPromise;
-	if (clientHandle !== null) {
-		console.info("Shutting down the client and the servers...");
-		const { client } = clientHandle;
+	const nodeHandle = await clientStartPromise;
+	if (nodeHandle !== null) {
+		console.info("Shutting down the node and the servers...");
+		const { client } = nodeHandle;
 		await client.stop();
 		console.info("Exiting.");
 	} else {
-		console.info("Client did not start properly, exiting...");
+		console.info("Node did not start properly, exiting...");
 	}
 
 	if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -588,23 +588,23 @@ const stopClient = async (
 };
 
 async function run() {
-	const clientStartPromise = startClient().catch((e) => {
-		console.error("Error starting client", e);
+	const nodeStartPromise = startClient().catch((e) => {
+		console.error("Error starting node", e);
 		return null;
 	});
 
 	process.on("SIGINT", async () => {
-		await stopClient(clientStartPromise);
+		await stopClient(nodeStartPromise);
 	});
 
 	process.on("SIGTERM", async () => {
-		await stopClient(clientStartPromise);
+		await stopClient(nodeStartPromise);
 	});
 
 	process.on("uncaughtException", (err) => {
 		console.error(`Uncaught error: ${err.message}`);
 		console.error(err);
-		void stopClient(clientStartPromise);
+		void stopClient(nodeStartPromise);
 	});
 }
 

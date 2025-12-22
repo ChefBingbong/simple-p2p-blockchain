@@ -1,20 +1,18 @@
 import z from "zod";
 import { bytesToHex } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { FullEthereumService } from "../../../service/index.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { getClientVersion } from "../../../util/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { nodeInfoSchema } from "./schema.ts";
 
 export const nodeInfo = (
-	client: EthereumClient,
-	service: FullEthereumService,
+	node: ExecutionNode,
 ) =>
 	createRpcMethod(nodeInfoSchema, async (_params, _c) => {
 		try {
-			const rlpxInfo = client.config.server!.getRlpxInfo();
-			const latestHeader = service.chain.headers.latest!;
+			const rlpxInfo = node.config.server!.getRlpxInfo();
+			const latestHeader = node.chain.headers.latest!;
 			const clientName = getClientVersion();
 
 			return safeResult({
@@ -30,9 +28,9 @@ export const nodeInfo = (
 				protocols: {
 					eth: {
 						difficulty: latestHeader.difficulty.toString(),
-						genesis: bytesToHex(service.chain.genesis.hash()),
+						genesis: bytesToHex(node.chain.genesis.hash()),
 						head: bytesToHex(latestHeader.mixHash),
-						network: service.chain.chainId.toString(),
+						network: node.chain.chainId.toString(),
 					},
 				},
 			});

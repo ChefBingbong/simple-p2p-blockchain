@@ -1,4 +1,4 @@
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { EthRpcMethods, RpcMethods } from "../types.ts";
 import { blockNumber } from "./block-number.ts";
 import { chainId } from "./chain-id.ts";
@@ -23,32 +23,32 @@ import { sendRawTransaction } from "./send-raw-transaction.ts";
 import { syncing } from "./syncing.ts";
 
 export const createEthRpcMethods = (
-	client: EthereumClient,
+	node: ExecutionNode,
 ): RpcMethods<typeof EthRpcMethods> => {
 	return {
-		eth_blockNumber: blockNumber(client),
-		eth_chainId: chainId(client),
-		eth_coinbase: coinbase(client),
-		eth_estimateGas: estimateGas(client),
-		eth_gasPrice: gasPrice(client),
-		eth_getBalance: getBalance(client),
-		eth_getBlockByHash: getBlockByHash(client),
-		eth_getBlockByNumber: getBlockByNumber(client),
-		eth_getBlockReceipts: getBlockReceipts(client),
-		eth_getBlockTransactionCountByHash: getBlockTransactionCountByHash(client),
+		eth_blockNumber: blockNumber(node),
+		eth_chainId: chainId(node),
+		eth_coinbase: coinbase(node),
+		eth_estimateGas: estimateGas(node),
+		eth_gasPrice: gasPrice(node),
+		eth_getBalance: getBalance(node),
+		eth_getBlockByHash: getBlockByHash(node),
+		eth_getBlockByNumber: getBlockByNumber(node),
+		eth_getBlockReceipts: getBlockReceipts(node),
+		eth_getBlockTransactionCountByHash: getBlockTransactionCountByHash(node),
 		eth_getBlockTransactionCountByNumber:
-			getBlockTransactionCountByNumber(client),
-		eth_getProof: getProof(client),
+			getBlockTransactionCountByNumber(node),
+		eth_getProof: getProof(node),
 		eth_getTransactionByBlockHashAndIndex:
-			getTransactionByBlockHashAndIndex(client),
+			getTransactionByBlockHashAndIndex(node),
 		eth_getTransactionByBlockNumberAndIndex:
-			getTransactionByBlockNumberAndIndex(client),
-		eth_getTransactionByHash: getTransactionByHash(client),
-		eth_getTransactionCount: getTransactionCount(client),
-		eth_getTransactionReceipt: getTransactionReceipt(client),
-		eth_getUncleCountByBlockNumber: getUncleCountByBlockNumber(client),
-		eth_protocolVersion: protocolVersion(client),
-		eth_sendRawTransaction: sendRawTransaction(client),
-		eth_syncing: syncing(client),
+			getTransactionByBlockNumberAndIndex(node),
+		eth_getTransactionByHash: getTransactionByHash(node),
+		eth_getTransactionCount: getTransactionCount(node),
+		eth_getTransactionReceipt: getTransactionReceipt(node),
+		eth_getUncleCountByBlockNumber: getUncleCountByBlockNumber(node),
+		eth_protocolVersion: protocolVersion(node),
+		eth_sendRawTransaction: sendRawTransaction(node),
+		eth_syncing: syncing(node),
 	};
 };

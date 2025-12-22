@@ -4,20 +4,18 @@ import { hexToBytes, isHexString } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
 import type { VM } from "../../../../vm/index.ts";
 import { runBlock } from "../../../../vm/index.ts";
-import type { EthereumClient } from "../../../client.ts";
 import type { ReceiptsManager } from "../../../execution/receipt.ts";
-import type { FullEthereumService } from "../../../service";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { getBlockByOption } from "../../helpers.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { toJSONRPCReceipt } from "./helpers.ts";
 import { getBlockReceiptsSchema } from "./schema.ts";
 
-export const getBlockReceipts = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
-	const chain = service.chain;
-	const vm: VM | undefined = service.execution?.vm;
+export const getBlockReceipts = (node: ExecutionNode) => {
+	const chain = node.chain;
+	const vm: VM | undefined = node.execution?.vm;
 	const receiptsManager: ReceiptsManager | undefined =
-		service.execution?.receiptsManager;
+		node.execution?.receiptsManager;
 	return createRpcMethod(
 		getBlockReceiptsSchema,
 		async (params: [string], _c) => {

@@ -1,18 +1,15 @@
 import type { PrefixedHexString } from "../../../../utils/index.ts";
 import { hexToBytes } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { ReceiptsManager } from "../../../execution/receipt.ts";
 import type { TxIndex } from "../../../execution/txIndex.ts";
-import type { FullEthereumService } from "../../../service";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { toJSONRPCTx } from "../../helpers.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { getTransactionByHashSchema } from "./schema.ts";
 
-export const getTransactionByHash = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
-	const chain = service.chain;
-	const txIndex: TxIndex | undefined = service.execution?.txIndex;
+export const getTransactionByHash = (node: ExecutionNode) => {
+	const chain = node.chain;
+	const txIndex: TxIndex | undefined = node.execution?.txIndex;
 	return createRpcMethod(
 		getTransactionByHashSchema,
 		async (params: [PrefixedHexString], _c) => {

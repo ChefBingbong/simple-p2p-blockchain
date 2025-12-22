@@ -1,13 +1,12 @@
 import { intToHex } from "../../../../utils/index.ts";
 import { safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { getBlockByOption } from "../../helpers.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { getBlockTransactionCountByNumberSchema } from "./schema.ts";
 
-export const getBlockTransactionCountByNumber = (client: EthereumClient) => {
-	const service = client.service as any;
-	const chain = service.chain;
+export const getBlockTransactionCountByNumber = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(
 		getBlockTransactionCountByNumberSchema,
 		async (params: [string], _c) => {

@@ -1,14 +1,13 @@
 import { BIGINT_0, bigIntToHex } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { syncingSchema } from "./schema.ts";
 
-export const syncing = (client: EthereumClient) => {
-	const service = client.service as any;
-	const chain = service.chain;
+export const syncing = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(syncingSchema, async (_params, _c) => {
-		if (client.config.synchronized) {
+		if (node.config.synchronized) {
 			return safeResult(false);
 		}
 
@@ -16,11 +15,11 @@ export const syncing = (client: EthereumClient) => {
 			chain.headers?.latest ?? (await chain.getCanonicalHeadHeader());
 		const currentBlock = bigIntToHex(currentBlockHeader.number);
 
-		const synchronizer = client.service!.synchronizer;
+		const synchronizer = node.synchronizer;
 		if (!synchronizer) {
 			return safeResult(false);
 		}
-		const { syncTargetHeight } = client.config;
+		const { syncTargetHeight } = node.config;
 		const startingBlock = bigIntToHex(synchronizer.startingBlock);
 
 		let highestBlock: string | undefined;

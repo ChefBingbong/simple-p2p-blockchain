@@ -2,7 +2,7 @@ import { type ServerType, serve } from "@hono/node-server";
 import type { Env } from "hono";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
-import type { EthereumClient } from "../client.ts";
+import type { ExecutionNode } from "../node/index.ts";
 import { createRpcHandlers } from "./modules/index.ts";
 import { rpcRequestSchema } from "./types.ts";
 import { rpcValidator } from "./validation.ts";
@@ -13,12 +13,9 @@ export type RPCArgs = {
 	rpcPort: number;
 };
 
-export const createRpcManager = (
-	ethClient: EthereumClient,
-	rpcArgs: RPCArgs,
-) => {
+export const createRpcManager = (node: ExecutionNode, rpcArgs: RPCArgs) => {
 	const createKadApi = () => {
-		const { rpcHandlers, methods } = createRpcHandlers(ethClient, true);
+		const { rpcHandlers, methods } = createRpcHandlers(node, true);
 		const namespaces = methods.map((m) => m.split("_")[0]);
 
 		const client = new Hono<Env>()
@@ -42,12 +39,9 @@ export const createRpcManager = (
 	return servers;
 };
 
-export const createP2PRpcManager = (
-	ethClient: EthereumClient,
-	rpcArgs: RPCArgs,
-) => {
+export const createP2PRpcManager = (node: ExecutionNode, rpcArgs: RPCArgs) => {
 	const createKadApi = () => {
-		const { rpcHandlers, methods } = createRpcHandlers(ethClient, true);
+		const { rpcHandlers, methods } = createRpcHandlers(node, true);
 		const namespaces = methods.map((m) => m.split("_")[0]);
 
 		const client = new Hono<Env>()

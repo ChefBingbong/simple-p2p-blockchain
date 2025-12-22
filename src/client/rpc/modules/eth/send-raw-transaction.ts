@@ -8,32 +8,30 @@ import {
 	hexToBytes,
 } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { FullEthereumService } from "../../../service";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { sendRawTransactionSchema } from "./schema.ts";
 
-export const sendRawTransaction = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
+export const sendRawTransaction = (node: ExecutionNode) => {
 	return createRpcMethod(
 		sendRawTransactionSchema,
 		async (params: [PrefixedHexString], _c) => {
 			const [serializedTx] = params;
 
-			const { syncTargetHeight } = client.config;
-			if (!client.config.synchronized) {
+			const { syncTargetHeight } = node.config;
+			if (!node.config.synchronized) {
 				return safeError(
 					new Error(
-						"client is not aware of the current chain height yet (give sync some more time)",
+						"node is not aware of the current chain height yet (give sync some more time)",
 					),
 				);
 			}
-			const chainHeight = client.chain.headers.height;
+			const chainHeight = node.chain.headers.height;
 			let txTargetHeight = syncTargetHeight ?? BIGINT_0;
 			if (txTargetHeight <= chainHeight) {
 				txTargetHeight = chainHeight + BIGINT_1;
 			}
-			const common = client.config.chainCommon.copy();
+			const common = node.config.chainCommon.copy();
 
 			let tx: TypedTransaction;
 			try {
@@ -49,7 +47,7 @@ export const sendRawTransaction = (client: EthereumClient) => {
 				return safeError(new Error("tx needs to be signed"));
 			}
 
-			const { txPool } = service as FullEthereumService;
+			const { txPool } = node;
 
 			try {
 				await txPool.add(tx, true);
@@ -57,12 +55,12 @@ export const sendRawTransaction = (client: EthereumClient) => {
 				return safeError(new Error(error.message ?? error.toString()));
 			}
 
-			const peerPool = service.pool;
+			const peerPool = node.pool;
 			console.log("peerPool", peerPool.peers);
 			if (
 				peerPool.peers.length === 0 &&
-				!client.config.options.mine &&
-				client.config.options.isSingleNode === false
+				!node.config.options.mine &&
+				node.config.options.isSingleNode === false
 			) {
 				return safeError(new Error("no peer connection available"));
 			}
