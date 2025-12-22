@@ -443,7 +443,7 @@ export const BASE_PROTOCOL_LENGTH = 16;
 /**
  * Default ping interval in milliseconds
  */
-export const PING_INTERVAL = 15000;
+export const PING_INTERVAL = 35000;
 
 /**
  * Disconnect reasons (re-exported for convenience)
