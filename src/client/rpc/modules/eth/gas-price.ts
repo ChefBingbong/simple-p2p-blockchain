@@ -1,13 +1,12 @@
 import type { LegacyTx } from "../../../../tx/index.ts";
 import { BIGINT_0, bigIntToHex } from "../../../../utils/index.ts";
 import { safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { gasPriceSchema } from "./schema.ts";
 
-export const gasPrice = (client: EthereumClient) => {
-	const service = client.service as any;
-	const chain = service.chain;
+export const gasPrice = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(gasPriceSchema, async (_params, _c) => {
 		const minGasPrice = BIGINT_0;
 		let gasPrice = BIGINT_0;

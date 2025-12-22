@@ -4,22 +4,20 @@ import {
 	BIGINT_1,
 	createAddressFromString,
 	createZeroAddress,
+	EthereumJSErrorWithoutCode,
 } from "../../../../utils/index.ts";
-import { EthereumJSErrorWithoutCode } from "../../../../utils/index.ts";
 import { safeResult } from "../../../../utils/safe.ts";
 import type { VM } from "../../../../vm/index.ts";
 import { runTx } from "../../../../vm/index.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { FullEthereumService } from "../../../service";
-import type { RPCTx } from "../../types.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { getBlockByOption } from "../../helpers.ts";
+import type { RPCTx } from "../../types.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { estimateGasSchema } from "./schema.ts";
 
-export const estimateGas = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
-	const chain = service.chain;
-	const vm: VM | undefined = service.execution?.vm;
+export const estimateGas = (node: ExecutionNode) => {
+	const chain = node.chain;
+	const vm: VM | undefined = node.execution?.vm;
 	return createRpcMethod(
 		estimateGasSchema,
 		async (params: [RPCTx, string?], _c) => {

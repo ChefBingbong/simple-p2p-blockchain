@@ -40,6 +40,7 @@
 		"@peculiar/x509": "^1.14.0",
 		"@polkadot/wasm-crypto": "^7.5.3",
 		"@scalar/hono-api-reference": "^0.9.28",
+		"@types/debug": "^4.1.12",
 		"any-signal": "^4.1.1",
 		"benchmark": "^2.1.4",
 		"bigint-crypto-utils": "^3.3.0",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { multiaddr } from "@multiformats/multiaddr";
+import { Multiaddr, multiaddr } from "@multiformats/multiaddr";
 import type { AbstractLevel } from "abstract-level";
 import { createHash } from "crypto";
 import debug from "debug";
@@ -17,7 +17,8 @@ import {
 	Hardfork,
 } from "../../chain-config/index.ts";
 import { Ethash } from "../../eth-hash/index.ts";
-import { createP2PNode, dptDiscovery } from "../../p2p/libp2p/index.ts";
+import { PeerInfo } from "../../kademlia/types.ts";
+import { createP2PNode } from "../../p2p/libp2p/index.ts";
 import type { ComponentLogger } from "../../p2p/libp2p/types.ts";
 import { rlpx } from "../../p2p/transport/rlpx/index.ts";
 import {
@@ -27,15 +28,13 @@ import {
 	createAddressFromPrivateKey,
 	hexToBytes,
 } from "../../utils/index.ts";
-import { EthereumClient } from "../client.ts";
+import { Config } from "../config/index.ts";
+import { DataDirectory, SyncMode } from "../config/types.ts";
 import { LevelDB } from "../execution/level.ts";
-import { DataDirectory, SyncMode } from "../index.ts";
 import { getLogger, type Logger } from "../logging.ts";
+import { dptDiscovery } from "../net/discovery/dpt-discovery.ts";
 import { ETH } from "../net/protocol/eth/eth.ts";
-import { P2PConfig } from "../p2p-config.ts";
-import { createP2PRpcManager, RPCArgs } from "../rpc/index.ts";
-import type { P2PFullEthereumService } from "../service/p2p-fullethereumservice.ts";
-import { Event } from "../types.ts";
+import { ExecutionNode } from "../node/index.ts";
 import { setupMetrics } from "../util/metrics.ts";
 
 debug.enable("p2p:*");
@@ -285,6 +284,40 @@ function cleanDataDir(port: number): void {
 	}
 }
 
+function convertBootnodesToDPT(
+	bootnodes: Multiaddr[] | string[] | string,
+): PeerInfo[] {
+	const result: PeerInfo[] = [];
+
+	// Normalize to array
+	const bootnodeArray: Multiaddr[] = [];
+	if (typeof bootnodes === "string") {
+		bootnodeArray.push(multiaddr(bootnodes));
+	} else if (Array.isArray(bootnodes)) {
+		for (const bn of bootnodes) {
+			if (typeof bn === "string") {
+				bootnodeArray.push(multiaddr(bn));
+			} else {
+				bootnodeArray.push(bn);
+			}
+		}
+	}
+
+	// Convert each bootnode
+	for (const ma of bootnodeArray) {
+		try {
+			const peerInfo = this.multiaddrToDPTPeerInfo(ma);
+			if (peerInfo) {
+				result.push(peerInfo);
+			}
+		} catch (err) {
+			// this.logger?.warn(`Failed to convert bootnode ${ma.toString()}: ${err}`);
+		}
+	}
+
+	return result;
+}
+
 async function startClient() {
 	const port = parseInt(process.env.PORT || "8000", 10);
 	const cleanStart = process.env.CLEAN === "true";
@@ -416,9 +449,9 @@ async function startClient() {
 		maxConnections: 25,
 	} as any);
 
-	const config = new P2PConfig({
+	const config = new Config({
 		accounts: [nodeAccount], // This node's account for signing
-		bootnodes, // Keep for compatibility, but DPT uses dptBootnodes
+		bootnodes: convertBootnodesToDPT(bootnodes),
 		common,
 		datadir: getDataDir(port),
 		prometheusMetrics: setupMetrics(),
@@ -435,7 +468,6 @@ async function startClient() {
 		mine: isMiner,
 		minerCoinbase: nodeAccount[0], // Mining rewards go to this node's account
 		minPeers: 1,
-		multiaddrs: [],
 		port,
 		saveReceipts: true,
 		syncmode: SyncMode.Full,
@@ -496,8 +528,8 @@ async function startClient() {
 		`⛓️  Genesis block hash: ${bytesToHex(blockchain.genesisBlock.hash())}\n`,
 	);
 
-	// Create and start client with databases
-	const client = await EthereumClient.create({
+	// Create and start node with databases
+	const node = await ExecutionNode.init({
 		config,
 		blockchain,
 		genesisState,
@@ -506,61 +538,10 @@ async function startClient() {
 		metaDB,
 	});
 
-	await client.open();
-
-	// Update sync status
-	client.config.updateSynchronizedState(client.chain.headers.latest, true);
-
-	// Ensure txPool is running
-	const fullService = client.service as P2PFullEthereumService;
-	fullService.txPool?.checkRunState();
-
-	await client.start();
-
-	// Add peer connection monitoring
-	config.events.on(Event.PEER_CONNECTED, (peer) => {
-		console.log(
-			`\n🤝 PEER CONNECTED: ${peer.id?.slice(0, 16)}... from ${peer.address}`,
-		);
-		console.log(`   Total peers: ${client.service.pool.size}\n`);
-	});
-
-	config.events.on(Event.PEER_DISCONNECTED, (peer) => {
-		console.log(`\n👋 PEER DISCONNECTED: ${peer.id?.slice(0, 16)}...`);
-		console.log(`   Total peers: ${client.service.pool.size}\n`);
-	});
-
-	// Log peer count periodically
-	setInterval(() => {
-		const peerCount = client.service.pool.size;
-		const blockHeight = client.chain.headers.height;
-		if (peerCount > 0) {
-			console.log(
-				`📊 Status: ${peerCount} peer(s) connected, block height: ${blockHeight}`,
-			);
-		}
-	}, 30000); // Every 30 seconds
-
-	// Open execution layer FIRST (creates receiptsManager)
-	const service = client.service;
-	await service.execution.open();
-	await service.execution.run();
-
-	// Start RPC server AFTER execution is ready (so receiptsManager exists)
-	const rpcPort = RPC_BASE_PORT + (port - BOOTNODE_PORT);
-	console.log(`Starting RPC server on port ${rpcPort}`);
-	const rpcArgs: RPCArgs = {
-		rpc: true,
-		rpcAddr: "127.0.0.1",
-		rpcPort,
-	};
-
-	createP2PRpcManager(client, rpcArgs);
-
 	console.log("\n" + "=".repeat(60));
 	console.log("✅ Node started successfully!");
 	console.log(`   P2P port:  ${port}`);
-	console.log(`   RPC URL:   http://127.0.0.1:${rpcPort}`);
+	console.log(`   RPC URL:   http://127.0.0.1:${port + 300}`);
 	console.log(`   Account:   ${nodeAccount[0]}`);
 	if (isBootnode) {
 		console.log(`   Mining:    YES (rewards → ${nodeAccount[0]})`);
@@ -568,36 +549,36 @@ async function startClient() {
 	console.log(`   Enode:     enode://${nodeIdHex}@127.0.0.1:${port}`);
 	console.log("=".repeat(60) + "\n");
 
-	return { client };
+	return { client: node };
 }
 
 const stopClient = async (
-	clientStartPromise: Promise<{ client: EthereumClient } | null>,
+	clientStartPromise: Promise<{ client: ExecutionNode } | null>,
 ) => {
 	console.info(
-		"\nCaught interrupt signal. Obtaining client handle for clean shutdown...",
+		"\nCaught interrupt signal. Obtaining node handle for clean shutdown...",
 	);
 	console.info(
-		"(This might take a little longer if client not yet fully started)",
+		"(This might take a little longer if node not yet fully started)",
 	);
 
 	let timeoutHandle: NodeJS.Timeout | undefined;
 	if (clientStartPromise?.toString().includes("Promise") === true) {
 		timeoutHandle = setTimeout(() => {
-			console.warn("Client has become unresponsive while starting up.");
+			console.warn("Node has become unresponsive while starting up.");
 			console.warn("Check logging output for potential errors. Exiting...");
 			process.exit(1);
 		}, 30000);
 	}
 
-	const clientHandle = await clientStartPromise;
-	if (clientHandle !== null) {
-		console.info("Shutting down the client and the servers...");
-		const { client } = clientHandle;
+	const nodeHandle = await clientStartPromise;
+	if (nodeHandle !== null) {
+		console.info("Shutting down the node and the servers...");
+		const { client } = nodeHandle;
 		await client.stop();
 		console.info("Exiting.");
 	} else {
-		console.info("Client did not start properly, exiting...");
+		console.info("Node did not start properly, exiting...");
 	}
 
 	if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -605,23 +586,23 @@ const stopClient = async (
 };
 
 async function run() {
-	const clientStartPromise = startClient().catch((e) => {
-		console.error("Error starting client", e);
+	const nodeStartPromise = startClient().catch((e) => {
+		console.error("Error starting node", e);
 		return null;
 	});
 
 	process.on("SIGINT", async () => {
-		await stopClient(clientStartPromise);
+		await stopClient(nodeStartPromise);
 	});
 
 	process.on("SIGTERM", async () => {
-		await stopClient(clientStartPromise);
+		await stopClient(nodeStartPromise);
 	});
 
 	process.on("uncaughtException", (err) => {
 		console.error(`Uncaught error: ${err.message}`);
 		console.error(err);
-		void stopClient(clientStartPromise);
+		void stopClient(nodeStartPromise);
 	});
 }
 

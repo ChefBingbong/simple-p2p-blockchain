@@ -52,7 +52,7 @@ class ProtocolHandlerRegistry {
 export abstract class Protocol {
 	public events: EventEmitter<ProtocolEvent>;
 	protected _version: number;
-	protected _peer: Peer | ProtocolConnection;
+	protected _peer: ProtocolConnection;
 	protected _connection: ProtocolConnection;
 	protected _statusTimeoutId?: NodeJS.Timeout;
 	protected _messageCodes: MessageCodes;

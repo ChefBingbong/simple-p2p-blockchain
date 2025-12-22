@@ -1101,8 +1101,8 @@ export class TxPool {
     private _vm: VM;
     private _rpcDebug: boolean;
 
-    constructor(client: EthereumClient, rpcDebug: boolean) {
-        const service = client.service as FullEthereumService;
+    constructor(client: ExecutionNode, rpcDebug: boolean) {
+        const service = client as FullEthereumService;
         this._txpool = service.txPool;
         this._vm = service.execution.vm;
         this._rpcDebug = rpcDebug;

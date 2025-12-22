@@ -274,7 +274,10 @@ async function main() {
 		console.log("");
 		console.log("Waiting for receipt...");
 
-		const receipt = await client.waitForTransactionReceipt({ hash });
+		const receipt = await client.waitForTransactionReceipt({
+			hash,
+			pollingInterval: 100,
+		});
 		console.log(receipt);
 		console.log(`  Block:   ${receipt.blockNumber}`);
 		console.log(`  Status:  ${receipt.status}`);

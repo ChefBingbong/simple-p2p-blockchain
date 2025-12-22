@@ -1,24 +1,25 @@
-import { bytesToHex, hexToBytes } from "../../../../utils/index.ts";
-import { EthereumJSErrorWithoutCode } from "../../../../utils/index.ts";
 import type { PrefixedHexString } from "../../../../utils/index.ts";
+import {
+	bytesToHex,
+	EthereumJSErrorWithoutCode,
+	hexToBytes,
+} from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { FullEthereumService } from "../../../service";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { getRawTransactionSchema } from "./schema.ts";
 
-export const getRawTransaction = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
-	const chain = service.chain;
+export const getRawTransaction = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(
 		getRawTransactionSchema,
 		async (params: [PrefixedHexString], _c) => {
 			const [txHash] = params;
-			if (!service.execution.receiptsManager)
+			if (!node.execution.receiptsManager)
 				return safeError(EthereumJSErrorWithoutCode("missing receiptsManager"));
-			if (!service.execution.txIndex)
+			if (!node.execution.txIndex)
 				return safeError(EthereumJSErrorWithoutCode("missing txIndex"));
-			const txHashIndex = await service.execution.txIndex.getIndex(
+			const txHashIndex = await node.execution.txIndex.getIndex(
 				hexToBytes(txHash),
 			);
 			if (!txHashIndex) return safeResult(null);

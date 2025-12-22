@@ -1,13 +1,11 @@
 import { safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { FullEthereumService } from "../../../service";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { toJSONRPCTx } from "../../helpers.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { contentSchema } from "./schema.ts";
 
-export const content = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
-	const txpool = service.txPool;
+export const content = (node: ExecutionNode) => {
+	const txpool = node.txPool;
 	return createRpcMethod(contentSchema, async (_params, _c) => {
 		const pending = new Map();
 		// Iterate over both pending and queued pools

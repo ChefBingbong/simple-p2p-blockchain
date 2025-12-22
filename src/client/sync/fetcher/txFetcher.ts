@@ -1,5 +1,5 @@
 import { bytesToUnprefixedHex, hexToBytes } from "../../../utils";
-import type { Config } from "../../config.ts";
+import type { Config } from "../../config/index.ts";
 import type { Peer } from "../../net/peer/peer.ts";
 import type { PeerPoolLike } from "../../net/peerpool-types.ts";
 import type { TxPool } from "../../service/txpool.ts";
@@ -51,7 +51,7 @@ export class TxFetcher {
 		// Periodically process pending announcements
 		this.fetchInterval = setInterval(() => {
 			this.processPending().catch((e) => {
-				this.config.logger?.debug(`TxFetcher error: ${e.message}`);
+				this.config.options.logger?.debug(`TxFetcher error: ${e.message}`);
 			});
 		}, 100); // Check every 100ms
 	}
@@ -118,7 +118,7 @@ export class TxFetcher {
 
 		// Fetch from each peer
 		for (const [peerId, announcements] of byPeer) {
-			const peer = this.pool.peers.find((p) => p.id === peerId);
+			const peer = this.pool.getConnectedPeers().find((p) => p.id === peerId);
 			if (!peer || !peer.eth) continue;
 
 			const batch = announcements.slice(0, this.BATCH_SIZE);
@@ -140,14 +140,14 @@ export class TxFetcher {
 						try {
 							await this.txPool.add(tx);
 						} catch (e: any) {
-							this.config.logger?.debug(
+							this.config.options.logger?.debug(
 								`Failed to add fetched tx ${txHash}: ${e.message}`,
 							);
 						}
 					}
 				}
 			} catch (e: any) {
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Failed to fetch txs from peer ${peerId}: ${e.message}`,
 				);
 			}

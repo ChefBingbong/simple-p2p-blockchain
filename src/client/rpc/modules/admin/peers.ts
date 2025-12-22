@@ -1,20 +1,20 @@
 import z from "zod";
 import { bytesToHex } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 // RPC admin peers - Updated for P2P architecture
 import { createRpcMethod } from "../../validation.ts";
 import { peersSchema } from "./schema.ts";
 
-export const peers = (client: EthereumClient) =>
+export const peers = (node: ExecutionNode) =>
 	createRpcMethod(peersSchema, async (_params, _c) => {
 		try {
-			const peers = client.service!.pool.peers;
+			const peers = node.network.getConnectedPeers();
 
 			return safeResult(
 				peers?.map((peer) => {
-				// P2PPeer doesn't expose connection.getHelloMessage() - use peer info instead
-				const name = null; // TODO: Get client ID from P2PPeer if available
+					// P2PPeer doesn't expose connection.getHelloMessage() - use peer info instead
+					const name = null; // TODO: Get client ID from P2PPeer if available
 					return {
 						id: peer.id,
 						name,

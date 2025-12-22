@@ -1,13 +1,11 @@
 import { addHexPrefix } from "../../../../utils/index.ts";
 import { safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { peerCountSchema } from "./schema.ts";
 
-export const peerCount = (client: EthereumClient) => {
-	const service = client.service as any;
-	const peerPool = service.pool;
+export const peerCount = (node: ExecutionNode) => {
 	return createRpcMethod(peerCountSchema, async (_params, _c) => {
-		return safeResult(addHexPrefix(peerPool.peers.length.toString(16)));
+		return safeResult(addHexPrefix(node.network.getPeerCount().toString(16)));
 	});
 };

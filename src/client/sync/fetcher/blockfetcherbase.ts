@@ -74,9 +74,9 @@ export abstract class BlockFetcherBase<JobResult, StorageItem> extends Fetcher<
 	tasks(
 		first = this.first,
 		count = this.count,
-		maxTasks = this.config.maxFetcherJobs,
+		maxTasks = this.config.options.maxFetcherJobs,
 	): JobTask[] {
-		const max = this.config.maxPerRequest;
+		const max = this.config.options.maxPerRequest;
 		const tasks: JobTask[] = [];
 		let debugStr = `first=${first}`;
 		let pushedCount = BIGINT_0;
@@ -114,7 +114,7 @@ export abstract class BlockFetcherBase<JobResult, StorageItem> extends Fetcher<
 		if (
 			this.in.length === 0 &&
 			this.count > BIGINT_0 &&
-			this.processed - this.finished < this.config.maxFetcherRequests
+			this.processed - this.finished < this.config.options.maxFetcherRequests
 		) {
 			this.DEBUG &&
 				this.debug(
@@ -234,8 +234,8 @@ export abstract class BlockFetcherBase<JobResult, StorageItem> extends Fetcher<
 		// we can step back here for blockfetcher
 		if (!destroyFetcher && this.reverse === false) {
 			stepBack = task.first - BIGINT_1;
-			if (stepBack > BigInt(this.config.safeReorgDistance)) {
-				stepBack = BigInt(this.config.safeReorgDistance);
+			if (stepBack > BigInt(this.config.options.safeReorgDistance)) {
+				stepBack = BigInt(this.config.options.safeReorgDistance);
 			}
 		}
 		return { destroyFetcher, banPeer, stepBack };

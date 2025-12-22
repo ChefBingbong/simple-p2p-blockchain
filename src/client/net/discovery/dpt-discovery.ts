@@ -8,11 +8,6 @@
 import { multiaddr } from "@multiformats/multiaddr";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { TypedEventEmitter } from "main-event";
-import {
-	DPT,
-	type PeerInfo as DPTPeerInfo,
-} from "../../../client/net/dpt-1/index.ts";
-import type { DPTOptions } from "../../../client/net/dpt-1/types.ts";
 import type {
 	ComponentLogger,
 	ConnectionManager,
@@ -21,8 +16,14 @@ import type {
 	PeerDiscovery,
 	PeerDiscoveryEvents,
 	PeerInfo,
-} from "../types.ts";
-import { peerDiscoverySymbol, peerIdEquals, peerIdToString } from "../types.ts";
+} from "../../../p2p/libp2p/types.ts";
+import {
+	peerDiscoverySymbol,
+	peerIdEquals,
+	peerIdToString,
+} from "../../../p2p/libp2p/types.ts";
+import { DPT, type PeerInfo as DPTPeerInfo } from "../dpt-1/index.ts";
+import type { DPTOptions } from "../dpt-1/types.ts";
 
 // ============================================================================
 // Constants

@@ -1,11 +1,10 @@
 import { safeError, safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { getUncleCountByBlockNumberSchema } from "./schema.ts";
 
-export const getUncleCountByBlockNumber = (client: EthereumClient) => {
-	const service = client.service as any;
-	const chain = service.chain;
+export const getUncleCountByBlockNumber = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(
 		getUncleCountByBlockNumberSchema,
 		async (params: [string], _c) => {

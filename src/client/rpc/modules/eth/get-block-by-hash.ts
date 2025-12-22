@@ -1,14 +1,13 @@
 import type { PrefixedHexString } from "../../../../utils/index.ts";
 import { hexToBytes } from "../../../../utils/index.ts";
 import { safeResult } from "../../../../utils/safe.ts";
-import type { EthereumClient } from "../../../client.ts";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { toJSONRPCBlock } from "./helpers.ts";
 import { getBlockByHashSchema } from "./schema.ts";
 
-export const getBlockByHash = (client: EthereumClient) => {
-	const service = client.service as any;
-	const chain = service.chain;
+export const getBlockByHash = (node: ExecutionNode) => {
+	const chain = node.chain;
 	return createRpcMethod(
 		getBlockByHashSchema,
 		async (params: [PrefixedHexString, boolean], _c) => {

@@ -9,8 +9,8 @@
 import { createHash } from "crypto";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 import { Common, Hardfork } from "../src/chain-config/index.ts";
+import { Config } from "../src/client/config/config.ts";
 import { ETH } from "../src/client/net/protocol/eth/eth.ts";
-import { P2PConfig } from "../src/client/p2p-config.ts";
 import { P2PFullEthereumService } from "../src/client/service/p2p-fullethereumservice.ts";
 import { createP2PNode, dptDiscovery } from "../src/p2p/libp2p/index.ts";
 import type { ComponentLogger, Logger } from "../src/p2p/libp2p/types.ts";
@@ -177,7 +177,7 @@ async function testBlockHeaders() {
 		} as any);
 
 		// Create P2PConfigs
-		const configA = new P2PConfig({
+		const configA = new Config({
 			common,
 			syncmode: "full",
 			port: TCP_PORT_A,
@@ -185,7 +185,7 @@ async function testBlockHeaders() {
 			node: nodeA,
 		});
 
-		const configB = new P2PConfig({
+		const configB = new Config({
 			common,
 			syncmode: "full",
 			port: TCP_PORT_B,

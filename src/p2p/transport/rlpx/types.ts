@@ -175,7 +175,7 @@ export interface RLPxDialOptions
 	 * Remote peer's node ID (public key without 0x04 prefix)
 	 * Required for initiating ECIES auth
 	 */
-	remoteId: Uint8Array;
+	remoteId?: Uint8Array;
 
 	/**
 	 * Use EIP-8 format for auth/ack messages
@@ -443,7 +443,7 @@ export const BASE_PROTOCOL_LENGTH = 16;
 /**
  * Default ping interval in milliseconds
  */
-export const PING_INTERVAL = 15000;
+export const PING_INTERVAL = 35000;
 
 /**
  * Disconnect reasons (re-exported for convenience)

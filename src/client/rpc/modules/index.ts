@@ -1,4 +1,4 @@
-import type { EthereumClient } from "../../client";
+import type { ExecutionNode } from "../../node/index.ts";
 import type { RpcHandler, RpcMethodFn } from "../types";
 import { createRpcHandler } from "../validation";
 import { createAdminRpcMethods } from "./admin/admin";
@@ -21,19 +21,19 @@ export * from "./txpool";
 export * from "./web3";
 
 export const createRpcHandlers = (
-	client: EthereumClient,
+	node: ExecutionNode,
 	debug: boolean,
 ): {
 	methods: string[];
 	rpcHandlers: RpcHandler<Record<string, RpcMethodFn>>;
 } => {
 	const methods: Record<AllRpcMethods, RpcMethodFn> = {
-		...createAdminRpcMethods(client),
-		...createEthRpcMethods(client),
-		...createNetRpcMethods(client),
-		...createTxPoolRpcMethods(client),
-		...createWeb3RpcMethods(client),
-		...createDebugRpcMethods(client),
+		...createAdminRpcMethods(node),
+		...createEthRpcMethods(node),
+		...createNetRpcMethods(node),
+		...createTxPoolRpcMethods(node),
+		...createWeb3RpcMethods(node),
+		...createDebugRpcMethods(node),
 	};
 	return {
 		rpcHandlers: createRpcHandler(methods, { debug }),
@@ -42,19 +42,19 @@ export const createRpcHandlers = (
 };
 
 export const createP2PRpcHandlers = (
-	client: EthereumClient,
+	node: ExecutionNode,
 	debug: boolean,
 ): {
 	methods: string[];
 	rpcHandlers: RpcHandler<Record<string, RpcMethodFn>>;
 } => {
 	const methods: Record<AllRpcMethods, RpcMethodFn> = {
-		...createAdminRpcMethods(client),
-		...createEthRpcMethods(client),
-		...createNetRpcMethods(client),
-		...createTxPoolRpcMethods(client),
-		...createWeb3RpcMethods(client),
-		...createDebugRpcMethods(client),
+		...createAdminRpcMethods(node),
+		...createEthRpcMethods(node),
+		...createNetRpcMethods(node),
+		...createTxPoolRpcMethods(node),
+		...createWeb3RpcMethods(node),
+		...createDebugRpcMethods(node),
 	};
 	return {
 		rpcHandlers: createRpcHandler(methods, { debug }),

@@ -1,3 +1,4 @@
+import type { Block } from "../../../../block/index.ts";
 import {
 	BIGINT_0,
 	bigIntToHex,
@@ -5,21 +6,19 @@ import {
 } from "../../../../utils/index.ts";
 import { safeError, safeResult } from "../../../../utils/safe.ts";
 import type { VM } from "../../../../vm/index.ts";
-import type { EthereumClient } from "../../../client.ts";
-import type { FullEthereumService } from "../../../service";
+import type { ExecutionNode } from "../../../node/index.ts";
 import { getBlockByOption } from "../../helpers.ts";
 import { createRpcMethod } from "../../validation.ts";
 import { getTransactionCountSchema } from "./schema.ts";
 
-export const getTransactionCount = (client: EthereumClient) => {
-	const service = client.service as FullEthereumService;
-	const chain = service.chain;
-	const vm: VM | undefined = service.execution?.vm;
+export const getTransactionCount = (node: ExecutionNode) => {
+	const chain = node.chain;
+	const vm: VM | undefined = node.execution?.vm;
 	return createRpcMethod(
 		getTransactionCountSchema,
 		async (params: [string, string], _c) => {
 			const [addressHex, blockOpt] = params;
-			let block;
+			let block: Block;
 			if (blockOpt !== "pending")
 				block = await getBlockByOption(blockOpt, chain);
 			else block = await getBlockByOption("latest", chain);
@@ -40,7 +39,7 @@ export const getTransactionCount = (client: EthereumClient) => {
 			let pendingTxsCount = BIGINT_0;
 
 			if (blockOpt === "pending") {
-				const txPool = service.txPool;
+				const txPool = node.txPool;
 				const addr = addressHex.slice(2).toLowerCase();
 				const pendingTxs = txPool.pending.get(addr)?.length ?? 0;
 				const queuedTxs = txPool.queued.get(addr)?.length ?? 0;

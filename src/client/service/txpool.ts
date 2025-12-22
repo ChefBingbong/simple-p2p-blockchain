@@ -12,12 +12,14 @@ import {
 	hexToBytes,
 } from "../../utils";
 import type { VM } from "../../vm";
-import type { Config } from "../config.ts";
+import { Chain } from "../blockchain/chain.ts";
+import type { Config } from "../config/index.ts";
+import { VMExecution } from "../execution/vmexecution.ts";
 import type { QHeap } from "../ext/qheap.ts";
 import { Heap } from "../ext/qheap.ts";
+import { NetworkCore } from "../net/index.ts";
 import type { Peer } from "../net/peer/peer.ts";
 import type { PeerPoolLike } from "../net/peerpool-types.ts";
-import type { FullEthereumServiceLike } from "./fullethereumservice-types.ts";
 
 // Configuration constants
 const MIN_GAS_PRICE_BUMP_PERCENT = 10;
@@ -33,9 +35,9 @@ const ACCOUNT_QUEUE = 64; // Max queued per account
 export interface TxPoolOptions {
 	/* Config */
 	config: Config;
-
-	/* FullEthereumService or P2PFullEthereumService */
-	service: FullEthereumServiceLike;
+	pool: NetworkCore;
+	chain: Chain;
+	execution: VMExecution;
 }
 
 type TxPoolObject = {
@@ -76,7 +78,9 @@ type GasPrice = {
  */
 export class TxPool {
 	private config: Config;
-	private service: FullEthereumServiceLike;
+	private pool: NetworkCore;
+	private chain: Chain;
+	private execution: VMExecution;
 
 	private opened: boolean;
 
@@ -177,7 +181,9 @@ export class TxPool {
 	 */
 	constructor(options: TxPoolOptions) {
 		this.config = options.config;
-		this.service = options.service;
+		this.pool = options.pool;
+		this.chain = options.chain;
+		this.execution = options.execution;
 
 		// Dual pool structure
 		this.pending = new Map<UnprefixedAddress, TxPoolObject[]>();
@@ -211,7 +217,7 @@ export class TxPool {
 	private rebroadcast(): void {
 		if (!this.running) return;
 
-		const peers = this.service.pool.peers;
+		const peers = this.pool.getConnectedPeers();
 		if (peers.length === 0) return;
 
 		// Collect all pending tx hashes
@@ -232,7 +238,7 @@ export class TxPool {
 
 		this.sendNewTxHashes(txHashes, targetPeers);
 
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`Rebroadcast ${txHashes[2].length} tx hashes to ${targetPeers.length} peers`,
 		);
 	}
@@ -252,8 +258,8 @@ export class TxPool {
 
 		if (accountNonce === undefined) {
 			// Fetch from state
-			const block = await this.service.chain.getCanonicalHeadHeader();
-			const vmCopy = await this.service.execution.vm.shallowCopy();
+			const block = await this.chain.getCanonicalHeadHeader();
+			const vmCopy = await this.execution.vm.shallowCopy();
 			await vmCopy.stateManager.setStateRoot(block.stateRoot);
 			const address = new Address(hexToBytes(`0x${senderAddress}`));
 			let account = await vmCopy.stateManager.getAccount(address);
@@ -319,7 +325,7 @@ export class TxPool {
 		);
 
 		this.running = true;
-		this.config.logger?.info("TxPool started.");
+		this.config.options.logger?.info("TxPool started.");
 		return true;
 	}
 
@@ -361,7 +367,7 @@ export class TxPool {
 	 * @param newBlocks Blocks that became canonical
 	 */
 	async handleReorg(oldBlocks: Block[], newBlocks: Block[]): Promise<void> {
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool handling reorg: ${oldBlocks.length} old blocks, ${newBlocks.length} new blocks`,
 		);
 
@@ -387,9 +393,11 @@ export class TxPool {
 				try {
 					// Re-add as local to protect from immediate eviction
 					await this.add(tx, true);
-					this.config.logger?.debug(`Re-injected orphaned tx: ${txHash}`);
+					this.config.options.logger?.debug(
+						`Re-injected orphaned tx: ${txHash}`,
+					);
 				} catch (error: any) {
-					this.config.logger?.debug(
+					this.config.options.logger?.debug(
 						`Failed to re-inject orphaned tx ${txHash}: ${error.message}`,
 					);
 				}
@@ -473,7 +481,7 @@ export class TxPool {
 				this.validateTxGasBump(existingTxn.tx, tx);
 			}
 		}
-		const block = await this.service.chain.getCanonicalHeadHeader();
+		const block = await this.chain.getCanonicalHeadHeader();
 		if (tx.gasLimit > block.gasLimit) {
 			throw EthereumJSErrorWithoutCode(
 				`Tx gaslimit of ${tx.gasLimit} exceeds block gas limit of ${block.gasLimit} (exceeds last block gas limit)`,
@@ -481,7 +489,7 @@ export class TxPool {
 		}
 
 		// Copy VM in order to not overwrite the state root of the VMExecution module which may be concurrently running blocks
-		const vmCopy = await this.service.execution.vm.shallowCopy();
+		const vmCopy = await this.execution.vm.shallowCopy();
 		// Set state root to latest block so that account balance is correct when doing balance check
 		await vmCopy.stateManager.setStateRoot(block.stateRoot);
 		let account = await vmCopy.stateManager.getAccount(senderAddress);
@@ -599,8 +607,8 @@ export class TxPool {
 			// Get current account nonce
 			let accountNonce = this.accountNonces.get(addr);
 			if (accountNonce === undefined) {
-				const block = await this.service.chain.getCanonicalHeadHeader();
-				const vmCopy = await this.service.execution.vm.shallowCopy();
+				const block = await this.chain.getCanonicalHeadHeader();
+				const vmCopy = await this.execution.vm.shallowCopy();
 				await vmCopy.stateManager.setStateRoot(block.stateRoot);
 				const addrObj = new Address(hexToBytes(`0x${addr}`));
 				const account =
@@ -659,7 +667,7 @@ export class TxPool {
 					});
 				}
 
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Promoted ${toPromote.length} txs from queued to pending for ${addr}`,
 				);
 			}
@@ -678,13 +686,13 @@ export class TxPool {
 	 * Called after chain reorgs or when account state changes.
 	 */
 	async demoteUnexecutables(): Promise<void> {
-		const block = await this.service.chain.getCanonicalHeadHeader();
-		const vmCopy = await this.service.execution.vm.shallowCopy();
+		const block = await this.chain.getCanonicalHeadHeader();
+		const vmCopy = await this.execution.vm.shallowCopy();
 
 		try {
 			await vmCopy.stateManager.setStateRoot(block.stateRoot);
 		} catch (error) {
-			this.config.logger?.error(`Error setting state root: ${error}`);
+			this.config.options.logger?.error(`Error setting state root: ${error}`);
 			return;
 		}
 
@@ -745,7 +753,7 @@ export class TxPool {
 				this.pendingCount -= toDemote.length;
 				this.queuedCount += toDemote.length;
 
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Demoted ${toDemote.length} txs from pending to queued for ${addr}`,
 				);
 			}
@@ -843,7 +851,7 @@ export class TxPool {
 
 		// Remove the tx
 		this.removeByHash(lowestTx.hash, lowestTx.tx);
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`Evicted underpriced tx ${lowestTx.hash} (price: ${lowestPrice}) from ${pool}`,
 		);
 
@@ -947,7 +955,7 @@ export class TxPool {
 	broadcastTransactions(txs: TypedTransaction[], peers?: Peer[]) {
 		if (txs.length === 0) return;
 
-		const targetPeers = peers ?? this.service.pool.peers;
+		const targetPeers = peers ?? this.pool.getConnectedPeers();
 		const numPeers = targetPeers.length;
 		if (numPeers === 0) return;
 
@@ -1076,7 +1084,7 @@ export class TxPool {
 		peerPool: PeerPoolLike,
 	) {
 		if (!this.running || txs.length === 0) return;
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: received new transactions number=${txs.length}`,
 		);
 		this.addToKnownByPeer(
@@ -1092,7 +1100,7 @@ export class TxPool {
 				newTxHashes[1].push(tx.serialize().byteLength);
 				newTxHashes[2].push(tx.hash());
 			} catch (error: any) {
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Error adding tx to TxPool: ${error.message} (tx hash: ${bytesToHex(tx.hash())})`,
 				);
 			}
@@ -1101,7 +1109,7 @@ export class TxPool {
 		// Geth-style sqrt propagation:
 		// - Send full transactions to sqrt(n) peers (minimum MIN_BROADCAST_PEERS)
 		// - Send only hashes to remaining peers
-		const peers = peerPool.peers;
+		const peers = peerPool.getConnectedPeers();
 		const numPeers = peers.length;
 		const numFullBroadcast = Math.max(
 			this.MIN_BROADCAST_PEERS,
@@ -1169,13 +1177,13 @@ export class TxPool {
 
 		if (reqHashes.length === 0) return;
 
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: received new tx hashes number=${reqHashes.length}`,
 		);
 
 		const reqHashesStr: UnprefixedHash[] = reqHashes.map(bytesToUnprefixedHex);
 		this.fetchingHashes = this.fetchingHashes.concat(reqHashesStr);
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: requesting txs number=${reqHashes.length} fetching=${this.fetchingHashes.length}`,
 		);
 		const getPooledTxs = await peer.eth?.getPooledTransactions({
@@ -1191,7 +1199,7 @@ export class TxPool {
 			return;
 		}
 		const [_, txs] = getPooledTxs;
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`TxPool: received requested txs number=${txs.length}`,
 		);
 
@@ -1200,7 +1208,7 @@ export class TxPool {
 			try {
 				await this.add(tx);
 			} catch (error: any) {
-				this.config.logger?.debug(
+				this.config.options.logger?.debug(
 					`Error adding tx to TxPool: ${error.message} (tx hash: ${bytesToHex(tx.hash())})`,
 				);
 			}
@@ -1208,7 +1216,7 @@ export class TxPool {
 			newTxHashes[1].push(tx.serialize().length);
 			newTxHashes[2].push(tx.hash());
 		}
-		this.sendNewTxHashes(newTxHashes, peerPool.peers);
+		this.sendNewTxHashes(newTxHashes, peerPool.getConnectedPeers());
 	}
 
 	/**
@@ -1390,7 +1398,7 @@ export class TxPool {
 			// Accumulate the best priced transaction
 			txs.push(best);
 		}
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`txsByPriceAndNonce selected txs=${txs.length}, skipped byNonce=${skippedByNonce}`,
 		);
 		return txs;
@@ -1409,7 +1417,7 @@ export class TxPool {
 			this.rebroadcastInterval = undefined;
 		}
 		this.running = false;
-		this.config.logger?.info("TxPool stopped.");
+		this.config.options.logger?.info("TxPool stopped.");
 		return true;
 	}
 
@@ -1433,9 +1441,11 @@ export class TxPool {
 				this.txGasPrice(a.tx).tip < this.txGasPrice(b.tx).tip,
 		}) as QHeap<TxPoolObject>;
 
-		if (this.config.metrics !== undefined) {
+		if (this.config.options.prometheusMetrics !== undefined) {
 			// TODO: Only clear the metrics related to the transaction pool here
-			for (const [_, metric] of Object.entries(this.config.metrics)) {
+			for (const [_, metric] of Object.entries(
+				this.config.options.prometheusMetrics,
+			)) {
 				metric.set(0);
 			}
 		}
@@ -1476,13 +1486,13 @@ export class TxPool {
 				handlederrors++;
 			}
 		}
-		this.config.logger?.info(
-			`TxPool Statistics pending=${this.pendingCount} queued=${this.queuedCount} senders=${totalSenders} peers=${this.service.pool.peers.length}`,
+		this.config.options.logger?.info(
+			`TxPool Statistics pending=${this.pendingCount} queued=${this.queuedCount} senders=${totalSenders} peers=${this.pool.getPeerCount()}`,
 		);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool Statistics broadcasts=${broadcasts}/tx/peer broadcasterrors=${broadcasterrors}/tx/peer knownpeers=${knownpeers} since minutes=${this.POOLED_STORAGE_TIME_LIMIT}`,
 		);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`TxPool Statistics successfuladds=${handledadds} failedadds=${handlederrors} since minutes=${this.HANDLED_CLEANUP_TIME_LIMIT}`,
 		);
 	}

@@ -7,11 +7,12 @@ import {
 } from "../../eth-hash";
 import { BIGINT_0, BIGINT_1, bytesToHex } from "../../utils";
 import { buildBlock, type TxReceipt } from "../../vm";
-import type { Config } from "../config.ts";
+import { Chain } from "../blockchain/chain.ts";
+import type { Config } from "../config/index.ts";
 import type { VMExecution } from "../execution";
 import { LevelDB } from "../execution/level.ts";
 import { IndexOperation, IndexType } from "../execution/txIndex.ts";
-import type { FullEthereumServiceLike } from "../service/fullethereumservice-types.ts";
+import { TxPool } from "../service/txpool.ts";
 import type { FullSynchronizer } from "../sync";
 import { Event } from "../types.ts";
 
@@ -19,9 +20,10 @@ export interface MinerOptions {
 	/* Config */
 	config: Config;
 
-	/* FullEthereumService or P2PFullEthereumService */
-	service: FullEthereumServiceLike;
-
+	txPool: TxPool;
+	chain: Chain;
+	execution: VMExecution;
+	synchronizer: FullSynchronizer;
 	/* Skip hardfork validation */
 	skipHardForkValidation?: boolean;
 }
@@ -41,8 +43,10 @@ export class Miner {
 		| undefined; /* global NodeJS */
 	private _boundChainUpdatedHandler: (() => void) | undefined;
 	private config: Config;
-	private service: FullEthereumServiceLike;
+	private txPool: TxPool;
+	private chain: Chain;
 	private execution: VMExecution;
+	private synchronizer: FullSynchronizer;
 	private assembling: boolean;
 	private period: number;
 	private ethash: Ethash | undefined;
@@ -56,8 +60,10 @@ export class Miner {
 	 */
 	constructor(options: MinerOptions) {
 		this.config = options.config;
-		this.service = options.service;
-		this.execution = this.service.execution;
+		this.txPool = options.txPool;
+		this.chain = options.chain;
+		this.execution = options.execution;
+		this.synchronizer = options.synchronizer;
 		this.running = false;
 		this.assembling = false;
 		this.skipHardForkValidation = options.skipHardForkValidation;
@@ -73,7 +79,7 @@ export class Miner {
 	 * Convenience alias to return the latest block in the blockchain
 	 */
 	private latestBlockHeader(): BlockHeader {
-		return this.service.chain.headers.latest!;
+		return this.chain.headers.latest!;
 	}
 
 	/**
@@ -106,14 +112,16 @@ export class Miner {
 		if (typeof this.ethash === "undefined") {
 			return undefined;
 		}
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Miner: Finding PoW solution for block ${block.header.number} (difficulty: ${block.header.difficulty}) 🔨`,
 		);
 		const startTime = Date.now();
 		this.currentEthashMiner = this.ethash.getMiner(block);
 		const solution = await this.currentEthashMiner.iterate(-1);
 		const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-		this.config.logger?.info(`Miner: Found PoW solution in ${elapsed}s 🔨`);
+		this.config.options.logger?.info(
+			`Miner: Found PoW solution in ${elapsed}s 🔨`,
+		);
 		return solution;
 	}
 
@@ -126,7 +134,7 @@ export class Miner {
 		const target =
 			Number(latestBlockHeader.timestamp) * 1000 + this.period - Date.now();
 		const timeout = BIGINT_0 > target ? 0 : target;
-		this.config.logger?.debug(
+		this.config.options.logger?.debug(
 			`Miner: Chain updated with block ${
 				latestBlockHeader.number
 			}. Queuing next block assembly in ${Math.round(timeout / 1000)}s`,
@@ -141,26 +149,28 @@ export class Miner {
 	private async warmupEthashCache() {
 		if (!this.ethash) return;
 		const blockNumber = this.latestBlockHeader().number + BIGINT_1;
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Miner: Warming up ethash cache for block ${blockNumber} (this may take 1-2 minutes on first run)...`,
 		);
 		const startTime = Date.now();
 		await this.ethash.loadEpoc(blockNumber);
 		const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-		this.config.logger?.info(`Miner: Ethash cache ready (took ${elapsed}s)`);
+		this.config.options.logger?.info(
+			`Miner: Ethash cache ready (took ${elapsed}s)`,
+		);
 	}
 
 	/**
 	 * Start miner
 	 */
 	start(): boolean {
-		if (!this.config.mine || this.running) {
+		if (!this.config.options.mine || this.running) {
 			return false;
 		}
 		this.running = true;
 		this._boundChainUpdatedHandler = this.chainUpdated.bind(this);
 		this.config.events.on(Event.CHAIN_UPDATED, this._boundChainUpdatedHandler);
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Miner started. Assembling next block in ${this.period / 1000}s`,
 		);
 		// Pre-warm the ethash cache in the background
@@ -194,7 +204,7 @@ export class Miner {
 		_boundSetInterruptHandler = setInterrupt.bind(this);
 		this.config.events.once(Event.CHAIN_UPDATED, _boundSetInterruptHandler);
 
-		const parentBlock = this.service.chain.blocks.latest!;
+		const parentBlock = this.chain.blocks.latest!;
 
 		const number = parentBlock.header.number + BIGINT_1;
 		const { gasLimit } = parentBlock.header;
@@ -209,7 +219,7 @@ export class Miner {
 		try {
 			await vmCopy.stateManager.setStateRoot(parentBlock.header.stateRoot);
 		} catch (error) {
-			this.config.logger?.error(
+			this.config.options.logger?.error(
 				`Miner: Failed to set state root for block ${number}: ${error}`,
 			);
 			this.assembling = false;
@@ -222,7 +232,8 @@ export class Miner {
 
 		// PoW only - calculate difficulty from parent header
 		const calcDifficultyFromHeader = parentBlock.header;
-		const coinbase = this.config.minerCoinbase ?? this.config.accounts[0][0];
+		const coinbase =
+			this.config.options.minerCoinbase ?? this.config.options.accounts[0][0];
 
 		const blockBuilder = await buildBlock(vmCopy, {
 			parentBlock,
@@ -238,8 +249,8 @@ export class Miner {
 		});
 
 		// Frontier/Chainstart - no base fee
-		const txs = await this.service.txPool.txsByPriceAndNonce(vmCopy, {});
-		this.config.logger?.info(
+		const txs = await this.txPool.txsByPriceAndNonce(vmCopy, {});
+		this.config.options.logger?.info(
 			`Miner: Assembling block from ${txs.length} eligible txs`,
 		);
 		let index = 0;
@@ -250,7 +261,7 @@ export class Miner {
 				const txResult = await blockBuilder.addTransaction(txs[index], {
 					skipHardForkValidation: this.skipHardForkValidation,
 				});
-				if (this.config.saveReceipts) {
+				if (this.config.options.saveReceipts) {
 					receipts.push(txResult.receipt);
 				}
 			} catch (error) {
@@ -261,14 +272,14 @@ export class Miner {
 					if (blockBuilder.gasUsed > gasLimit - BigInt(21000)) {
 						// If block has less than 21000 gas remaining, consider it full
 						blockFull = true;
-						this.config.logger?.info(
+						this.config.options.logger?.info(
 							`Miner: Assembled block full (gasLeft: ${gasLimit - blockBuilder.gasUsed})`,
 						);
 					}
 				} else {
 					// If there is an error adding a tx, it will be skipped
 					const hash = bytesToHex(txs[index].hash());
-					this.config.logger?.debug(
+					this.config.options.logger?.debug(
 						`Skipping tx ${hash}, error encountered when trying to add tx:\n${error}`,
 					);
 				}
@@ -286,7 +297,7 @@ export class Miner {
 		// The PoW must be computed for THIS block's header, not the parent
 		const solution = await this.findSolutionForBlock(unsealedBlock);
 		if (!solution) {
-			this.config.logger?.error("Miner: Failed to find PoW solution");
+			this.config.options.logger?.error("Miner: Failed to find PoW solution");
 			this.assembling = false;
 			return;
 		}
@@ -302,7 +313,7 @@ export class Miner {
 			common: unsealedBlock.common,
 		});
 
-		if (this.config.saveReceipts) {
+		if (this.config.options.saveReceipts) {
 			await this.execution.receiptsManager?.saveReceipts(block, receipts);
 		}
 		if (this.execution.txIndex) {
@@ -312,24 +323,24 @@ export class Miner {
 				block,
 			);
 		}
-		this.config.logger?.info(
+		this.config.options.logger?.info(
 			`Miner: Sealed block with ${block.transactions.length} txs (difficulty: ${block.header.difficulty})`,
 		);
 		this.assembling = false;
 		if (interrupt) return;
 		// Put block in blockchain
-		await (this.service.synchronizer as FullSynchronizer).handleNewBlock(block);
+		await (this.synchronizer as FullSynchronizer).handleNewBlock(block);
 		// Remove included txs from TxPool
-		this.service.txPool.removeNewBlockTxs([block]);
+		this.txPool.removeNewBlockTxs([block]);
 
 		// Clear nonce cache for affected addresses and promote queued txs
 		for (const tx of block.transactions) {
 			const addr = tx.getSenderAddress().toString().slice(2);
-			this.service.txPool.clearNonceCache(addr);
+			this.txPool.clearNonceCache(addr);
 		}
 		// Re-evaluate pool state after block is mined
-		await this.service.txPool.demoteUnexecutables();
-		await this.service.txPool.promoteExecutables();
+		await this.txPool.demoteUnexecutables();
+		await this.txPool.promoteExecutables();
 
 		this.config.events.removeListener(
 			Event.CHAIN_UPDATED,
@@ -352,7 +363,7 @@ export class Miner {
 			clearTimeout(this._nextAssemblyTimeoutId);
 		}
 		this.running = false;
-		this.config.logger?.info("Miner stopped.");
+		this.config.options.logger?.info("Miner stopped.");
 		return true;
 	}
 }
