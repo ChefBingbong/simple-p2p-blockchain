@@ -16,7 +16,7 @@ export class NetworkCore {
 	public readonly config: Config;
 	private readonly node: P2PNode;
 	public readonly chain?: Chain;
-	public readonly execution: VMExecution;
+	public readonly execution?: VMExecution;
 
 	public readonly peers: Map<string, Peer> = new Map();
 	public readonly pendingPeers: Map<string, P2PPeer> = new Map();
@@ -69,7 +69,9 @@ export class NetworkCore {
 		);
 		core.running = true;
 
-		await options.chain.open();
+		if (options.chain) {
+			await options.chain.open();
+		}
 		return core;
 	}
 

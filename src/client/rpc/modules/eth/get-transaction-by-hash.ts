@@ -9,7 +9,7 @@ import { getTransactionByHashSchema } from "./schema.ts";
 
 export const getTransactionByHash = (node: ExecutionNode) => {
 	const chain = node.chain;
-	const txIndex: TxIndex | undefined = node.execution?.txIndex;
+	const txIndex: TxIndex | undefined = node.execution.execution.txIndex;
 	return createRpcMethod(
 		getTransactionByHashSchema,
 		async (params: [PrefixedHexString], _c) => {

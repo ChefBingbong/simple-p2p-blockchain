@@ -16,6 +16,6 @@ export interface NetworkCoreOptions {
 	/* Chain instance (optional, for STATUS exchange) */
 	chain?: Chain;
 
-	/* VMExecution instance (required, for ETH handler) */
-	execution: VMExecution;
+	/* VMExecution instance (optional, for ETH handler) */
+	execution?: VMExecution;
 }

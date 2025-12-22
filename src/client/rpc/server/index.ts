@@ -52,8 +52,10 @@ export class RpcServer extends RpcServerBase {
 		);
 
 		this.app.use("*", requestId({ generator: () => Date.now().toString() }));
-		this.app.post("/", rpcValidator(rpcRequestSchema), rpcHandlers);
+		// Ready check middleware - must be before RPC handler
 		this.app.use("*", this.onReady.bind(this));
+		// rpcHandlers is a Hono handler function, cast to any to avoid type mismatch
+		this.app.post("/", rpcValidator(rpcRequestSchema), rpcHandlers as any);
 	}
 
 	async listen(): Promise<void> {
