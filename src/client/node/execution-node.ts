@@ -10,8 +10,8 @@ import { Event } from "../types.ts";
 import type { V8Engine } from "../util/index.ts";
 import { getV8Engine } from "../util/index.ts";
 import type {
-    ExecutionNodeInitOptions,
-    ExecutionNodeModules,
+	ExecutionNodeInitOptions,
+	ExecutionNodeModules,
 } from "./types.ts";
 
 export const STATS_INTERVAL = 1000 * 30; // 30 seconds
@@ -124,7 +124,7 @@ export class ExecutionNode {
 		const rpcServer = new RpcServer(
 			{
 				enabled: true,
-				address:  "127.0.0.1",
+				address: "127.0.0.1",
 				port: options.config.options.port + 300,
 				cors: "*",
 				debug: false,
@@ -136,9 +136,9 @@ export class ExecutionNode {
 			},
 		);
 
-		const onRpcReady = async() => {
-            await rpcServer.listen();
-            node.rpcServer = rpcServer;
+		const onRpcReady = async () => {
+			await rpcServer.listen();
+			node.rpcServer = rpcServer;
 			node.isRpcReady = true;
 			node.config.events.off(Event.SYNC_SYNCHRONIZED, onRpcReady);
 		};
@@ -166,6 +166,20 @@ export class ExecutionNode {
 			if (this.rpcServer !== undefined) return;
 			await this.close();
 		});
+
+		this.setHandlerContext();
+	}
+
+	private setHandlerContext(): void {
+		const handlerContext = {
+			chain: this.chain,
+			txPool: this.execution.txPool,
+			synchronizer: this.execution.synchronizer,
+			execution: this.execution.execution,
+			networkCore: this.network.core,
+		};
+
+		this.network.setHandlerContext(handlerContext);
 	}
 
 	async stop(): Promise<boolean> {
@@ -208,8 +222,8 @@ export class ExecutionNode {
 			if (this.building) return;
 			this.building = true;
 
-		if (!this.execution.execution.started) return;
-		await this.execution.synchronizer.runExecution();
+			if (!this.execution.execution.started) return;
+			await this.execution.synchronizer.runExecution();
 		} catch (error) {
 		} finally {
 			this.building = false;

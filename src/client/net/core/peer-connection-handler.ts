@@ -100,6 +100,7 @@ export class PeerConnectionHandler {
 				inbound: this.connection.direction === "inbound",
 				chain: this.core.chain,
 				execution: this.core.execution,
+				handlerContext: this.core.handlerContext,
 			});
 		} catch (error) {
 			return null;

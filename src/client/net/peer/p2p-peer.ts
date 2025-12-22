@@ -6,6 +6,7 @@ import type { RLPxConnection } from "../../../p2p/transport/rlpx/index.ts";
 import type { Chain } from "../../blockchain";
 import type { VMExecution } from "../../execution";
 import { Event } from "../../types.ts";
+import type { EthHandlerContext } from "../protocol/eth/handlers.ts";
 import type { PeerOptions } from "./peer.ts";
 import { Peer } from "./peer.ts";
 
@@ -27,6 +28,9 @@ export interface P2PPeerOptions
 
 	/* VMExecution instance (for ETH handler) */
 	execution?: VMExecution;
+
+	/* Execution context for ETH handler */
+	handlerContext?: EthHandlerContext;
 }
 
 /**
@@ -41,11 +45,12 @@ export class P2PPeer extends Peer {
 	public readonly rlpxConnection: RLPxConnection;
 	private readonly chain?: Chain;
 	private readonly execution?: VMExecution;
+	private readonly handlerContext?: EthHandlerContext;
 
 	/**
 	 * Create new P2P peer
 	 */
-	constructor(options: P2PPeerOptions) {
+constructor(options: P2PPeerOptions) {
 		// Derive ID from remote peer
 		const peerIdHex = peerIdToString(options.connection.remotePeer);
 
@@ -66,6 +71,7 @@ export class P2PPeer extends Peer {
 		this.rlpxConnection = options.rlpxConnection;
 		this.chain = options.chain;
 		this.execution = options.execution;
+		this.handlerContext = options.handlerContext;
 
 		log("Binding protocols for peer %s", peerIdHex.slice(0, 8));
 		// Bind protocols immediately (connection is already established)
@@ -114,6 +120,7 @@ export class P2PPeer extends Peer {
 					chain: this.chain,
 					execution: this.execution,
 					rlpxConnection: this.rlpxConnection,
+					context: this.handlerContext,
 				});
 
 				// Forward messages from EthHandler to service via PROTOCOL_MESSAGE event

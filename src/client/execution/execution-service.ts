@@ -24,8 +24,16 @@ export interface ExecutionServiceInitOptions {
 	chain: Chain;
 	execution: VMExecution;
 	networkCore: NetworkCore;
-	stateDB?: AbstractLevel<string | Uint8Array, string | Uint8Array, string | Uint8Array>;
-	metaDB?: AbstractLevel<string | Uint8Array, string | Uint8Array, string | Uint8Array>;
+	stateDB?: AbstractLevel<
+		string | Uint8Array,
+		string | Uint8Array,
+		string | Uint8Array
+	>;
+	metaDB?: AbstractLevel<
+		string | Uint8Array,
+		string | Uint8Array,
+		string | Uint8Array
+	>;
 }
 
 /**
@@ -41,7 +49,9 @@ export class ExecutionService {
 	public readonly synchronizer: FullSynchronizer;
 	public readonly config: Config;
 
-	static async init(options: ExecutionServiceInitOptions): Promise<ExecutionService> {
+	static async init(
+		options: ExecutionServiceInitOptions,
+	): Promise<ExecutionService> {
 		const txPool = new TxPool({
 			config: options.config,
 			pool: options.networkCore,
@@ -112,7 +122,9 @@ export class ExecutionService {
 		this.config.events.off(Event.CHAIN_REORG, this.onChainReorg);
 	}
 
-	private onPoolPeerAdded = (peer: import("../net/peer/peer.ts").Peer): void => {
+	private onPoolPeerAdded = (
+		peer: import("../net/peer/peer.ts").Peer,
+	): void => {
 		if (!this.txPool) return;
 
 		const txs: [number[], number[], Uint8Array[]] = [[], [], []];
@@ -191,4 +203,3 @@ export class ExecutionService {
 		}
 	}
 }
-

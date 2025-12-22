@@ -5,17 +5,8 @@ import type { VMExecution } from "../execution/index.ts";
 import { Event } from "../types.ts";
 import { NetworkCore } from "./core/index.ts";
 import type { Peer } from "./peer/peer.ts";
+import { EthMessageCode } from "./protocol/eth/definitions.ts";
 import type { EthHandlerContext } from "./protocol/eth/handlers.ts";
-import {
-  handleGetBlockBodies,
-  handleGetBlockHeaders,
-  handleGetPooledTransactions,
-  handleGetReceipts,
-  handleNewBlock,
-  handleNewBlockHashes,
-  handleNewPooledTransactionHashes,
-  handleTransactions,
-} from "./protocol/eth/handlers.ts";
 
 export interface NetworkServiceModules {
 	config: Config;
@@ -31,16 +22,14 @@ export interface NetworkServiceInitOptions {
 	execution: VMExecution;
 }
 
-/**
- * NetworkService handles peer communication, protocol routing, and network operations.
- * Owns NetworkCore and routes protocol messages to execution handlers.
- */
 export class NetworkService {
 	public readonly core: NetworkCore;
 	public readonly config: Config;
-	private handlerContext?: EthHandlerContext;
+	protected handlerContext?: EthHandlerContext;
 
-	static async init(options: NetworkServiceInitOptions): Promise<NetworkService> {
+	static async init(
+		options: NetworkServiceInitOptions,
+	): Promise<NetworkService> {
 		const core = await NetworkCore.init({
 			config: options.config,
 			node: options.node,
@@ -63,12 +52,16 @@ export class NetworkService {
 		this.setupEventListeners();
 	}
 
-	/**
-	 * Set the handler context for protocol message processing.
-	 * This is called by ExecutionNode after ExecutionService is created.
-	 */
 	setHandlerContext(context: EthHandlerContext): void {
 		this.handlerContext = context;
+		this.core.handlerContext = context;
+
+		const peers = this.core.getConnectedPeers();
+		for (const peer of peers) {
+			if (peer.eth.context) {
+				peer.eth.context = context;
+			}
+		}
 	}
 
 	private setupEventListeners(): void {
@@ -80,86 +73,53 @@ export class NetworkService {
 	}
 
 	private onProtocolMessage = async (message: {
-		message: { name: string; data: unknown };
+		message: { name: string; data: unknown; code?: number };
 		protocol: string;
 		peer: Peer;
 	}): Promise<void> => {
-		if (message.protocol !== "eth") return;
-		if (!this.handlerContext) return;
-
 		try {
-			switch (message.message.name) {
-				case "GetBlockHeaders":
-					await handleGetBlockHeaders(
-						message.message.data as Parameters<typeof handleGetBlockHeaders>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
+			if (message.protocol !== "eth") return;
 
-				case "GetBlockBodies":
-					await handleGetBlockBodies(
-						message.message.data as Parameters<typeof handleGetBlockBodies>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
+			const messageCode = this.getMessageCode(
+				message.message.name,
+				message.message.code,
+			);
+			const ethHandler = this.getEthHandlerFromPeer(message.peer);
+			if (!ethHandler || messageCode === undefined) return;
 
-				case "NewBlockHashes":
-					handleNewBlockHashes(
-						message.message.data as Parameters<typeof handleNewBlockHashes>[0],
-						this.handlerContext,
-					);
-					break;
-
-				case "Transactions":
-					await handleTransactions(
-						message.message.data as Parameters<typeof handleTransactions>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
-
-				case "NewBlock":
-					await handleNewBlock(
-						message.message.data as Parameters<typeof handleNewBlock>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
-
-				case "NewPooledTransactionHashes":
-					await handleNewPooledTransactionHashes(
-						message.message.data as Parameters<
-							typeof handleNewPooledTransactionHashes
-						>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
-
-				case "GetPooledTransactions":
-					handleGetPooledTransactions(
-						message.message.data as Parameters<
-							typeof handleGetPooledTransactions
-						>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
-
-				case "GetReceipts":
-					await handleGetReceipts(
-						message.message.data as Parameters<typeof handleGetReceipts>[0],
-						message.peer,
-						this.handlerContext,
-					);
-					break;
-			}
+			const handler = ethHandler.registry.getHandler(messageCode);
+			if (!handler) return;
+			await handler(ethHandler, message.message.data);
 		} catch (error) {
-			// Error handling is done in individual handlers
+			this.config.events.emit(Event.PEER_ERROR, error, message.peer);
 		}
 	};
+
+	private getMessageCode(name: string, code?: number): number | undefined {
+		if (code !== undefined) {
+			return code;
+		}
+
+		const nameToCode: Record<string, number> = {
+			GetBlockHeaders: EthMessageCode.GET_BLOCK_HEADERS,
+			GetBlockBodies: EthMessageCode.GET_BLOCK_BODIES,
+			GetPooledTransactions: EthMessageCode.GET_POOLED_TRANSACTIONS,
+			GetReceipts: EthMessageCode.GET_RECEIPTS,
+			NewBlockHashes: EthMessageCode.NEW_BLOCK_HASHES,
+			Transactions: EthMessageCode.TRANSACTIONS,
+			NewBlock: EthMessageCode.NEW_BLOCK,
+			NewPooledTransactionHashes: EthMessageCode.NEW_POOLED_TRANSACTION_HASHES,
+		};
+
+		return nameToCode[name];
+	}
+
+	private getEthHandlerFromPeer(peer: Peer): any | undefined {
+		if ("eth" in peer) {
+			return (peer as any).eth;
+		}
+		return undefined;
+	}
 
 	async stop(): Promise<boolean> {
 		this.removeEventListeners();
@@ -175,4 +135,3 @@ export class NetworkService {
 		return this.core.running;
 	}
 }
-

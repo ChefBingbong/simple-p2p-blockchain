@@ -1,8 +1,8 @@
 import { EventEmitter } from "eventemitter3";
 import type { BlockHeader } from "../../../block/index.ts";
+import { EthHandler } from "../../../p2p/protocol/eth/handler.ts";
 import { BIGINT_0, BIGINT_1, short } from "../../../utils/index.ts";
 import type { Config } from "../../config/config.ts";
-import type { EthProtocolMethods } from "../protocol/index.ts";
 
 export interface PeerOptions {
 	/* Config */
@@ -41,7 +41,7 @@ export abstract class Peer extends EventEmitter {
 	}> = [];
 	private _idle: boolean;
 
-	public eth?: EthProtocolMethods;
+	public eth?: EthHandler;
 
 	/*
     If the peer is in the PeerPool.

@@ -4,12 +4,14 @@ import type { BlockBodyBytes, BlockHeader } from "../../../block";
 import type { Chain } from "../../../client/blockchain";
 import type { Config } from "../../../client/config";
 import type { VMExecution } from "../../../client/execution";
-import type { EthProtocolMethods } from "../../../client/net/protocol/eth-methods";
+import type { Peer } from "../../../client/net/peer/peer.ts";
 import {
 	ETH_MESSAGES,
 	EthMessageCode,
 } from "../../../client/net/protocol/eth/definitions";
 import { ETH } from "../../../client/net/protocol/eth/eth";
+import type { EthProtocolMethods } from "../../../client/net/protocol/eth/eth-methods";
+import type { EthHandlerContext } from "../../../client/net/protocol/eth/handlers.ts";
 import type { TypedTransaction } from "../../../tx";
 import { BIGINT_0, bigIntToUnpaddedBytes, bytesToBigInt } from "../../../utils";
 import type { TxReceipt } from "../../../vm";
@@ -38,6 +40,9 @@ export class EthHandler extends EventEmitter implements EthProtocolMethods {
 	public readonly execution: VMExecution;
 	private readonly rlpxConnection: RLPxConnection;
 
+	// Execution context for handlers that need txPool, synchronizer, etc.
+	public context?: EthHandlerContext;
+
 	// Protocol state
 	private _status: EthStatus | null = null;
 	private _peerStatus: EthStatus | null = null;
@@ -62,25 +67,43 @@ export class EthHandler extends EventEmitter implements EthProtocolMethods {
 	private protocolVersion: number = 68; // Default to ETH/68
 
 	// Handler registry for request/response routing
-	private readonly registry: EthHandlerRegistry = new EthHandlerRegistry();
+	public readonly registry: EthHandlerRegistry = new EthHandlerRegistry();
 
 	constructor(options: {
 		config: Config;
 		chain: Chain;
 		execution: VMExecution;
 		rlpxConnection: RLPxConnection;
+		context?: EthHandlerContext;
 	}) {
 		super();
 		this.config = options.config;
 		this.chain = options.chain;
 		this.execution = options.execution;
 		this.rlpxConnection = options.rlpxConnection;
+		this.context = options.context;
 
 		// Find ETH protocol from RLPxConnection first
 		this.setupProtocol();
 
 		// Register all default handlers with protocol's registry
 		registerDefaultHandlers(this.registry);
+	}
+
+	/**
+	 * Find peer associated with this handler's RLPxConnection
+	 * Used by handlers that need to pass peer to execution context handlers
+	 */
+	public findPeer(): Peer | undefined {
+		if (!this.context?.networkCore) return undefined;
+
+		const peers = this.context.networkCore.getConnectedPeers();
+		return peers.find((peer) => {
+			if ("rlpxConnection" in peer) {
+				return (peer as any).rlpxConnection === this.rlpxConnection;
+			}
+			return false;
+		});
 	}
 
 	/**

@@ -9,6 +9,7 @@ import { Event } from "../../types.ts";
 import { P2PPeer } from "../peer/p2p-peer.ts";
 import type { Peer } from "../peer/peer.ts";
 import type { ETH, EthStatusOpts } from "../protocol/eth/eth.ts";
+import type { EthHandlerContext } from "../protocol/eth/handlers.ts";
 import { PeerConnectionHandler } from "./peer-connection-handler.ts";
 import type { NetworkCoreOptions } from "./types.ts";
 
@@ -17,6 +18,7 @@ export class NetworkCore {
 	private readonly node: P2PNode;
 	public readonly chain?: Chain;
 	public readonly execution?: VMExecution;
+	public handlerContext?: EthHandlerContext;
 
 	public readonly peers: Map<string, Peer> = new Map();
 	public readonly pendingPeers: Map<string, P2PPeer> = new Map();
