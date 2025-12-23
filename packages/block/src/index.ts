@@ -1,6 +1,6 @@
-export * from "./block";
-export * from "./consensus";
-export * from "./header";
+export * from "./block/index.ts";
+export * from "./consensus/index.ts";
+export * from "./header/index.ts";
 export {
 	genTransactionsTrieRoot,
 	getDifficulty,
