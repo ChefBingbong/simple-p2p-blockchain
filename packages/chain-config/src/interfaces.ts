@@ -7,7 +7,7 @@ import type {
 	Address,
 	BinaryTreeExecutionWitness,
 	PrefixedHexString,
-} from '../utils/index'
+} from '@ts-ethereum/utils'
 
 export type AccountFields = Partial<
   Pick<Account, 'nonce' | 'balance' | 'storageRoot' | 'codeHash' | 'codeSize'>

@@ -1,5 +1,5 @@
+import type { BigIntLike, KZG, PrefixedHexString } from '@ts-ethereum/utils'
 import type { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import type { BigIntLike, KZG, PrefixedHexString } from '../utils/index'
 
 export interface ChainName {
   [chainId: string]: string

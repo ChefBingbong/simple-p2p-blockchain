@@ -1,13 +1,13 @@
+import { unprefixedHexToBytes } from '@ts-ethereum/utils'
 import { EventEmitter } from 'eventemitter3'
-import { unprefixedHexToBytes } from '../utils/index'
 import {
-	type ChainConfig,
-	type CommonEvent,
-	type CommonOpts,
-	type CustomCrypto,
-	type EthashConfig,
-	Hardfork,
-	type ParamsConfig,
+  type ChainConfig,
+  type CommonEvent,
+  type CommonOpts,
+  type CustomCrypto,
+  type EthashConfig,
+  Hardfork,
+  type ParamsConfig,
 } from './types'
 
 export class Common {
@@ -87,9 +87,9 @@ export class Common {
   }
 
   consensusConfig(): {
-    [key: string]: EthashConfig
+    [key: string]: EthashConfig | undefined 
   } {
-    return this._chainParams.consensus.ethash
+    return this._chainParams.consensus?.ethash ?? {}
   }
 
   copy(): Common {

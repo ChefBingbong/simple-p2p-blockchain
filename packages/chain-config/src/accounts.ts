@@ -1,12 +1,12 @@
+import {
+  bytesToHex,
+  createAddressFromPrivateKey,
+  hexToBytes,
+} from '@ts-ethereum/utils'
 import { createHash } from 'crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Address } from 'viem'
-import {
-	bytesToHex,
-	createAddressFromPrivateKey,
-	hexToBytes,
-} from '../utils/index'
 
 export type Account = [address: Address, privateKey: Uint8Array]
 

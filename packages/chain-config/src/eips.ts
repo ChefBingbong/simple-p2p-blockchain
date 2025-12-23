@@ -1,4 +1,4 @@
-import { Hardfork } from './enums'
+import { Hardfork } from './index'
 
 import type { EIPsDict } from './types'
 

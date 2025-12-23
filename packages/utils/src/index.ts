@@ -46,7 +46,7 @@ export {
   isHexString,
   padToEven,
   stripHexPrefix,
-  toAscii,
+  toAscii
 } from './internal'
 export * from './kzg'
 export * from './lock'
@@ -69,3 +69,5 @@ export * from './provider'
  * Request type
  */
 export * from './request'
+
+export * from './utils'

@@ -26,7 +26,7 @@ import type {
  * @returns Common instance (copied if provided, new Mainnet instance if not)
  */
 export function getCommon(common?: Common): Common {
-  return common?.copy()
+  return common?.copy() ?? new Common({} as any)
 }
 
 /**

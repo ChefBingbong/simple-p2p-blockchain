@@ -1,10 +1,17 @@
 import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
+import { bytesToUnprefixedHex, hexToBytes } from '@ts-ethereum/utils'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { PeerInfo } from '../kademlia/types'
-import { bytesToUnprefixedHex, hexToBytes } from '../utils/index'
+// import type { PeerInfo } from '../kademlia/types'
 import { getNodeId } from './keys'
 
+type PeerInfo = {
+  id?: Uint8Array
+  address?: string
+  udpPort?: number | null
+  tcpPort?: number | null
+  vectorClock?: number
+}
 /**
  * Read bootnode enode URL from file
  */

@@ -1,9 +1,7 @@
+import { bytesToHex, genPrivateKey, hexToBytes } from '@ts-ethereum/utils'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { Logger } from '../client/logging'
-import { bytesToHex, hexToBytes } from '../utils/index'
-import { genPrivateKey } from '../utils/utils'
 
 export interface PrivateKeyInfo {
   privateKey: Uint8Array
@@ -36,7 +34,7 @@ export function readPrivateKey(filepath: string): Uint8Array {
       throw new Error('Invalid private key format')
     }
 
-    return hexToBytes(keyHex)
+    return hexToBytes(keyHex as `0x${string}`)
   } catch (error) {
     throw new Error(`Failed to read private key from ${filepath}: ${error}`)
   }
@@ -65,7 +63,7 @@ export function getNodeId(privateKey: Uint8Array): Uint8Array {
  */
 export function initPrivateKey(
   paths: { peerIdFile: string },
-  logger?: Logger,
+  logger?: any,
   persistNetworkIdentity: boolean = true,
 ): PrivateKeyInfo {
   const shouldPersist =
