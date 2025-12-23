@@ -19,6 +19,7 @@ import { ExecutionNode } from "../node/index.ts";
 
 const BOOTNODE_PORT = 8000;
 const SHARED_DIR = "../../test-network-data";
+
 const ACCOUNT_SEEDS = [
 	"testnet-account-seed-0",
 	"testnet-account-seed-1",
