@@ -1,19 +1,19 @@
-import z from "zod";
-import { safeError, safeResult, safeTry } from "../../../../utils/safe.ts";
-import { DPT } from "../../../net/dpt-1/index.ts";
-import type { ExecutionNode } from "../../../node/index.ts";
+import z from 'zod'
+import { safeError, safeResult, safeTry } from '../../../../utils/safe.ts'
+import { DPT } from '../../../net/dpt-1/index.ts'
+import type { ExecutionNode } from '../../../node/index.ts'
 // RPC admin addPeer - TODO: Update for P2P architecture
 // import { P2PPeer } from "../../../net/peer/p2p-peer.ts";
-import { createRpcMethod } from "../../validation.ts";
-import { peerInfoSchema } from "./schema.ts";
+import { createRpcMethod } from '../../validation.ts'
+import { peerInfoSchema } from './schema.ts'
 
 export const addPeer = (node: ExecutionNode, dpt: DPT) =>
-	createRpcMethod(z.array(peerInfoSchema).length(1), async (params) => {
-		const [error, peerInfo] = await safeTry(() => dpt.addPeer(params[0]));
-		if (error) return safeError(error);
+  createRpcMethod(z.array(peerInfoSchema).length(1), async (params) => {
+    const [error, peerInfo] = await safeTry(() => dpt.addPeer(params[0]))
+    if (error) return safeError(error)
 
-		// TODO: Update for P2P architecture - Peer creation is handled by Network
-		// node.network.addPeer(...);
+    // TODO: Update for P2P architecture - Peer creation is handled by Network
+    // node.network.addPeer(...);
 
-		return safeResult(peerInfo !== undefined);
-	});
+    return safeResult(peerInfo !== undefined)
+  })

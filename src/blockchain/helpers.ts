@@ -1,16 +1,16 @@
-import type { Common, GenesisState } from "../chain-config";
-import { genesisMPTStateRoot } from "../mpt/util/genesisState.ts";
+import type { Common, GenesisState } from '../chain-config'
+import { genesisMPTStateRoot } from '../mpt/util/genesisState.ts'
 
 export async function genGenesisStateRoot(
-	genesisState: GenesisState,
+  genesisState: GenesisState,
 ): Promise<Uint8Array> {
-	return genesisMPTStateRoot(genesisState);
+  return genesisMPTStateRoot(genesisState)
 }
 
 export async function getGenesisStateRoot(common: Common): Promise<Uint8Array> {
-	return genGenesisStateRoot({
-		name: common.chainName(),
-		blockNumber: 0n,
-		stateRoot: new Uint8Array(32),
-	});
+  return genGenesisStateRoot({
+    name: common.chainName(),
+    blockNumber: 0n,
+    stateRoot: new Uint8Array(32),
+  })
 }

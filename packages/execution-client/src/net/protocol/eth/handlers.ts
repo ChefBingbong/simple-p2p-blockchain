@@ -1,192 +1,192 @@
-import type { Block } from "../../../../block.ts";
-import type { TypedTransaction } from "../../../../tx.ts";
-import { concatBytes } from "../../../../utils.ts";
-import { encodeReceipt } from "../../../../vm.ts";
-import type { Chain } from "../../../blockchain/index.ts";
-import type { VMExecution } from "../../../execution/index.ts";
-import type { TxReceiptWithType } from "../../../execution/receipt.ts";
-import type { TxPool } from "../../../service/txpool.ts";
-import { FullSynchronizer } from "../../../sync/index.ts";
-import type { NetworkCore } from "../../core/network-core.ts";
-import type { Peer } from "../../peer/peer.ts";
+import type { Block } from '../../../../block.ts'
+import type { TypedTransaction } from '../../../../tx.ts'
+import { concatBytes } from '../../../../utils.ts'
+import { encodeReceipt } from '../../../../vm.ts'
+import type { Chain } from '../../../blockchain/index.ts'
+import type { VMExecution } from '../../../execution/index.ts'
+import type { TxReceiptWithType } from '../../../execution/receipt.ts'
+import type { TxPool } from '../../../service/txpool.ts'
+import { FullSynchronizer } from '../../../sync/index.ts'
+import type { NetworkCore } from '../../core/network-core.ts'
+import type { Peer } from '../../peer/peer.ts'
 
 export interface GetBlockHeadersData {
-	reqId: bigint;
-	block: bigint | Uint8Array;
-	max: number;
-	skip: number;
-	reverse: boolean;
+  reqId: bigint
+  block: bigint | Uint8Array
+  max: number
+  skip: number
+  reverse: boolean
 }
 
 export interface GetBlockBodiesData {
-	reqId: bigint;
-	hashes: Uint8Array[];
+  reqId: bigint
+  hashes: Uint8Array[]
 }
 
 export interface GetPooledTransactionsData {
-	reqId: bigint;
-	hashes: Uint8Array[];
+  reqId: bigint
+  hashes: Uint8Array[]
 }
 
-export type GetReceiptsData = [reqId: bigint, hashes: Uint8Array[]];
+export type GetReceiptsData = [reqId: bigint, hashes: Uint8Array[]]
 
-export type NewBlockData = [block: Block, td: Uint8Array];
+export type NewBlockData = [block: Block, td: Uint8Array]
 
 export interface EthHandlerContext {
-	chain: Chain;
-	txPool: TxPool;
-	synchronizer?: FullSynchronizer;
-	execution: VMExecution;
-	networkCore: NetworkCore;
+  chain: Chain
+  txPool: TxPool
+  synchronizer?: FullSynchronizer
+  execution: VMExecution
+  networkCore: NetworkCore
 }
 
 /**
  * Handle GetBlockHeaders request
  */
 export async function handleGetBlockHeaders(
-	data: GetBlockHeadersData,
-	peer: Peer,
-	context: EthHandlerContext,
+  data: GetBlockHeadersData,
+  peer: Peer,
+  context: EthHandlerContext,
 ) {
-	const { reqId, block, max, skip, reverse } = data;
-	const { chain } = context;
+  const { reqId, block, max, skip, reverse } = data
+  const { chain } = context
 
-	if (typeof block === "bigint") {
-		const height = chain.headers.height;
-		if (
-			(reverse && block > height) ||
-			(!reverse && block + BigInt(max * skip) > height)
-		) {
-			peer.eth?.send("BlockHeaders", { reqId, headers: [] });
-			return;
-		}
-	}
+  if (typeof block === 'bigint') {
+    const height = chain.headers.height
+    if (
+      (reverse && block > height) ||
+      (!reverse && block + BigInt(max * skip) > height)
+    ) {
+      peer.eth?.send('BlockHeaders', { reqId, headers: [] })
+      return
+    }
+  }
 
-	const headers = await chain.getHeaders(block, max, skip, reverse);
-	peer.eth?.send("BlockHeaders", { reqId, headers });
+  const headers = await chain.getHeaders(block, max, skip, reverse)
+  peer.eth?.send('BlockHeaders', { reqId, headers })
 }
 
 /**
  * Handle GetBlockBodies request
  */
 export async function handleGetBlockBodies(
-	data: GetBlockBodiesData,
-	peer: Peer,
-	context: EthHandlerContext,
+  data: GetBlockBodiesData,
+  peer: Peer,
+  context: EthHandlerContext,
 ) {
-	const { reqId, hashes } = data;
-	const { chain } = context;
+  const { reqId, hashes } = data
+  const { chain } = context
 
-	const blocks = await Promise.all(hashes.map(chain.getBlock));
-	const bodies = blocks.map((block) => block.raw().slice(1));
-	peer.eth?.send("BlockBodies", { reqId, bodies });
+  const blocks = await Promise.all(hashes.map(chain.getBlock))
+  const bodies = blocks.map((block) => block.raw().slice(1))
+  peer.eth?.send('BlockBodies', { reqId, bodies })
 }
 
 /**
  * Handle NewBlockHashes announcement
  */
 export function handleNewBlockHashes(
-	data: Array<[Uint8Array, bigint]>,
-	context: EthHandlerContext,
+  data: Array<[Uint8Array, bigint]>,
+  context: EthHandlerContext,
 ) {
-	const { synchronizer } = context;
-	if (synchronizer instanceof FullSynchronizer) {
-		synchronizer.handleNewBlockHashes(data);
-	}
+  const { synchronizer } = context
+  if (synchronizer instanceof FullSynchronizer) {
+    synchronizer.handleNewBlockHashes(data)
+  }
 }
 
 /**
  * Handle Transactions announcement
  */
 export async function handleTransactions(
-	data: TypedTransaction[],
-	peer: Peer,
-	context: EthHandlerContext,
+  data: TypedTransaction[],
+  peer: Peer,
+  context: EthHandlerContext,
 ) {
-	const { txPool, networkCore } = context;
-	await txPool.handleAnnouncedTxs(data, peer, networkCore);
+  const { txPool, networkCore } = context
+  await txPool.handleAnnouncedTxs(data, peer, networkCore)
 }
 
 /**
  * Handle NewBlock announcement
  */
 export async function handleNewBlock(
-	data: NewBlockData,
-	peer: Peer,
-	context: EthHandlerContext,
+  data: NewBlockData,
+  peer: Peer,
+  context: EthHandlerContext,
 ) {
-	const [block] = data;
-	const { synchronizer } = context;
-	await synchronizer.handleNewBlock(block, peer);
+  const [block] = data
+  const { synchronizer } = context
+  await synchronizer.handleNewBlock(block, peer)
 }
 
 /**
  * Handle NewPooledTransactionHashes announcement
  */
 export async function handleNewPooledTransactionHashes(
-	data: Uint8Array[] | [number[], number[], Uint8Array[]],
-	peer: Peer,
-	context: EthHandlerContext,
+  data: Uint8Array[] | [number[], number[], Uint8Array[]],
+  peer: Peer,
+  context: EthHandlerContext,
 ) {
-	const { txPool, networkCore } = context;
+  const { txPool, networkCore } = context
 
-	let hashes: Uint8Array[];
-	if (Array.isArray(data) && data.length === 3 && Array.isArray(data[0])) {
-		hashes = data[2] as Uint8Array[];
-	} else {
-		hashes = data as Uint8Array[];
-	}
+  let hashes: Uint8Array[]
+  if (Array.isArray(data) && data.length === 3 && Array.isArray(data[0])) {
+    hashes = data[2] as Uint8Array[]
+  } else {
+    hashes = data as Uint8Array[]
+  }
 
-	await txPool.handleAnnouncedTxHashes(hashes, peer, networkCore);
+  await txPool.handleAnnouncedTxHashes(hashes, peer, networkCore)
 }
 
 /**
  * Handle GetPooledTransactions request
  */
 export function handleGetPooledTransactions(
-	data: GetPooledTransactionsData,
-	peer: Peer,
-	context: EthHandlerContext,
+  data: GetPooledTransactionsData,
+  peer: Peer,
+  context: EthHandlerContext,
 ): void {
-	const { reqId, hashes } = data;
-	const { txPool } = context;
+  const { reqId, hashes } = data
+  const { txPool } = context
 
-	const txs = txPool.getByHash(hashes);
-	peer.eth?.send("PooledTransactions", { reqId, txs });
+  const txs = txPool.getByHash(hashes)
+  peer.eth?.send('PooledTransactions', { reqId, txs })
 }
 
 /**
  * Handle GetReceipts request
  */
 export async function handleGetReceipts(
-	data: GetReceiptsData,
-	peer: Peer,
-	context: EthHandlerContext,
+  data: GetReceiptsData,
+  peer: Peer,
+  context: EthHandlerContext,
 ) {
-	const [reqId, hashes] = data;
-	const { execution } = context;
+  const [reqId, hashes] = data
+  const { execution } = context
 
-	const { receiptsManager } = execution;
-	if (!receiptsManager) {
-		return;
-	}
+  const { receiptsManager } = execution
+  if (!receiptsManager) {
+    return
+  }
 
-	const receipts: TxReceiptWithType[] = [];
-	let receiptsSize = 0;
+  const receipts: TxReceiptWithType[] = []
+  let receiptsSize = 0
 
-	for (const hash of hashes) {
-		const blockReceipts = await receiptsManager.getReceipts(hash, true, true);
-		if (blockReceipts === undefined) continue;
+  for (const hash of hashes) {
+    const blockReceipts = await receiptsManager.getReceipts(hash, true, true)
+    if (blockReceipts === undefined) continue
 
-		receipts.push(...blockReceipts);
-		const receiptsBytes = concatBytes(
-			...receipts.map((r) => encodeReceipt(r, r.txType)),
-		);
-		receiptsSize += receiptsBytes.byteLength;
+    receipts.push(...blockReceipts)
+    const receiptsBytes = concatBytes(
+      ...receipts.map((r) => encodeReceipt(r, r.txType)),
+    )
+    receiptsSize += receiptsBytes.byteLength
 
-		// From spec: The recommended soft limit for Receipts responses is 2 MiB.
-		if (receiptsSize >= 2097152) break;
-	}
+    // From spec: The recommended soft limit for Receipts responses is 2 MiB.
+    if (receiptsSize >= 2097152) break
+  }
 
-	peer.eth?.send("Receipts", { reqId, receipts });
+  peer.eth?.send('Receipts', { reqId, receipts })
 }

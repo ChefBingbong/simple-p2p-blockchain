@@ -2,19 +2,19 @@
 // A libp2p-inspired modular networking stack for peer-to-peer communication
 
 // Stream abstractions
-export * from "./stream";
+export * from './stream'
 
 // Stream multiplexer (mplex)
-export * from "./muxer";
+export * from './muxer'
 
 // Protocol negotiation (multistream-select)
-export * from "./multi-stream-select";
+export * from './multi-stream-select'
 
 // Connection management
-export * from "./connection";
+export * from './connection'
 
 // Transport layer
-export * from "./transport";
+export * from './transport'
 
 // Connection encryption
-export * from "./connection-encrypters";
+export * from './connection-encrypters'

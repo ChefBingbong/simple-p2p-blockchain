@@ -1,11 +1,11 @@
-import type { ExecutionNode } from "../../../node/index.ts";
-import { RpcMethods, TxpoolRpcMethods } from "../types.ts";
-import { content } from "./content.ts";
+import type { ExecutionNode } from '../../../node/index.ts'
+import { RpcMethods, TxpoolRpcMethods } from '../types.ts'
+import { content } from './content.ts'
 
 export const createTxPoolRpcMethods = (
-	node: ExecutionNode,
+  node: ExecutionNode,
 ): RpcMethods<typeof TxpoolRpcMethods> => {
-	return {
-		txpool_content: content(node),
-	};
-};
+  return {
+    txpool_content: content(node),
+  }
+}

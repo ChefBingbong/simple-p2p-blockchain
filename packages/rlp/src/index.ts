@@ -1,6 +1,6 @@
-import { decode } from "./decode";
-import { encode } from "./encode";
+import { decode } from './decode'
+import { encode } from './encode'
 
-export * from "./types";
-export * from "./utils";
-export const RLP = { encode, decode };
+export * from './types'
+export * from './utils'
+export const RLP = { encode, decode }

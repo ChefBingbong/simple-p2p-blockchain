@@ -1,67 +1,67 @@
-import type { AbstractLevel } from "abstract-level";
-import type { Chain } from "../blockchain/index.ts";
-import type { Config } from "../config/index.ts";
-import type { VMExecution } from "../execution/index.ts";
-import type { PeerPoolLike } from "../net/peerpool-types.ts";
-import type { ExecutionNode } from "../node/index.ts";
-import type { FullSynchronizer } from "../sync/index.ts";
-import type { TxPool } from "./txpool.ts";
+import type { AbstractLevel } from 'abstract-level'
+import type { Chain } from '../blockchain/index.ts'
+import type { Config } from '../config/index.ts'
+import type { VMExecution } from '../execution/index.ts'
+import type { PeerPoolLike } from '../net/peerpool-types.ts'
+import type { ExecutionNode } from '../node/index.ts'
+import type { FullSynchronizer } from '../sync/index.ts'
+import type { TxPool } from './txpool.ts'
 
 /**
  * Common interface for execution node
  * @deprecated Use ExecutionNode directly
  */
 export interface IFullEthereumService {
-	pool: PeerPoolLike;
-	chain: Chain;
-	execution: VMExecution;
-	txPool: TxPool;
-	synchronizer?: FullSynchronizer;
+  pool: PeerPoolLike
+  chain: Chain
+  execution: VMExecution
+  txPool: TxPool
+  synchronizer?: FullSynchronizer
 }
 
 /**
  * Type alias for execution node
  * @deprecated Use ExecutionNode directly
  */
-export type FullEthereumServiceLike = ExecutionNode;
+export type FullEthereumServiceLike = ExecutionNode
 
 /**
  * Backward compatibility alias
  * @deprecated Use ExecutionNode directly
  */
-export type FullEthereumService = ExecutionNode;
+export type FullEthereumService = ExecutionNode
 
 export interface ServiceOptions {
-	/* Config (should have node property - Config now creates P2PNode automatically) */
-	config: Config;
+  /* Config (should have node property - Config now creates P2PNode automatically) */
+  config: Config
 
-	/* Blockchain (optional - will be created if not provided) */
-	chain?: Chain;
+  /* Blockchain (optional - will be created if not provided) */
+  chain?: Chain
 
-	/* Blockchain database */
-	chainDB?: AbstractLevel<
-		string | Uint8Array,
-		string | Uint8Array,
-		string | Uint8Array
-	>;
+  /* Blockchain database */
+  chainDB?: AbstractLevel<
+    string | Uint8Array,
+    string | Uint8Array,
+    string | Uint8Array
+  >
 
-	/* State database */
-	stateDB?: AbstractLevel<
-		string | Uint8Array,
-		string | Uint8Array,
-		string | Uint8Array
-	>;
+  /* State database */
+  stateDB?: AbstractLevel<
+    string | Uint8Array,
+    string | Uint8Array,
+    string | Uint8Array
+  >
 
-	/* Meta database (receipts, logs, indexes) */
-	metaDB?: AbstractLevel<
-		string | Uint8Array,
-		string | Uint8Array,
-		string | Uint8Array
-	>;
+  /* Meta database (receipts, logs, indexes) */
+  metaDB?: AbstractLevel<
+    string | Uint8Array,
+    string | Uint8Array,
+    string | Uint8Array
+  >
 
-	/* Sync retry interval in ms (default: 8000) */
-	interval?: number;
+  /* Sync retry interval in ms (default: 8000) */
+  interval?: number
 
-	/* Protocol timeout in ms (default: 6000) */
-	timeout?: number;
+  /* Protocol timeout in ms (default: 6000) */
+  timeout?: number
 }

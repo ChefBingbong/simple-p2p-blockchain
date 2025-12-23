@@ -1,4 +1,4 @@
-import z from "zod";
+import z from 'zod'
 
-export const clientVersionSchema = z.any();
-export const sha3Schema = z.any();
+export const clientVersionSchema = z.any()
+export const sha3Schema = z.any()

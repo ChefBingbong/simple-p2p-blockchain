@@ -13,75 +13,75 @@
  *   directly, bypassing devp2p's sendMessage().
  */
 
-import * as snappy from "snappyjs";
-import * as RLP from "../../../rlp";
+import * as snappy from 'snappyjs'
+import * as RLP from '../../../rlp'
 import {
-	bigIntToBytes,
-	bigIntToUnpaddedBytes,
-	bytesToBigInt,
-	bytesToHex,
-	bytesToInt,
-	hexToBytes,
-	intToBytes,
-	isHexString,
-	type PrefixedHexString,
-} from "../../../utils";
-import type { RLPxConnection } from "../../transport/rlpx/connection";
-import { EthMessageCode } from "../../../client/net/protocol/eth/definitions";
+  bigIntToBytes,
+  bigIntToUnpaddedBytes,
+  bytesToBigInt,
+  bytesToHex,
+  bytesToInt,
+  hexToBytes,
+  intToBytes,
+  isHexString,
+  type PrefixedHexString,
+} from '../../../utils'
+import type { RLPxConnection } from '../../transport/rlpx/connection'
+import { EthMessageCode } from '../../../client/net/protocol/eth/definitions'
 
-const BIGINT_0 = BigInt(0);
+const BIGINT_0 = BigInt(0)
 
 export interface EthStatusOpts {
-	td: Uint8Array;
-	bestHash: Uint8Array;
-	latestBlock?: Uint8Array;
-	genesisHash: Uint8Array;
-	forkHash?: string;
-	nextForkBlock?: bigint;
+  td: Uint8Array
+  bestHash: Uint8Array
+  latestBlock?: Uint8Array
+  genesisHash: Uint8Array
+  forkHash?: string
+  nextForkBlock?: bigint
 }
 
 export interface EthStatusEncoded {
-	chainId: Uint8Array;
-	td: Uint8Array;
-	bestHash: Uint8Array;
-	genesisHash: Uint8Array;
-	forkId?: Uint8Array | Uint8Array[];
+  chainId: Uint8Array
+  td: Uint8Array
+  bestHash: Uint8Array
+  genesisHash: Uint8Array
+  forkId?: Uint8Array | Uint8Array[]
 }
 
 /**
  * Check if peer supports Snappy compression (DevP2P >= v5)
  */
 function supportsSnappy(connection: RLPxConnection): boolean {
-	const hello = connection.getHelloMessage();
-	return hello !== null && hello.protocolVersion >= 5;
+  const hello = connection.getHelloMessage()
+  return hello !== null && hello.protocolVersion >= 5
 }
 
 /**
  * Encode and optionally compress payload
  */
 export function encodePayload(
-	payload: Uint8Array,
-	connection: RLPxConnection,
+  payload: Uint8Array,
+  connection: RLPxConnection,
 ): Uint8Array {
-	if (supportsSnappy(connection)) {
-		return snappy.compress(payload);
-	}
-	return payload;
+  if (supportsSnappy(connection)) {
+    return snappy.compress(payload)
+  }
+  return payload
 }
 
 /**
  * Decode and optionally decompress payload
  */
 export function decodePayload(
-	payload: Uint8Array,
-	connection: RLPxConnection,
+  payload: Uint8Array,
+  connection: RLPxConnection,
 ): Uint8Array {
-	// Try to decompress - if it fails, assume uncompressed
-	try {
-		return snappy.uncompress(payload);
-	} catch {
-		return payload;
-	}
+  // Try to decompress - if it fails, assume uncompressed
+  try {
+    return snappy.uncompress(payload)
+  } catch {
+    return payload
+  }
 }
 
 /**
@@ -92,37 +92,37 @@ export function decodePayload(
  * @returns RLP-encoded STATUS message
  */
 export function encodeStatus(
-	version: number,
-	chainId: bigint,
-	status: EthStatusOpts,
+  version: number,
+  chainId: bigint,
+  status: EthStatusOpts,
 ): Uint8Array {
-	const statusArray: any[] = [
-		intToBytes(version),
-		bigIntToBytes(chainId),
-		status.td,
-		status.bestHash,
-		status.genesisHash,
-	];
+  const statusArray: any[] = [
+    intToBytes(version),
+    bigIntToBytes(chainId),
+    status.td,
+    status.bestHash,
+    status.genesisHash,
+  ]
 
-	// Add fork ID for ETH/64+
-	if (version >= 64) {
-		const forkHashB = status.forkHash
-			? hexToBytes(
-					isHexString(status.forkHash)
-						? status.forkHash
-						: `0x${status.forkHash}`,
-				)
-			: new Uint8Array(4); // Default fork hash
+  // Add fork ID for ETH/64+
+  if (version >= 64) {
+    const forkHashB = status.forkHash
+      ? hexToBytes(
+          isHexString(status.forkHash)
+            ? status.forkHash
+            : `0x${status.forkHash}`,
+        )
+      : new Uint8Array(4) // Default fork hash
 
-		const nextForkB =
-			status.nextForkBlock !== undefined && status.nextForkBlock !== BIGINT_0
-				? bigIntToBytes(status.nextForkBlock)
-				: new Uint8Array();
+    const nextForkB =
+      status.nextForkBlock !== undefined && status.nextForkBlock !== BIGINT_0
+        ? bigIntToBytes(status.nextForkBlock)
+        : new Uint8Array()
 
-		statusArray.push([forkHashB, nextForkB]);
-	}
+    statusArray.push([forkHashB, nextForkB])
+  }
 
-	return RLP.encode(statusArray);
+  return RLP.encode(statusArray)
 }
 
 /**
@@ -131,20 +131,20 @@ export function encodeStatus(
  * @returns Decoded status object
  */
 export function decodeStatus(data: Uint8Array): EthStatusEncoded {
-	const decoded = RLP.decode(data) as Uint8Array[];
+  const decoded = RLP.decode(data) as Uint8Array[]
 
-	const status: EthStatusEncoded = {
-		chainId: decoded[1] as Uint8Array,
-		td: decoded[2] as Uint8Array,
-		bestHash: decoded[3] as Uint8Array,
-		genesisHash: decoded[4] as Uint8Array,
-	};
+  const status: EthStatusEncoded = {
+    chainId: decoded[1] as Uint8Array,
+    td: decoded[2] as Uint8Array,
+    bestHash: decoded[3] as Uint8Array,
+    genesisHash: decoded[4] as Uint8Array,
+  }
 
-	if (decoded.length > 5) {
-		status.forkId = decoded[5] as Uint8Array | Uint8Array[];
-	}
+  if (decoded.length > 5) {
+    status.forkId = decoded[5] as Uint8Array | Uint8Array[]
+  }
 
-	return status;
+  return status
 }
 
 /**
@@ -154,11 +154,11 @@ export function decodeStatus(data: Uint8Array): EthStatusEncoded {
  * @returns Encoded and optionally compressed payload
  */
 export function encodeMessage(
-	payload: any,
-	connection: RLPxConnection,
+  payload: any,
+  connection: RLPxConnection,
 ): Uint8Array {
-	const encoded = RLP.encode(payload);
-	return encodePayload(encoded, connection);
+  const encoded = RLP.encode(payload)
+  return encodePayload(encoded, connection)
 }
 
 /**
@@ -168,11 +168,11 @@ export function encodeMessage(
  * @returns Decoded payload
  */
 export function decodeMessage(
-	data: Uint8Array,
-	connection: RLPxConnection,
+  data: Uint8Array,
+  connection: RLPxConnection,
 ): any {
-	const decompressed = decodePayload(data, connection);
-	return RLP.decode(decompressed);
+  const decompressed = decodePayload(data, connection)
+  return RLP.decode(decompressed)
 }
 
 /**
@@ -182,36 +182,36 @@ export function decodeMessage(
  * @returns true if message is valid for this version
  */
 export function validateMessageCode(
-	code: EthMessageCode,
-	version: number,
+  code: EthMessageCode,
+  version: number,
 ): boolean {
-	switch (code) {
-		case EthMessageCode.STATUS:
-			return true; // Always valid
+  switch (code) {
+    case EthMessageCode.STATUS:
+      return true // Always valid
 
-		case EthMessageCode.NEW_BLOCK_HASHES:
-		case EthMessageCode.TRANSACTIONS:
-		case EthMessageCode.GET_BLOCK_HEADERS:
-		case EthMessageCode.BLOCK_HEADERS:
-		case EthMessageCode.GET_BLOCK_BODIES:
-		case EthMessageCode.BLOCK_BODIES:
-		case EthMessageCode.NEW_BLOCK:
-			return version >= 62;
+    case EthMessageCode.NEW_BLOCK_HASHES:
+    case EthMessageCode.TRANSACTIONS:
+    case EthMessageCode.GET_BLOCK_HEADERS:
+    case EthMessageCode.BLOCK_HEADERS:
+    case EthMessageCode.GET_BLOCK_BODIES:
+    case EthMessageCode.BLOCK_BODIES:
+    case EthMessageCode.NEW_BLOCK:
+      return version >= 62
 
-		case EthMessageCode.GET_RECEIPTS:
-		case EthMessageCode.RECEIPTS:
-			return version >= 63;
+    case EthMessageCode.GET_RECEIPTS:
+    case EthMessageCode.RECEIPTS:
+      return version >= 63
 
-		case EthMessageCode.NEW_POOLED_TRANSACTION_HASHES:
-		case EthMessageCode.GET_POOLED_TRANSACTIONS:
-		case EthMessageCode.POOLED_TRANSACTIONS:
-			return version >= 65;
+    case EthMessageCode.NEW_POOLED_TRANSACTION_HASHES:
+    case EthMessageCode.GET_POOLED_TRANSACTIONS:
+    case EthMessageCode.POOLED_TRANSACTIONS:
+      return version >= 65
 
-		case EthMessageCode.GET_NODE_DATA:
-		case EthMessageCode.NODE_DATA:
-			return version >= 63 && version <= 66;
+    case EthMessageCode.GET_NODE_DATA:
+    case EthMessageCode.NODE_DATA:
+      return version >= 63 && version <= 66
 
-		default:
-			return false;
-	}
+    default:
+      return false
+  }
 }

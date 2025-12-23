@@ -1,21 +1,21 @@
-import { sha256 } from "ethereum-cryptography/sha256.js";
+import { sha256 } from 'ethereum-cryptography/sha256.js'
 
-import { bytesToHex, hexToBytes, utf8ToBytes } from "./bytes.ts";
+import { bytesToHex, hexToBytes, utf8ToBytes } from './bytes.ts'
 
-import type { KZG } from "./kzg.ts";
-import type { PrefixedHexString } from "./types.ts";
+import type { KZG } from './kzg.ts'
+import type { PrefixedHexString } from './types.ts'
 
 /**
  * These utilities for constructing blobs are borrowed from https://github.com/Inphi/eip4844-interop.git
  */
-const BYTES_PER_FIELD_ELEMENT = 32; // EIP-4844
-const FIELD_ELEMENTS_PER_BLOB = 4096; // EIP-4844
-const BLOB_SIZE = BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB;
+const BYTES_PER_FIELD_ELEMENT = 32 // EIP-4844
+const FIELD_ELEMENTS_PER_BLOB = 4096 // EIP-4844
+const BLOB_SIZE = BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB
 
-const MAX_BLOBS_PER_TX = 6; // EIP-7691: Blob throughput increase, Pectra HF
-const MAX_BLOB_BYTES_PER_TX = BLOB_SIZE * MAX_BLOBS_PER_TX - 1;
+const MAX_BLOBS_PER_TX = 6 // EIP-7691: Blob throughput increase, Pectra HF
+const MAX_BLOB_BYTES_PER_TX = BLOB_SIZE * MAX_BLOBS_PER_TX - 1
 
-export const CELLS_PER_EXT_BLOB = 128; // EIP-4844, Consensus Spec, 2 * FIELD_ELEMENTS_PER_BLOB // 64 (FIELD_ELEMENTS_PER_CELL)
+export const CELLS_PER_EXT_BLOB = 128 // EIP-4844, Consensus Spec, 2 * FIELD_ELEMENTS_PER_BLOB // 64 (FIELD_ELEMENTS_PER_CELL)
 
 /**
  * Pads input data to blob boundaries with 0x80 marker and zeros.
@@ -24,10 +24,10 @@ export const CELLS_PER_EXT_BLOB = 128; // EIP-4844, Consensus Spec, 2 * FIELD_EL
  * @returns Padded data aligned to blob boundaries
  */
 function getPadded(data: Uint8Array, blobs_len: number): Uint8Array {
-	const pData = new Uint8Array(blobs_len * BLOB_SIZE);
-	pData.set(data);
-	pData[data.byteLength] = 0x80;
-	return pData;
+  const pData = new Uint8Array(blobs_len * BLOB_SIZE)
+  pData.set(data)
+  pData[data.byteLength] = 0x80
+  return pData
 }
 
 /**
@@ -37,14 +37,14 @@ function getPadded(data: Uint8Array, blobs_len: number): Uint8Array {
  * @returns Hex-prefixed blob string
  */
 function getBlob(data: Uint8Array): PrefixedHexString {
-	const blob = new Uint8Array(BLOB_SIZE);
-	for (let i = 0; i < FIELD_ELEMENTS_PER_BLOB; i++) {
-		const chunk = new Uint8Array(32);
-		chunk.set(data.subarray(i * 31, (i + 1) * 31), 0);
-		blob.set(chunk, i * 32);
-	}
+  const blob = new Uint8Array(BLOB_SIZE)
+  for (let i = 0; i < FIELD_ELEMENTS_PER_BLOB; i++) {
+    const chunk = new Uint8Array(32)
+    chunk.set(data.subarray(i * 31, (i + 1) * 31), 0)
+    blob.set(chunk, i * 32)
+  }
 
-	return bytesToHex(blob);
+  return bytesToHex(blob)
 }
 
 /**
@@ -60,34 +60,34 @@ function getBlob(data: Uint8Array): PrefixedHexString {
  * @returns Array of hex-prefixed blob strings (0x...), one blob per 131,071 useful bytes per input
  */
 export const getBlobs = (input: string | string[]) => {
-	const inputArray = Array.isArray(input) ? input : [input];
-	const blobs: PrefixedHexString[] = [];
+  const inputArray = Array.isArray(input) ? input : [input]
+  const blobs: PrefixedHexString[] = []
 
-	for (const input of inputArray) {
-		const data = utf8ToBytes(input);
-		const len = data.byteLength;
-		if (len === 0) {
-			throw new Error("invalid blob data (0 bytes)");
-		}
-		if (len > MAX_BLOB_BYTES_PER_TX) {
-			throw new Error(
-				`blob data is too large (${len} bytes > ${MAX_BLOB_BYTES_PER_TX} bytes)`,
-			);
-		}
+  for (const input of inputArray) {
+    const data = utf8ToBytes(input)
+    const len = data.byteLength
+    if (len === 0) {
+      throw new Error('invalid blob data (0 bytes)')
+    }
+    if (len > MAX_BLOB_BYTES_PER_TX) {
+      throw new Error(
+        `blob data is too large (${len} bytes > ${MAX_BLOB_BYTES_PER_TX} bytes)`,
+      )
+    }
 
-		const blobs_len = Math.ceil(len / BLOB_SIZE);
+    const blobs_len = Math.ceil(len / BLOB_SIZE)
 
-		const pData = getPadded(data, blobs_len);
+    const pData = getPadded(data, blobs_len)
 
-		for (let i = 0; i < blobs_len; i++) {
-			const chunk = pData.subarray(i * BLOB_SIZE, (i + 1) * BLOB_SIZE);
-			const blob = getBlob(chunk);
-			blobs.push(blob);
-		}
-	}
+    for (let i = 0; i < blobs_len; i++) {
+      const chunk = pData.subarray(i * BLOB_SIZE, (i + 1) * BLOB_SIZE)
+      const blob = getBlob(chunk)
+      blobs.push(blob)
+    }
+  }
 
-	return blobs;
-};
+  return blobs
+}
 
 /**
  * EIP-4844: Computes KZG commitments for a set of blobs.
@@ -96,14 +96,14 @@ export const getBlobs = (input: string | string[]) => {
  * @returns Array of lowercase hex-prefixed KZG commitments (one per blob)
  */
 export const blobsToCommitments = (kzg: KZG, blobs: PrefixedHexString[]) => {
-	const commitments: PrefixedHexString[] = [];
-	for (const blob of blobs) {
-		commitments.push(
-			kzg.blobToKzgCommitment(blob).toLowerCase() as PrefixedHexString,
-		);
-	}
-	return commitments;
-};
+  const commitments: PrefixedHexString[] = []
+  for (const blob of blobs) {
+    commitments.push(
+      kzg.blobToKzgCommitment(blob).toLowerCase() as PrefixedHexString,
+    )
+  }
+  return commitments
+}
 
 /**
  * EIP-4844: Computes KZG proofs for each blob/commitment pair.
@@ -113,16 +113,16 @@ export const blobsToCommitments = (kzg: KZG, blobs: PrefixedHexString[]) => {
  * @returns Array of lowercase hex-prefixed proofs (aligned with input order)
  */
 export const blobsToProofs = (
-	kzg: KZG,
-	blobs: PrefixedHexString[],
-	commitments: PrefixedHexString[],
+  kzg: KZG,
+  blobs: PrefixedHexString[],
+  commitments: PrefixedHexString[],
 ) => {
-	const proofs = blobs.map((blob, ctx) =>
-		kzg.computeBlobProof(blob, commitments[ctx]).toLowerCase(),
-	) as PrefixedHexString[];
+  const proofs = blobs.map((blob, ctx) =>
+    kzg.computeBlobProof(blob, commitments[ctx]).toLowerCase(),
+  ) as PrefixedHexString[]
 
-	return proofs;
-};
+  return proofs
+}
 
 /**
  * EIP-4844: Converts a vector commitment for a given data blob to its versioned hash.  For 4844, this version
@@ -133,14 +133,14 @@ export const blobsToProofs = (
  * @returns a versioned hash corresponding to a given blob vector commitment
  */
 export const computeVersionedHash = (
-	commitment: PrefixedHexString,
-	blobCommitmentVersion: number,
+  commitment: PrefixedHexString,
+  blobCommitmentVersion: number,
 ) => {
-	const computedVersionedHash = new Uint8Array(32);
-	computedVersionedHash.set([blobCommitmentVersion], 0);
-	computedVersionedHash.set(sha256(hexToBytes(commitment)).subarray(1), 1);
-	return bytesToHex(computedVersionedHash);
-};
+  const computedVersionedHash = new Uint8Array(32)
+  computedVersionedHash.set([blobCommitmentVersion], 0)
+  computedVersionedHash.set(sha256(hexToBytes(commitment)).subarray(1), 1)
+  return bytesToHex(computedVersionedHash)
+}
 
 /**
  * EIP-4844: Generate an array of versioned hashes from corresponding kzg commitments
@@ -149,14 +149,14 @@ export const computeVersionedHash = (
  * Note: assumes KZG commitments (version 1 version hashes)
  */
 export const commitmentsToVersionedHashes = (
-	commitments: PrefixedHexString[],
+  commitments: PrefixedHexString[],
 ) => {
-	const hashes: PrefixedHexString[] = [];
-	for (const commitment of commitments) {
-		hashes.push(computeVersionedHash(commitment, 0x01));
-	}
-	return hashes;
-};
+  const hashes: PrefixedHexString[] = []
+  for (const commitment of commitments) {
+    hashes.push(computeVersionedHash(commitment, 0x01))
+  }
+  return hashes
+}
 
 /**
  * EIP-7594: Expands blobs into their extended cells using the provided KZG implementation.
@@ -165,16 +165,16 @@ export const commitmentsToVersionedHashes = (
  * @returns Tuple of [cells, indices], where cells are hex strings and indices are 0..127
  */
 export const blobsToCells = (
-	kzg: KZG,
-	blobs: PrefixedHexString[],
+  kzg: KZG,
+  blobs: PrefixedHexString[],
 ): [PrefixedHexString[], number[]] => {
-	const cells = blobs.reduce((acc, elem) => {
-		return [...acc, ...(kzg.computeCells(elem) as PrefixedHexString[])];
-	}, [] as PrefixedHexString[]);
-	const indices = Array.from({ length: CELLS_PER_EXT_BLOB }, (_, i) => i);
+  const cells = blobs.reduce((acc, elem) => {
+    return [...acc, ...(kzg.computeCells(elem) as PrefixedHexString[])]
+  }, [] as PrefixedHexString[])
+  const indices = Array.from({ length: CELLS_PER_EXT_BLOB }, (_, i) => i)
 
-	return [cells, indices];
-};
+  return [cells, indices]
+}
 
 /**
  * EIP-7594: Computes extended cells and corresponding proofs for the given blobs.
@@ -183,30 +183,30 @@ export const blobsToCells = (
  * @returns Tuple of [cells, proofs, indices]; indices are 0..127
  */
 export const blobsToCellsAndProofs = (
-	kzg: KZG,
-	blobs: PrefixedHexString[],
+  kzg: KZG,
+  blobs: PrefixedHexString[],
 ): [PrefixedHexString[], PrefixedHexString[], number[]] => {
-	const blobsAndCells = blobs.reduce(
-		([cellsAcc, proofsAcc], elem) => {
-			const blobCellsAndProofs = kzg.computeCellsAndProofs(elem) as [
-				PrefixedHexString[],
-				PrefixedHexString[],
-			];
-			return [
-				[...cellsAcc, ...blobCellsAndProofs[0]],
-				[...proofsAcc, ...blobCellsAndProofs[1]],
-			];
-		},
-		[[] as PrefixedHexString[], [] as PrefixedHexString[]],
-	);
+  const blobsAndCells = blobs.reduce(
+    ([cellsAcc, proofsAcc], elem) => {
+      const blobCellsAndProofs = kzg.computeCellsAndProofs(elem) as [
+        PrefixedHexString[],
+        PrefixedHexString[],
+      ]
+      return [
+        [...cellsAcc, ...blobCellsAndProofs[0]],
+        [...proofsAcc, ...blobCellsAndProofs[1]],
+      ]
+    },
+    [[] as PrefixedHexString[], [] as PrefixedHexString[]],
+  )
 
-	const indices = Array.from({ length: CELLS_PER_EXT_BLOB }, (_, i) => i);
-	return [...blobsAndCells, indices] as [
-		PrefixedHexString[],
-		PrefixedHexString[],
-		number[],
-	];
-};
+  const indices = Array.from({ length: CELLS_PER_EXT_BLOB }, (_, i) => i)
+  return [...blobsAndCells, indices] as [
+    PrefixedHexString[],
+    PrefixedHexString[],
+    number[],
+  ]
+}
 
 /**
  * EIP-7594: Computes cell proofs for the given blobs.
@@ -215,8 +215,8 @@ export const blobsToCellsAndProofs = (
  * @returns Array of lowercase hex-prefixed cell proofs (aligned with input order)
  */
 export const blobsToCellProofs = (
-	kzg: KZG,
-	blobs: PrefixedHexString[],
+  kzg: KZG,
+  blobs: PrefixedHexString[],
 ): PrefixedHexString[] => {
-	return blobsToCellsAndProofs(kzg, blobs)[1] as PrefixedHexString[];
-};
+  return blobsToCellsAndProofs(kzg, blobs)[1] as PrefixedHexString[]
+}

@@ -1,8 +1,8 @@
-import type { Block } from "..";
+import type { Block } from '..'
 
 export function ethashCanonicalDifficulty(
-	block: Block,
-	parentBlock: Block,
+  block: Block,
+  parentBlock: Block,
 ): bigint {
-	return block.header.ethashCanonicalDifficulty(parentBlock.header);
+  return block.header.ethashCanonicalDifficulty(parentBlock.header)
 }

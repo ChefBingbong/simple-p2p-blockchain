@@ -3,48 +3,48 @@
  * Processes incoming TRANSACTIONS announcements
  */
 
-import debug from "debug";
+import debug from 'debug'
 import {
-	ETH_MESSAGES,
-	EthMessageCode,
-} from "../../../../client/net/protocol/eth/definitions";
-import type { EthHandler } from "../handler";
-import { handleTransactions as handleTransactionsExec } from "../../../../client/net/protocol/eth/handlers.ts";
+  ETH_MESSAGES,
+  EthMessageCode,
+} from '../../../../client/net/protocol/eth/definitions'
+import type { EthHandler } from '../handler'
+import { handleTransactions as handleTransactionsExec } from '../../../../client/net/protocol/eth/handlers.ts'
 
-const log = debug("p2p:eth:handlers:transactions");
+const log = debug('p2p:eth:handlers:transactions')
 
 /**
  * Handle TRANSACTIONS announcement
  * Payload is already decoded: array of transaction bytes
  */
 export async function handleTransactions(
-	handler: EthHandler,
-	payload: unknown,
+  handler: EthHandler,
+  payload: unknown,
 ): Promise<void> {
-	try {
-		const decoded = ETH_MESSAGES[EthMessageCode.TRANSACTIONS].decode(payload, {
-			chainCommon: handler.config.chainCommon,
-			synchronized: handler.isReady,
-		});
+  try {
+    const decoded = ETH_MESSAGES[EthMessageCode.TRANSACTIONS].decode(payload, {
+      chainCommon: handler.config.chainCommon,
+      synchronized: handler.isReady,
+    })
 
-		// If context is available, call execution handler directly
-		if (handler.context) {
-			const peer = handler.findPeer();
-			if (peer) {
-				await handleTransactionsExec(decoded, peer, handler.context);
-				return;
-			}
-		}
+    // If context is available, call execution handler directly
+    if (handler.context) {
+      const peer = handler.findPeer()
+      if (peer) {
+        await handleTransactionsExec(decoded, peer, handler.context)
+        return
+      }
+    }
 
-		// Otherwise emit event for backward compatibility
-		handler.emit("message", {
-			code: EthMessageCode.TRANSACTIONS,
-			name: "Transactions",
-			data: decoded,
-		});
-	} catch (error: unknown) {
-		const err = error as Error;
-		log("Error handling TRANSACTIONS: %s", err.message);
-		handler.emit("error", err);
-	}
+    // Otherwise emit event for backward compatibility
+    handler.emit('message', {
+      code: EthMessageCode.TRANSACTIONS,
+      name: 'Transactions',
+      data: decoded,
+    })
+  } catch (error: unknown) {
+    const err = error as Error
+    log('Error handling TRANSACTIONS: %s', err.message)
+    handler.emit('error', err)
+  }
 }
