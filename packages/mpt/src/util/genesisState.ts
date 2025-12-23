@@ -1,13 +1,13 @@
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
-import type { GenesisState } from '../../chain-config'
-import * as RLP from '../../rlp'
+import type { GenesisState } from '@ts-ethereum/chain-config'
+import { RLP } from '@ts-ethereum/rlp'
 import {
 	Account,
 	hexToBytes,
 	isHexString,
 	unpadBytes,
 	unprefixedHexToBytes,
-} from '../../utils'
+} from '@ts-ethereum/utils'
 import { MerklePatriciaTrie } from '../mpt'
 
 /**

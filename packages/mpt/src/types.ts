@@ -1,5 +1,5 @@
-import type { DB, ValueEncoding } from '../utils'
-import { utf8ToBytes } from '../utils'
+import type { DB, ValueEncoding } from '@ts-ethereum/utils'
+import { utf8ToBytes } from '@ts-ethereum/utils'
 import type { BranchMPTNode, ExtensionMPTNode, LeafMPTNode } from './node'
 import type { WalkController } from './util/walkController'
 

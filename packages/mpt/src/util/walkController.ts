@@ -1,4 +1,4 @@
-import { PrioritizedTaskExecutor } from '../../utils'
+import { PrioritizedTaskExecutor } from '@ts-ethereum/utils'
 
 import { BranchMPTNode, ExtensionMPTNode, LeafMPTNode } from '../node'
 

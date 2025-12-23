@@ -7,7 +7,7 @@ import {
   bytesToUnprefixedHex,
   concatBytes,
   unprefixedHexToBytes,
-} from '../utils'
+} from '@ts-ethereum/utils'
 
 export async function createMPT(opts?: MPTOpts) {
   const keccakFunction = opts?.useKeyHashingFunction ?? keccak256

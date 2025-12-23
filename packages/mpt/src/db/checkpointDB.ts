@@ -4,9 +4,9 @@ import {
 	ValueEncoding,
 	bytesToUnprefixedHex,
 	unprefixedHexToBytes,
-} from '../../utils'
+} from '@ts-ethereum/utils'
 
-import type { BatchDBOp, DB, EncodingOpts } from '../../utils'
+import type { BatchDBOp, DB, EncodingOpts } from '@ts-ethereum/utils'
 import type { Checkpoint, CheckpointDBOpts } from '../types'
 
 /**

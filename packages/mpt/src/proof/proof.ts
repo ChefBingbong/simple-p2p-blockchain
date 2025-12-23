@@ -1,4 +1,4 @@
-import { bytesToHex, concatBytes, equalsBytes } from '../../utils'
+import { bytesToHex, concatBytes, equalsBytes } from '@ts-ethereum/utils'
 
 import {
   type MPTOpts,
@@ -7,7 +7,7 @@ import {
   createMPTFromProof,
 } from '..'
 
-import type { PutBatch } from '../../utils'
+import type { PutBatch } from '@ts-ethereum/utils'
 
 /**
  * An (EIP-1186)[https://eips.ethereum.org/EIPS/eip-1186] proof contains the encoded trie nodes

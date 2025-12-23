@@ -1,4 +1,4 @@
-import * as RLP from '../../rlp'
+import { RLP } from '@ts-ethereum/rlp'
 
 import type {
 	BranchMPTNodeBranchValue,

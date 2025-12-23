@@ -1,5 +1,5 @@
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
-import { equalsBytes } from '../../utils'
+import { equalsBytes } from '@ts-ethereum/utils'
 
 import { createMPTFromProof } from '..'
 import { MerklePatriciaTrie } from '../mpt'

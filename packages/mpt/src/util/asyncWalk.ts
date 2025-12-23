@@ -1,5 +1,5 @@
-import * as RLP from '../../rlp'
-import { bytesToHex, equalsBytes } from '../../utils'
+import { RLP } from '@ts-ethereum/rlp'
+import { bytesToHex, equalsBytes } from '@ts-ethereum/utils'
 
 import { BranchMPTNode } from '../node/branch'
 import { ExtensionMPTNode } from '../node/extension'
