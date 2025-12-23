@@ -7,11 +7,11 @@
 import { EventEmitter } from 'eventemitter3'
 import { equalsBytes, randomBytes } from '../utils'
 import type {
-  Contact,
-  KBucketEvent,
-  KBucketOptions,
-  PeerInfo,
-} from './types.ts'
+	Contact,
+	KBucketEvent,
+	KBucketOptions,
+	PeerInfo,
+} from './types'
 
 function createNode(): KBucketNode {
   return { contacts: [], noSplit: false, left: null, right: null }

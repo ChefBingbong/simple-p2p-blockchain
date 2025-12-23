@@ -1,8 +1,8 @@
-import type { Connection } from '../../../p2p/libp2p/types.ts'
-import { peerIdToString } from '../../../p2p/libp2p/types.ts'
-import type { RLPxConnection } from '../../../p2p/transport/rlpx/connection.ts'
-import { P2PPeer } from '../peer/p2p-peer.ts'
-import type { NetworkCore } from './network-core.ts'
+import type { Connection } from '../../../p2p/libp2p/types'
+import { peerIdToString } from '../../../p2p/libp2p/types'
+import type { RLPxConnection } from '../../../p2p/transport/rlpx/connection'
+import { P2PPeer } from '../peer/p2p-peer'
+import type { NetworkCore } from './network-core'
 
 export class PeerConnectionHandler {
   private readonly core: NetworkCore

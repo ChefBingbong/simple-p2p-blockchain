@@ -1,4 +1,4 @@
-import { DBKey, MetaDBManager } from '../util/metaDBManager.ts'
+import { DBKey, MetaDBManager } from '../util/metaDBManager'
 
 /**
  * The `PreImagesManager` saves the preimages of hashed keys. This is necessary for the State tree transitions.

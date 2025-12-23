@@ -1,9 +1,9 @@
-import type { PrefixedHexString } from '../../../../utils/index.ts'
-import { hexToBytes, intToHex } from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getBlockTransactionCountByHashSchema } from './schema.ts'
+import type { PrefixedHexString } from '../../../../utils/index'
+import { hexToBytes, intToHex } from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { getBlockTransactionCountByHashSchema } from './schema'
 
 export const getBlockTransactionCountByHash = (node: ExecutionNode) => {
   const chain = node.chain

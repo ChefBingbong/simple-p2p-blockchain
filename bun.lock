@@ -228,6 +228,11 @@
     "packages/tx": {
       "name": "@ts-ethereum/tx",
       "version": "0.0.0",
+      "dependencies": {
+        "@ts-ethereum/chain-config": "workspace:*",
+        "@ts-ethereum/rlp": "workspace:*",
+        "@ts-ethereum/utils": "workspace:*",
+      },
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -238,6 +243,9 @@
     "packages/utils": {
       "name": "@ts-ethereum/utils",
       "version": "0.0.0",
+      "dependencies": {
+        "@ts-ethereum/rlp": "workspace:*",
+      },
       "devDependencies": {
         "@types/bun": "latest",
       },

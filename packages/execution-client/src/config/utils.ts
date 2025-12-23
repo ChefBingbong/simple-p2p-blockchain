@@ -1,12 +1,12 @@
-import { Common } from '../../chain-config.ts'
-import { PeerInfo } from '../../kademlia/types.ts'
-import { defaultMetricsOptions, MetricsOptions } from '../../metrics/options.ts'
-import { Address } from '../../utils.ts'
-import { genPrivateKey } from '../../utils/utils.ts'
-import type { VM, VMProfilerOpts } from '../../vm.ts'
-import { Logger } from '../logging.ts'
-import * as constants from './constants.ts'
-import type { ConfigOptions, SyncMode } from './types.ts'
+import { Common } from '../../chain-config'
+import { PeerInfo } from '../../kademlia/types'
+import { defaultMetricsOptions, MetricsOptions } from '../../metrics/options'
+import { Address } from '../../utils'
+import { genPrivateKey } from '../../utils/utils'
+import type { VM, VMProfilerOpts } from '../../vm'
+import { Logger } from '../logging'
+import * as constants from './constants'
+import type { ConfigOptions, SyncMode } from './types'
 
 /**
  * Resolved config options with all defaults applied
@@ -45,7 +45,7 @@ export interface ResolvedConfigOptions {
   readonly useStringValueTrieDB: boolean
   readonly savePreimages: boolean
   readonly metrics?: MetricsOptions
-  readonly rateLimit?: import('../rpc/rate-limit/types.ts').RateLimitOptions
+  readonly rateLimit?: import('../rpc/rate-limit/types').RateLimitOptions
   readonly common: Common
   readonly logger?: Logger
 }

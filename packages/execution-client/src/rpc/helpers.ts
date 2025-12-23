@@ -1,11 +1,11 @@
 import { Context } from 'hono'
 import { ContentfulStatusCode } from 'hono/utils/http-status.js'
-import type { Block } from '../../block.ts'
-import type { JSONRPCTx, TypedTransaction } from '../../tx.ts'
-import { BIGINT_0, bigIntToHex, bytesToHex, intToHex } from '../../utils.ts'
-import type { Chain } from '../blockchain/index.ts'
-import { INVALID_BLOCK, INVALID_PARAMS } from './error-code.ts'
-import { RPCError, RpcApiEnv } from './types.ts'
+import type { Block } from '../../block'
+import type { JSONRPCTx, TypedTransaction } from '../../tx'
+import { BIGINT_0, bigIntToHex, bytesToHex, intToHex } from '../../utils'
+import type { Chain } from '../blockchain/index'
+import { INVALID_BLOCK, INVALID_PARAMS } from './error-code'
+import { RPCError, RpcApiEnv } from './types'
 
 /**
  * Returns tx formatted to the standard JSON-RPC fields (legacy transactions only)

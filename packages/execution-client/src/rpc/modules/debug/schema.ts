@@ -1,5 +1,5 @@
 import z from 'zod'
-import { INVALID_PARAMS } from '../../error-code.ts'
+import { INVALID_PARAMS } from '../../error-code'
 
 export interface tracerOpts {
   disableStack?: boolean

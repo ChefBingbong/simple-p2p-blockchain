@@ -4,7 +4,7 @@
  * Token bucket algorithm for rate limiting RPC requests
  */
 
-import type { RateLimitOptions, RateLimitResult, TokenBucket } from './types.ts'
+import type { RateLimitOptions, RateLimitResult, TokenBucket } from './types'
 
 /**
  * Token bucket rate limiter

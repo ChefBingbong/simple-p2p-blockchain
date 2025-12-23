@@ -1,26 +1,26 @@
 import type { AbstractLevel } from 'abstract-level'
 import {
-  Block,
-  BlockHeader,
-  createBlockFromBytesArray,
-  createBlockHeaderFromBytesArray,
-} from '../../block.ts'
+	Block,
+	BlockHeader,
+	createBlockFromBytesArray,
+	createBlockHeaderFromBytesArray,
+} from '../../block'
 import {
-  Blockchain,
-  type ConsensusDict,
-  createBlockchain,
-} from '../../blockchain.ts'
-import { type GenesisState } from '../../chain-config.ts'
+	Blockchain,
+	type ConsensusDict,
+	createBlockchain,
+} from '../../blockchain'
+import { type GenesisState } from '../../chain-config'
 import {
-  BIGINT_0,
-  type DB,
-  type DBObject,
-  EthereumJSErrorWithoutCode,
-  equalsBytes,
-} from '../../utils.ts'
-import type { Config } from '../config/index.ts'
-import { LevelDB } from '../execution/level.ts'
-import { Event } from '../types.ts'
+	BIGINT_0,
+	type DB,
+	type DBObject,
+	EthereumJSErrorWithoutCode,
+	equalsBytes,
+} from '../../utils'
+import type { Config } from '../config/index'
+import { LevelDB } from '../execution/level'
+import { Event } from '../types'
 
 /**
  * The options that the Blockchain constructor can receive.

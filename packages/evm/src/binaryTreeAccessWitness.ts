@@ -1,40 +1,40 @@
 import debugDefault from 'debug'
 import type {
-  AccessEventFlags,
-  BinaryTreeAccessWitnessInterface,
-  BinaryTreeAccessedState,
-  BinaryTreeAccessedStateWithAddress,
-  RawBinaryTreeAccessedState,
+	AccessEventFlags,
+	BinaryTreeAccessWitnessInterface,
+	BinaryTreeAccessedState,
+	BinaryTreeAccessedStateWithAddress,
+	RawBinaryTreeAccessedState,
 } from '../chain-config'
 import { BinaryTreeAccessedStateType } from '../chain-config'
 import {
-  BIGINT_0,
-  BINARY_TREE_BASIC_DATA_LEAF_KEY,
-  BINARY_TREE_CODE_HASH_LEAF_KEY,
-  BINARY_TREE_CODE_OFFSET,
-  BINARY_TREE_HEADER_STORAGE_OFFSET,
-  BINARY_TREE_MAIN_STORAGE_OFFSET,
-  BINARY_TREE_NODE_WIDTH,
-  bytesToHex,
-  equalsBytes,
-  getBinaryTreeIndicesForCodeChunk,
-  getBinaryTreeIndicesForStorageSlot,
-  getBinaryTreeKey,
-  getBinaryTreeStem,
-  hexToBytes,
-  intToBytes,
+	BIGINT_0,
+	BINARY_TREE_BASIC_DATA_LEAF_KEY,
+	BINARY_TREE_CODE_HASH_LEAF_KEY,
+	BINARY_TREE_CODE_OFFSET,
+	BINARY_TREE_HEADER_STORAGE_OFFSET,
+	BINARY_TREE_MAIN_STORAGE_OFFSET,
+	BINARY_TREE_NODE_WIDTH,
+	bytesToHex,
+	equalsBytes,
+	getBinaryTreeIndicesForCodeChunk,
+	getBinaryTreeIndicesForStorageSlot,
+	getBinaryTreeKey,
+	getBinaryTreeStem,
+	hexToBytes,
+	intToBytes,
 } from '../utils'
 
 import type { BinaryTree } from '../binary-tree'
 import type { StatefulBinaryTreeStateManager } from '../state-manager'
 
 import type {
-  Address,
-  BinaryTreeExecutionWitness,
-  PrefixedHexString,
+	Address,
+	BinaryTreeExecutionWitness,
+	PrefixedHexString,
 } from '../utils'
-import { ChunkCache } from './chunkCache.ts'
-import { StemCache } from './stemCache.ts'
+import { ChunkCache } from './chunkCache'
+import { StemCache } from './stemCache'
 
 const debug = debugDefault('evm:binaryTree:aw')
 

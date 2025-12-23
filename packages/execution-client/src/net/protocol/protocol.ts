@@ -1,9 +1,9 @@
 import type { Debugger } from 'debug'
 import debugDefault from 'debug'
 import { EventEmitter } from 'eventemitter3'
-import type { Common } from '../../../chain-config/index.ts'
-import { devp2pDebug } from '../../../utils/utils.ts'
-import type { ProtocolEvent, ProtocolType } from '../dpt-1/types.ts'
+import type { Common } from '../../../chain-config/index'
+import { devp2pDebug } from '../../../utils/utils'
+import type { ProtocolEvent, ProtocolType } from '../dpt-1/types'
 
 type MessageCodes = { [key: number | string]: number | string }
 

@@ -1,17 +1,17 @@
 import { Context, Next } from 'hono'
 import { requestId } from 'hono/request-id'
-import type { ExecutionNode } from '../../node/index.ts'
-import { INTERNAL_ERROR } from '../error-code.ts'
-import { getRpcErrorResponse } from '../helpers.ts'
-import { createRpcHandlers } from '../modules/index.ts'
-import { RateLimiter } from '../rate-limit/index.ts'
-import { RpcApiEnv, rpcRequestSchema } from '../types.ts'
-import { rpcValidator } from '../validation.ts'
+import type { ExecutionNode } from '../../node/index'
+import { INTERNAL_ERROR } from '../error-code'
+import { getRpcErrorResponse } from '../helpers'
+import { createRpcHandlers } from '../modules/index'
+import { RateLimiter } from '../rate-limit/index'
+import { RpcApiEnv, rpcRequestSchema } from '../types'
+import { rpcValidator } from '../validation'
 import {
-  RpcServerBase,
-  type RpcServerModules,
-  type RpcServerOpts,
-} from './base.ts'
+	RpcServerBase,
+	type RpcServerModules,
+	type RpcServerOpts,
+} from './base'
 
 export type RpcServerOptsExtended = RpcServerOpts & {
   enabled: boolean

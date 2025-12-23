@@ -1,13 +1,13 @@
 import {
-  bytesToHex,
-  EthereumJSErrorWithoutCode,
-} from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import { encodeReceipt } from '../../../../vm/index.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getRawReceiptsSchema } from './schema.ts'
+	bytesToHex,
+	EthereumJSErrorWithoutCode,
+} from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import { encodeReceipt } from '../../../../vm/index'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getRawReceiptsSchema } from './schema'
 
 export const getRawReceipts = (node: ExecutionNode) => {
   const chain = node.chain

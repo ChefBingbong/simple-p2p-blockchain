@@ -1,7 +1,7 @@
 import type { EVMOpts } from '.'
 import { EVM } from '.'
 import { SimpleStateManager } from '../state-manager'
-import { EVMMockBlockchain } from './types.ts'
+import { EVMMockBlockchain } from './types'
 
 /**
  * Use this async static constructor for the initialization

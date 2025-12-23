@@ -1,15 +1,15 @@
 import { getRandomBytesSync } from 'ethereum-cryptography/random'
-import * as RLP from '../../../../rlp/index.ts'
-import { concatBytes } from '../../../../rlp/index.ts'
-import { bytesToInt, intToBytes } from '../../../../utils/index.ts'
+import * as RLP from '../../../../rlp/index'
+import { concatBytes } from '../../../../rlp/index'
+import { bytesToInt, intToBytes } from '../../../../utils/index'
 import {
-  assertEq,
-  id2pk,
-  pk2id,
-  unstrictDecode,
-} from '../../../../utils/utils.ts'
-import { decryptMessage, eccieEncryptMessage, ecdhX } from './crypto.ts'
-import type { AckResult } from './types.ts'
+	assertEq,
+	id2pk,
+	pk2id,
+	unstrictDecode,
+} from '../../../../utils/utils'
+import { decryptMessage, eccieEncryptMessage, ecdhX } from './crypto'
+import type { AckResult } from './types'
 
 export function createAckEIP8(
   ephemeralPublicKey: Uint8Array,

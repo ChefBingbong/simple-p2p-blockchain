@@ -6,16 +6,16 @@ import { EventEmitter } from 'eventemitter3'
 import type { Common } from '../chain-config'
 import { bytesToInt, bytesToUnprefixedHex, randomBytes } from '../utils'
 
-import { BanList } from './ban-list.ts'
-import { RoutingTable } from './routing-table.ts'
+import { BanList } from './ban-list'
+import { RoutingTable } from './routing-table'
 import {
-  type KademliaConfig,
-  type KademliaEvent,
-  type KademliaTransport,
-  type PeerInfo,
-} from './types.ts'
-import { UdpTransport } from './udp.ts'
-import { pk2id } from './xor.ts'
+	type KademliaConfig,
+	type KademliaEvent,
+	type KademliaTransport,
+	type PeerInfo,
+} from './types'
+import { UdpTransport } from './udp'
+import { pk2id } from './xor'
 
 const KBUCKET_SIZE = 16
 const KBUCKET_CONCURRENCY = 3

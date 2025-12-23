@@ -5,10 +5,10 @@ import { fileURLToPath } from 'url'
 /**
  * @module util
  */
-import { bytesToHex } from '../../utils.ts'
+import { bytesToHex } from '../../utils'
 
-export * from './ip.ts'
-export * from './parse.ts'
+export * from './ip'
+export * from './parse'
 
 // See: https://stackoverflow.com/a/50053801
 const __dirname = dirname(fileURLToPath(import.meta.url))

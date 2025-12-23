@@ -1,14 +1,14 @@
-import type { Block, JSONRPCBlock } from '../../../../block/index.ts'
-import type { TypedTransaction } from '../../../../tx/index.ts'
-import type { Address } from '../../../../utils/index.ts'
-import { bigIntToHex, bytesToHex, intToHex } from '../../../../utils/index.ts'
+import type { Block, JSONRPCBlock } from '../../../../block/index'
+import type { TypedTransaction } from '../../../../tx/index'
+import type { Address } from '../../../../utils/index'
+import { bigIntToHex, bytesToHex, intToHex } from '../../../../utils/index'
 import type {
-  PostByzantiumTxReceipt,
-  PreByzantiumTxReceipt,
-  TxReceipt,
-} from '../../../../vm/index.ts'
-import type { Chain } from '../../../blockchain/index.ts'
-import { toJSONRPCTx } from '../../helpers.ts'
+	PostByzantiumTxReceipt,
+	PreByzantiumTxReceipt,
+	TxReceipt,
+} from '../../../../vm/index'
+import type { Chain } from '../../../blockchain/index'
+import { toJSONRPCTx } from '../../helpers'
 
 /**
  * Returns block formatted to the standard JSON-RPC fields

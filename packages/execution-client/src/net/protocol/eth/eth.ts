@@ -1,25 +1,25 @@
 import * as snappy from 'snappyjs'
-import type { Input } from '../../../../rlp/index.ts'
-import * as RLP from '../../../../rlp/index.ts'
+import type { Input } from '../../../../rlp/index'
+import * as RLP from '../../../../rlp/index'
 import {
-  BIGINT_0,
-  bigIntToBytes,
-  bytesToBigInt,
-  bytesToHex,
-  bytesToInt,
-  bytesToUnprefixedHex,
-  hexToBytes,
-  intToBytes,
-  isHexString,
-} from '../../../../utils/index.ts'
+	BIGINT_0,
+	bigIntToBytes,
+	bytesToBigInt,
+	bytesToHex,
+	bytesToInt,
+	bytesToUnprefixedHex,
+	hexToBytes,
+	intToBytes,
+	isHexString,
+} from '../../../../utils/index'
 import {
-  assertEq,
-  formatLogData,
-  formatLogId,
-} from '../../../../utils/utils.ts'
-import { ProtocolType } from '../../dpt-1/types.ts'
-import type { ProtocolConnection } from '../protocol.ts'
-import { Protocol } from '../protocol.ts'
+	assertEq,
+	formatLogData,
+	formatLogId,
+} from '../../../../utils/utils'
+import { ProtocolType } from '../../dpt-1/types'
+import type { ProtocolConnection } from '../protocol'
+import { Protocol } from '../protocol'
 
 export interface EthStatusMsg extends Array<Uint8Array | Uint8Array[]> {}
 

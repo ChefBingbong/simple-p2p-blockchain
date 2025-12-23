@@ -1,12 +1,12 @@
 import * as RLP from '../../rlp'
 import { type NestedUint8Array } from '../../utils'
 
-import { isTerminator } from '../util/hex.ts'
-import { bytesToNibbles } from '../util/nibbles.ts'
+import { isTerminator } from '../util/hex'
+import { bytesToNibbles } from '../util/nibbles'
 
-import { BranchMPTNode } from './branch.ts'
-import { ExtensionMPTNode } from './extension.ts'
-import { LeafMPTNode } from './leaf.ts'
+import { BranchMPTNode } from './branch'
+import { ExtensionMPTNode } from './extension'
+import { LeafMPTNode } from './leaf'
 
 export function decodeRawMPTNode(raw: Uint8Array[]) {
   if (raw.length === 17) {

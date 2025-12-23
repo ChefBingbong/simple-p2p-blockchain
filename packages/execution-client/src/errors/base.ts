@@ -5,13 +5,13 @@
  */
 
 import {
-  ErrorCategory,
-  ErrorCode,
-  ErrorContext,
-  ErrorMetadata,
-  ErrorRecoveryType,
-  ErrorSeverity,
-} from './types.ts'
+	ErrorCategory,
+	ErrorCode,
+	ErrorContext,
+	ErrorMetadata,
+	ErrorRecoveryType,
+	ErrorSeverity,
+} from './types'
 
 /**
  * Base error class for all client errors

@@ -1,7 +1,7 @@
 import type crypto from 'node:crypto'
 import { concatBytes } from '../../../../utils'
-import { zfill } from '../../../../utils/utils.ts'
-import type { MAC } from '../mac.ts'
+import { zfill } from '../../../../utils/utils'
+import type { MAC } from '../mac'
 import type { BodyResult } from './types'
 
 type Decipher = crypto.DecipherGCM

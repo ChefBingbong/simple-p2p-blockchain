@@ -2,4 +2,5 @@
  * @module blockchain
  */
 
-export * from './chain.ts'
+export * from './chain';
+

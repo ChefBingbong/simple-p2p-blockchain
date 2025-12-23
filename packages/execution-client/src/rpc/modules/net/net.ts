@@ -1,8 +1,8 @@
-import type { ExecutionNode } from '../../../node/index.ts'
-import { NetRpcMethods, RpcMethods } from '../types.ts'
-import { listening } from './listening.ts'
-import { peerCount } from './peer-count.ts'
-import { version } from './version.ts'
+import type { ExecutionNode } from '../../../node/index'
+import { NetRpcMethods, RpcMethods } from '../types'
+import { listening } from './listening'
+import { peerCount } from './peer-count'
+import { version } from './version'
 
 export const createNetRpcMethods = (
   node: ExecutionNode,

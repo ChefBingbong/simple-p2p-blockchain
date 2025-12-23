@@ -1,4 +1,4 @@
-import type { ClientPaths } from '../chain-config/paths.ts'
+import type { ClientPaths } from '../chain-config/paths'
 
 export type DbPaths = {
   chainDbPath: string

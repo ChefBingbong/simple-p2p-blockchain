@@ -1,25 +1,25 @@
-import type { ConfigOptions } from '../client/config/types.ts'
-import { createConfigOptions } from '../client/index.ts'
-import type { PeerInfo } from '../kademlia/types.ts'
-import type { Address as UtilsAddress } from '../utils/index.ts'
-import { createAddressFromString } from '../utils/index.ts'
+import type { ConfigOptions } from '../client/config/types'
+import { createConfigOptions } from '../client/index'
+import type { PeerInfo } from '../kademlia/types'
+import type { Address as UtilsAddress } from '../utils/index'
+import { createAddressFromString } from '../utils/index'
 import {
-  type Account,
-  generateAccounts,
-  getNodeAccount,
-  readAccounts,
-  writeAccounts,
-} from './accounts.ts'
+	type Account,
+	generateAccounts,
+	getNodeAccount,
+	readAccounts,
+	writeAccounts,
+} from './accounts'
 import {
-  enodeToDPTPeerInfo,
-  readBootnodeInfo,
-  writeBootnodeInfo,
-} from './bootnodes.ts'
-import type { Common } from './common.ts'
-import { Common as CommonClass, Hardfork } from './index.ts'
-import { initPrivateKey } from './keys.ts'
-import { getClientPaths } from './paths.ts'
-import type { ChainConfig, GenesisState } from './types.ts'
+	enodeToDPTPeerInfo,
+	readBootnodeInfo,
+	writeBootnodeInfo,
+} from './bootnodes'
+import type { Common } from './common'
+import { Common as CommonClass, Hardfork } from './index'
+import { initPrivateKey } from './keys'
+import { getClientPaths } from './paths'
+import type { ChainConfig, GenesisState } from './types'
 
 export interface ClientInitArgs extends Partial<ConfigOptions> {
   /** Root data directory */

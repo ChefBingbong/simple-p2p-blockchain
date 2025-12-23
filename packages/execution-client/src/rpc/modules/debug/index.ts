@@ -1,1 +1,2 @@
-export * from './debug.ts'
+export * from './debug';
+

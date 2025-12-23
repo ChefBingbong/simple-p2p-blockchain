@@ -1,8 +1,8 @@
-import { mkdirSync } from 'node:fs'
 import type { AbstractLevel } from 'abstract-level'
-import { DbController, type DbOptions } from './controller.ts'
-import type { DbPaths } from './paths.ts'
-import type { Logger } from '../client/logging.ts'
+import { mkdirSync } from 'node:fs'
+import type { Logger } from '../client/logging'
+import { DbController } from './controller'
+import type { DbPaths } from './paths'
 
 export interface Databases {
   chainDB: AbstractLevel<

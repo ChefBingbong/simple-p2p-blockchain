@@ -1,10 +1,9 @@
-import z from 'zod'
-import { bytesToHex } from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getClientVersion } from '../../../util/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { nodeInfoSchema } from './schema.ts'
+import { bytesToHex } from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { getClientVersion } from '../../../util/index'
+import { createRpcMethod } from '../../validation'
+import { nodeInfoSchema } from './schema'
 
 export const nodeInfo = (node: ExecutionNode) =>
   createRpcMethod(nodeInfoSchema, async (_params, _c) => {

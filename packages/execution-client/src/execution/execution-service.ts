@@ -1,14 +1,14 @@
 import type { AbstractLevel } from 'abstract-level'
-import type { Block } from '../../block/index.ts'
-import type { VM } from '../../vm/index.ts'
-import type { Chain } from '../blockchain/chain.ts'
-import type { Config } from '../config/index.ts'
-import { Miner } from '../miner/index.ts'
-import type { NetworkCore } from '../net/core/network-core.ts'
-import { TxPool } from '../service/txpool.ts'
-import { FullSynchronizer } from '../sync/index.ts'
-import { Event } from '../types.ts'
-import { VMExecution } from './vmexecution.ts'
+import type { Block } from '../../block/index'
+import type { VM } from '../../vm/index'
+import type { Chain } from '../blockchain/chain'
+import type { Config } from '../config/index'
+import { Miner } from '../miner/index'
+import type { NetworkCore } from '../net/core/network-core'
+import { TxPool } from '../service/txpool'
+import { FullSynchronizer } from '../sync/index'
+import { Event } from '../types'
+import { VMExecution } from './vmexecution'
 
 export interface ExecutionServiceModules {
   config: Config
@@ -123,7 +123,7 @@ export class ExecutionService {
   }
 
   private onPoolPeerAdded = (
-    peer: import('../net/peer/peer.ts').Peer,
+    peer: import('../net/peer/peer').Peer,
   ): void => {
     if (!this.txPool) return
 

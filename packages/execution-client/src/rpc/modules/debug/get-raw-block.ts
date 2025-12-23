@@ -1,9 +1,9 @@
-import { bytesToHex } from '../../../../utils/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getRawBlockSchema } from './schema.ts'
+import { bytesToHex } from '../../../../utils/index'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getRawBlockSchema } from './schema'
 
 export const getRawBlock = (node: ExecutionNode) => {
   const chain = node.chain

@@ -1,10 +1,10 @@
 import { defaultLogger } from '@libp2p/logger'
-import { P2PNode } from '../../p2p/libp2p/node.ts'
-import { rlpx } from '../../p2p/transport/rlpx/index.ts'
-import { ConfigOptions } from '../config/types.ts'
-import { dptDiscovery } from '../net/discovery/dpt-discovery.ts'
-import { ETH } from '../net/protocol/eth/eth.ts'
-import { P2PNode as P2PNodeType } from '../p2p/libp2p/types.ts'
+import { P2PNode } from '../../p2p/libp2p/node'
+import { rlpx } from '../../p2p/transport/rlpx/index'
+import { ConfigOptions } from '../config/types'
+import { dptDiscovery } from '../net/discovery/dpt-discovery'
+import { ETH } from '../net/protocol/eth/eth'
+import { P2PNode as P2PNodeType } from '../p2p/libp2p/types'
 
 export function createP2PNodeFromConfig(options: ConfigOptions): P2PNodeType {
   const kadDiscovery = []

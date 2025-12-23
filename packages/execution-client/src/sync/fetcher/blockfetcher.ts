@@ -1,15 +1,15 @@
-import type { Block, BlockBytes } from '../../../block.ts'
-import { createBlockFromBytesArray } from '../../../block.ts'
+import type { Block, BlockBytes } from '../../../block'
+import { createBlockFromBytesArray } from '../../../block'
 import {
-  equalsBytes,
-  KECCAK256_RLP,
-  KECCAK256_RLP_ARRAY,
-} from '../../../utils.ts'
-import type { Peer } from '../../net/peer/peer.ts'
-import { Event } from '../../types.ts'
-import type { BlockFetcherOptions, JobTask } from './blockfetcherbase.ts'
-import { BlockFetcherBase } from './blockfetcherbase.ts'
-import type { Job } from './types.ts'
+	equalsBytes,
+	KECCAK256_RLP,
+	KECCAK256_RLP_ARRAY,
+} from '../../../utils'
+import type { Peer } from '../../net/peer/peer'
+import { Event } from '../../types'
+import type { BlockFetcherOptions, JobTask } from './blockfetcherbase'
+import { BlockFetcherBase } from './blockfetcherbase'
+import type { Job } from './types'
 
 /**
  * Implements an eth/66 based block fetcher

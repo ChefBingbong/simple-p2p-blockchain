@@ -1,5 +1,3 @@
-import { keccak256 } from 'ethereum-cryptography/keccak.js'
-import { secp256k1 } from 'ethereum-cryptography/secp256k1'
 import {
   Address,
   BIGINT_0,
@@ -10,12 +8,14 @@ import {
   publicToAddress,
   SECP256K1_ORDER_DIV_2,
   unpadBytes,
-} from '../../utils'
+} from '@ts-ethereum/utils'
+import { keccak256 } from 'ethereum-cryptography/keccak.js'
+import { secp256k1 } from 'ethereum-cryptography/secp256k1'
 import type {
   LegacyTxInterface,
   Transaction,
   TransactionType,
-} from '../types.ts'
+} from '../types'
 
 /**
  * Creates an error message with transaction context

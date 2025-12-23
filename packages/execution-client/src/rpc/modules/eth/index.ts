@@ -1,1 +1,2 @@
-export * from './eth.ts'
+export * from './eth';
+

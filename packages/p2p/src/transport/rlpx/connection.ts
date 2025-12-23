@@ -10,39 +10,39 @@ import debug from 'debug'
 import { EventEmitter } from 'eventemitter3'
 import type { Socket } from 'net'
 import * as snappy from 'snappyjs'
-import type { Capabilities } from '../../../client/net/dpt-1/types.ts'
+import type { Capabilities } from '../../../client/net/dpt-1/types'
 import {
-  DISCONNECT_REASON,
-  DisconnectReasonNames,
-} from '../../../client/net/dpt-1/types.ts'
+	DISCONNECT_REASON,
+	DisconnectReasonNames,
+} from '../../../client/net/dpt-1/types'
 // import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
 // import { RLPxProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
-import type { Protocol } from '../../../client/net/protocol/protocol.ts'
-import * as RLP from '../../../rlp/index.ts'
+import type { Protocol } from '../../../client/net/protocol/protocol'
+import * as RLP from '../../../rlp/index'
 import {
-  bytesToInt,
-  bytesToUtf8,
-  concatBytes,
-  equalsBytes,
-  hexToBytes,
-  intToBytes,
-  utf8ToBytes,
-} from '../../../utils/index.ts'
-import { ECIES } from '../../connection-encrypters/eccies/ecies.ts'
+	bytesToInt,
+	bytesToUtf8,
+	concatBytes,
+	equalsBytes,
+	hexToBytes,
+	intToBytes,
+	utf8ToBytes,
+} from '../../../utils/index'
+import { ECIES } from '../../connection-encrypters/eccies/ecies'
 import type {
-  HelloMessage,
-  ProtocolDescriptor,
-  RLPxConnectionEvents,
-  RLPxConnectionOptions,
-  RLPxConnectionState,
-  RLPxPrefix,
-} from './types.ts'
+	HelloMessage,
+	ProtocolDescriptor,
+	RLPxConnectionEvents,
+	RLPxConnectionOptions,
+	RLPxConnectionState,
+	RLPxPrefix,
+} from './types'
 import {
-  BASE_PROTOCOL_LENGTH,
-  BASE_PROTOCOL_VERSION,
-  PING_INTERVAL,
-  RLPX_PREFIXES,
-} from './types.ts'
+	BASE_PROTOCOL_LENGTH,
+	BASE_PROTOCOL_VERSION,
+	PING_INTERVAL,
+	RLPX_PREFIXES,
+} from './types'
 
 const log = debug('p2p:rlpx:connection')
 type HelloMsg = {

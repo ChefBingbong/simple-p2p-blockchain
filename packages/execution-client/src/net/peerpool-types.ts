@@ -1,6 +1,6 @@
-import type { Config } from '../config/index.ts'
-import { NetworkCore } from './core/network-core.ts'
-import type { Peer } from './peer/peer.ts'
+import type { Config } from '../config/index'
+import { NetworkCore } from './core/network-core'
+import type { Peer } from './peer/peer'
 
 /**
  * Common interface for peer pools

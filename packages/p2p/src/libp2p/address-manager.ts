@@ -8,13 +8,13 @@
 import { multiaddr, type Multiaddr } from '@multiformats/multiaddr'
 import type { TypedEventTarget } from 'main-event'
 import type {
-  AddressManager as AddressManagerInterface,
-  ComponentLogger,
-  Logger,
-  P2PNodeEvents,
-  PeerId,
-  TransportManager,
-} from './types.ts'
+	AddressManager as AddressManagerInterface,
+	ComponentLogger,
+	Logger,
+	P2PNodeEvents,
+	PeerId,
+	TransportManager,
+} from './types'
 
 /**
  * Address manager configuration

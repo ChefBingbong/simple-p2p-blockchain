@@ -1,27 +1,27 @@
-import type { Block } from '../../block.ts'
-import * as RLP from '../../rlp.ts'
-import type { TransactionType, TypedTransaction } from '../../tx.ts'
+import type { Block } from '../../block'
+import * as RLP from '../../rlp'
+import type { TransactionType, TypedTransaction } from '../../tx'
 import {
-  bigIntToBytes,
-  bytesToBigInt,
-  bytesToInt,
-  equalsBytes,
-  EthereumJSErrorWithoutCode,
-  intToBytes,
-  utf8ToBytes,
-} from '../../utils.ts'
+	bigIntToBytes,
+	bytesToBigInt,
+	bytesToInt,
+	equalsBytes,
+	EthereumJSErrorWithoutCode,
+	intToBytes,
+	utf8ToBytes,
+} from '../../utils'
 import {
-  Bloom,
-  PostByzantiumTxReceipt,
-  PreByzantiumTxReceipt,
-  TxReceipt,
-} from '../../vm.ts'
-import { DBKey, MetaDBManager } from '../util/metaDBManager.ts'
+	Bloom,
+	PostByzantiumTxReceipt,
+	PreByzantiumTxReceipt,
+	TxReceipt,
+} from '../../vm'
+import { DBKey, MetaDBManager } from '../util/metaDBManager'
 
 // Log type for receipts (simplified - logs are always empty in value-transfer-only mode)
 type Log = [address: Uint8Array, topics: Uint8Array[], data: Uint8Array]
 
-import type { TxHashIndex } from './txIndex.ts'
+import type { TxHashIndex } from './txIndex'
 
 /**
  * TxReceiptWithType extends TxReceipt to provide:

@@ -3,11 +3,11 @@
  */
 
 import type {
-  Account,
-  Address,
-  BinaryTreeExecutionWitness,
-  PrefixedHexString,
-} from '../utils/index.ts'
+	Account,
+	Address,
+	BinaryTreeExecutionWitness,
+	PrefixedHexString,
+} from '../utils/index'
 
 export type AccountFields = Partial<
   Pick<Account, 'nonce' | 'balance' | 'storageRoot' | 'codeHash' | 'codeSize'>

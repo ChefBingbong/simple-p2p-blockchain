@@ -1,8 +1,8 @@
-import { BIGINT_0, bigIntToHex } from '../../../../utils/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { blockNumberSchema } from './schema.ts'
+import { BIGINT_0, bigIntToHex } from '../../../../utils/index'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { blockNumberSchema } from './schema'
 
 export const blockNumber = (node: ExecutionNode) => {
   return createRpcMethod(blockNumberSchema, async (_params, _c) => {

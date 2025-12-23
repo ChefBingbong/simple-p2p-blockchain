@@ -1,11 +1,11 @@
 import type { AbstractLevel } from 'abstract-level'
-import type { Chain } from '../blockchain/index.ts'
-import type { Config } from '../config/index.ts'
-import type { VMExecution } from '../execution/index.ts'
-import type { PeerPoolLike } from '../net/peerpool-types.ts'
-import type { ExecutionNode } from '../node/index.ts'
-import type { FullSynchronizer } from '../sync/index.ts'
-import type { TxPool } from './txpool.ts'
+import type { Chain } from '../blockchain/index'
+import type { Config } from '../config/index'
+import type { VMExecution } from '../execution/index'
+import type { PeerPoolLike } from '../net/peerpool-types'
+import type { ExecutionNode } from '../node/index'
+import type { FullSynchronizer } from '../sync/index'
+import type { TxPool } from './txpool'
 
 /**
  * Common interface for execution node

@@ -7,48 +7,48 @@ import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import * as RLP from '../rlp'
 import type { BatchDBOp, DB } from '../utils'
 import {
-  BIGINT_0,
-  bytesToBigInt,
-  bytesToHex,
-  bytesToUnprefixedHex,
-  bytesToUtf8,
-  concatBytes,
-  equalsBytes,
-  KeyEncoding,
-  Lock,
-  MapDB,
-  RLP_EMPTY_STRING,
-  ValueEncoding,
+	BIGINT_0,
+	bytesToBigInt,
+	bytesToHex,
+	bytesToUnprefixedHex,
+	bytesToUtf8,
+	concatBytes,
+	equalsBytes,
+	KeyEncoding,
+	Lock,
+	MapDB,
+	RLP_EMPTY_STRING,
+	ValueEncoding,
 } from '../utils'
-import { CheckpointDB } from './db/checkpointDB.ts'
+import { CheckpointDB } from './db/checkpointDB'
 import {
-  BranchMPTNode,
-  decodeMPTNode,
-  decodeRawMPTNode,
-  ExtensionMPTNode,
-  isRawMPTNode,
-  LeafMPTNode,
+	BranchMPTNode,
+	decodeMPTNode,
+	decodeRawMPTNode,
+	ExtensionMPTNode,
+	isRawMPTNode,
+	LeafMPTNode,
 } from './node'
 import type {
-  BranchMPTNodeBranchValue,
-  FoundNodeFunction,
-  MPTNode,
-  MPTOpts,
-  MPTOptsWithDefaults,
-  Nibbles,
-  NodeReferenceOrRawMPTNode,
-  Path,
-  TrieShallowCopyOpts,
-} from './types.ts'
-import { ROOT_DB_KEY } from './types.ts'
-import type { OnFound } from './util/asyncWalk.ts'
-import { _walkTrie } from './util/asyncWalk.ts'
+	BranchMPTNodeBranchValue,
+	FoundNodeFunction,
+	MPTNode,
+	MPTOpts,
+	MPTOptsWithDefaults,
+	Nibbles,
+	NodeReferenceOrRawMPTNode,
+	Path,
+	TrieShallowCopyOpts,
+} from './types'
+import { ROOT_DB_KEY } from './types'
+import type { OnFound } from './util/asyncWalk'
+import { _walkTrie } from './util/asyncWalk'
 import {
-  bytesToNibbles,
-  matchingNibbleLength,
-  nibblesTypeToPackedBytes,
-} from './util/nibbles.ts'
-import { WalkController } from './util/walkController.ts'
+	bytesToNibbles,
+	matchingNibbleLength,
+	nibblesTypeToPackedBytes,
+} from './util/nibbles'
+import { WalkController } from './util/walkController'
 
 /**
  * The basic trie interface, use with `import { MerklePatriciaTrie } from '../../mpt'`.

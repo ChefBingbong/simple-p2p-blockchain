@@ -1,10 +1,9 @@
-import z from 'zod'
-import { bytesToHex } from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
+import { bytesToHex } from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
 // RPC admin peers - Updated for P2P architecture
-import { createRpcMethod } from '../../validation.ts'
-import { peersSchema } from './schema.ts'
+import { createRpcMethod } from '../../validation'
+import { peersSchema } from './schema'
 
 export const peers = (node: ExecutionNode) =>
   createRpcMethod(peersSchema, async (_params, _c) => {

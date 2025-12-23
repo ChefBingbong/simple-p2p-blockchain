@@ -8,10 +8,10 @@
 
 import type { Listener, Logger, Transport } from '@libp2p/interface'
 import {
-  AbortError,
-  serviceCapabilities,
-  TimeoutError,
-  transportSymbol,
+	AbortError,
+	serviceCapabilities,
+	TimeoutError,
+	transportSymbol,
 } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { TCP as TCPMatcher } from '@multiformats/multiaddr-matcher'
@@ -22,18 +22,18 @@ import net from 'net'
 import os from 'os'
 import { CustomProgressEvent } from 'progress-events'
 // import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
-import { bytesToUnprefixedHex, utf8ToBytes } from '../../../utils/index.ts'
-import { multiaddrToNetConfig } from '../tcp/utils.ts'
-import { RLPxConnection } from './connection.ts'
-import { RLPxListener } from './listener.ts'
+import { bytesToUnprefixedHex, utf8ToBytes } from '../../../utils/index'
+import { multiaddrToNetConfig } from '../tcp/utils'
+import { RLPxConnection } from './connection'
+import { RLPxListener } from './listener'
 import type {
-  RLPxComponents,
-  RLPxCreateListenerOptions,
-  RLPxDialEvents,
-  RLPxDialOptions,
-  RLPxMetrics,
-  RLPxTransportOptions,
-} from './types.ts'
+	RLPxComponents,
+	RLPxCreateListenerOptions,
+	RLPxDialEvents,
+	RLPxDialOptions,
+	RLPxMetrics,
+	RLPxTransportOptions,
+} from './types'
 
 const log = debug('p2p:rlpx:transport1')
 /**

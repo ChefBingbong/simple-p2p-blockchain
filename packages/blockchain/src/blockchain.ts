@@ -5,38 +5,38 @@ import type { HeaderData } from '../block'
 import { Block, BlockHeader, createBlock } from '../block'
 import type { GenesisState } from '../chain-config'
 import { Common, ConsensusAlgorithm } from '../chain-config'
-import { Ethash } from '../eth-hash/index.ts'
+import { Ethash } from '../eth-hash/index'
 import type { BigIntLike, DB, DBObject } from '../utils'
 import {
-  BIGINT_0,
-  BIGINT_1,
-  BIGINT_8,
-  bigIntToHex,
-  bytesToHex,
-  bytesToUnprefixedHex,
-  equalsBytes,
-  Lock,
-  MapDB,
+	BIGINT_0,
+	BIGINT_1,
+	BIGINT_8,
+	bigIntToHex,
+	bytesToHex,
+	bytesToUnprefixedHex,
+	equalsBytes,
+	Lock,
+	MapDB,
 } from '../utils'
-import { EthashConsensus } from './consensus/ethash.ts'
+import { EthashConsensus } from './consensus/ethash'
 // PoW/Ethash only - no Casper or Clique consensus
 import {
-  DBOp,
-  DBSaveLookups,
-  DBSetBlockOrHeader,
-  DBSetHashToNumber,
-  DBSetTD,
-} from './db/helpers.ts'
-import { DBManager } from './db/manager.ts'
-import { DBTarget } from './db/operation.ts'
+	DBOp,
+	DBSaveLookups,
+	DBSetBlockOrHeader,
+	DBSetHashToNumber,
+	DBSetTD,
+} from './db/helpers'
+import { DBManager } from './db/manager'
+import { DBTarget } from './db/operation'
 import type {
-  BlockchainEvent,
-  BlockchainInterface,
-  BlockchainOptions,
-  Consensus,
-  ConsensusDict,
-  OnBlock,
-} from './types.ts'
+	BlockchainEvent,
+	BlockchainInterface,
+	BlockchainOptions,
+	Consensus,
+	ConsensusDict,
+	OnBlock,
+} from './types'
 
 /**
  * Blockchain implementation to create and maintain a valid canonical chain

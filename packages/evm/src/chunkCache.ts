@@ -1,5 +1,5 @@
 import type { PrefixedHexString } from '../utils'
-import type { BinaryChunkAccessEvent } from './binaryTreeAccessWitness.ts'
+import type { BinaryChunkAccessEvent } from './binaryTreeAccessWitness'
 
 /**
  * Simple cache for binary tree chunk access events.

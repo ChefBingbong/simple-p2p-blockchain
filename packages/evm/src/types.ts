@@ -1,14 +1,14 @@
 import type { EventEmitter } from 'eventemitter3'
 import type {
-  BinaryTreeAccessWitnessInterface,
-  Common,
-  ParamsDict,
-  StateManagerInterface,
+	BinaryTreeAccessWitnessInterface,
+	Common,
+	ParamsDict,
+	StateManagerInterface,
 } from '../chain-config'
 import type { Account, Address, PrefixedHexString } from '../utils'
-import type { BinaryTreeAccessWitness } from './binaryTreeAccessWitness.ts'
-import type { EVMError } from './errors.ts'
-import type { Message } from './message.ts'
+import type { BinaryTreeAccessWitness } from './binaryTreeAccessWitness'
+import type { EVMError } from './errors'
+import type { Message } from './message'
 
 /**
  * Base options for the `EVM.runCall()` method.

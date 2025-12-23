@@ -1,6 +1,7 @@
-export { NetworkCore } from './core/index.ts'
-export type { NetworkCoreOptions } from './core/index.ts'
-export * from './discovery/index.ts'
-export { NetworkService } from './network-service.ts'
-export * from './peer/index.ts'
-export * from './protocol/index.ts'
+export { NetworkCore } from './core/index'
+export type { NetworkCoreOptions } from './core/index'
+export * from './discovery/index'
+export { NetworkService } from './network-service'
+export * from './peer/index'
+export * from './protocol/index'
+

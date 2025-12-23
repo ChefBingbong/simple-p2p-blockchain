@@ -1,19 +1,19 @@
-import { createBlock } from '../../../../block/index.ts'
-import { createTx } from '../../../../tx/index.ts'
+import { createBlock } from '../../../../block/index'
+import { createTx } from '../../../../tx/index'
 import {
-  BIGINT_1,
-  createAddressFromString,
-  createZeroAddress,
-  EthereumJSErrorWithoutCode,
-} from '../../../../utils/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { VM } from '../../../../vm/index.ts'
-import { runTx } from '../../../../vm/index.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import type { RPCTx } from '../../types.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { estimateGasSchema } from './schema.ts'
+	BIGINT_1,
+	createAddressFromString,
+	createZeroAddress,
+	EthereumJSErrorWithoutCode,
+} from '../../../../utils/index'
+import { safeResult } from '../../../../utils/safe'
+import type { VM } from '../../../../vm/index'
+import { runTx } from '../../../../vm/index'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import type { RPCTx } from '../../types'
+import { createRpcMethod } from '../../validation'
+import { estimateGasSchema } from './schema'
 
 export const estimateGas = (node: ExecutionNode) => {
   const chain = node.chain

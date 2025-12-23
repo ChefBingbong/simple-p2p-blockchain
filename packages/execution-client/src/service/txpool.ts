@@ -1,25 +1,25 @@
-import type { Block } from '../../block.ts'
-import { isLegacyTx, type LegacyTx, type TypedTransaction } from '../../tx.ts'
+import type { Block } from '../../block'
+import { isLegacyTx, type LegacyTx, type TypedTransaction } from '../../tx'
 import {
-  Account,
-  Address,
-  BIGINT_0,
-  BIGINT_1,
-  bytesToHex,
-  bytesToUnprefixedHex,
-  equalsBytes,
-  EthereumJSErrorWithoutCode,
-  hexToBytes,
-} from '../../utils.ts'
-import type { VM } from '../../vm.ts'
-import { Chain } from '../blockchain/chain.ts'
-import type { Config } from '../config/index.ts'
-import { VMExecution } from '../execution/vmexecution.ts'
-import type { QHeap } from '../ext/qheap.ts'
-import { Heap } from '../ext/qheap.ts'
-import { NetworkCore } from '../net/index.ts'
-import type { Peer } from '../net/peer/peer.ts'
-import type { PeerPoolLike } from '../net/peerpool-types.ts'
+	Account,
+	Address,
+	BIGINT_0,
+	BIGINT_1,
+	bytesToHex,
+	bytesToUnprefixedHex,
+	equalsBytes,
+	EthereumJSErrorWithoutCode,
+	hexToBytes,
+} from '../../utils'
+import type { VM } from '../../vm'
+import { Chain } from '../blockchain/chain'
+import type { Config } from '../config/index'
+import { VMExecution } from '../execution/vmexecution'
+import type { QHeap } from '../ext/qheap'
+import { Heap } from '../ext/qheap'
+import { NetworkCore } from '../net/index'
+import type { Peer } from '../net/peer/peer'
+import type { PeerPoolLike } from '../net/peerpool-types'
 
 // Configuration constants
 const MIN_GAS_PRICE_BUMP_PERCENT = 10

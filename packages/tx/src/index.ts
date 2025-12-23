@@ -2,19 +2,19 @@
 export * from './legacy'
 
 // Parameters
-export * from './params.ts'
+export * from './params'
 
 // Transaction factory
 export {
-  createTx,
-  createTxFromBlockBodyData,
-  createTxFromJSONRPCProvider,
-  createTxFromRLP,
-  createTxFromRPC,
-} from './transactionFactory.ts'
+	createTx,
+	createTxFromBlockBodyData,
+	createTxFromJSONRPCProvider,
+	createTxFromRLP,
+	createTxFromRPC
+} from './transactionFactory'
 
 // Types
-export * from './types.ts'
+export * from './types'
 
 // Utils
 export * from './util'

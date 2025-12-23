@@ -3,13 +3,13 @@
 
 import { EventEmitter } from 'eventemitter3'
 import { bytesToUnprefixedHex } from '../utils'
-import { KBucket } from './bucket.ts'
+import { KBucket } from './bucket'
 import type {
-  Contact,
-  KBucketEvent,
-  PeerInfo,
-  RoutingTableConfig,
-} from './types.ts'
+	Contact,
+	KBucketEvent,
+	PeerInfo,
+	RoutingTableConfig,
+} from './types'
 
 const KBUCKET_SIZE = 16
 const KBUCKET_CONCURRENCY = 3

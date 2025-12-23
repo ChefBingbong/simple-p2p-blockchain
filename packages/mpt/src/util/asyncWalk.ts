@@ -1,11 +1,11 @@
 import * as RLP from '../../rlp'
 import { bytesToHex, equalsBytes } from '../../utils'
 
-import { BranchMPTNode } from '../node/branch.ts'
-import { ExtensionMPTNode } from '../node/extension.ts'
+import { BranchMPTNode } from '../node/branch'
+import { ExtensionMPTNode } from '../node/extension'
 
-import type { MerklePatriciaTrie } from '../mpt.ts'
-import type { MPTNode } from '../types.ts'
+import type { MerklePatriciaTrie } from '../mpt'
+import type { MPTNode } from '../types'
 
 export type NodeFilter = (node: MPTNode, key: number[]) => Promise<boolean>
 export type OnFound = (node: MPTNode, key: number[]) => Promise<any>

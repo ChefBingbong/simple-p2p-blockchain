@@ -7,19 +7,19 @@ import { Common } from '../chain-config'
 import * as RLP from '../rlp'
 import type { Address } from '../utils'
 import {
-  Account,
-  bigIntToHex,
-  createAccount,
-  createAccountFromRLP,
-  equalsBytes,
-  EthereumJSErrorWithoutCode,
-  fetchFromProvider,
-  hexToBytes,
-  intToHex,
-  toBytes,
+	Account,
+	bigIntToHex,
+	createAccount,
+	createAccountFromRLP,
+	equalsBytes,
+	EthereumJSErrorWithoutCode,
+	fetchFromProvider,
+	hexToBytes,
+	intToHex,
+	toBytes,
 } from '../utils'
 import { Caches } from './cache'
-import { modifyAccountFields } from './util.ts'
+import { modifyAccountFields } from './util'
 
 const KECCAK256_RLP_EMPTY_ACCOUNT = RLP.encode(new Account().serialize()).slice(
   2,

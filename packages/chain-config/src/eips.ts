@@ -1,6 +1,6 @@
-import { Hardfork } from './enums.ts'
+import { Hardfork } from './enums'
 
-import type { EIPsDict } from './types.ts'
+import type { EIPsDict } from './types'
 
 // Only Frontier/Chainstart - no other EIPs
 export const eipsDict: EIPsDict = {

@@ -1,7 +1,7 @@
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { listeningSchema } from './schema.ts'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { listeningSchema } from './schema'
 
 export const listening = (_node: ExecutionNode) =>
   createRpcMethod(listeningSchema, async (_params, _c) => {

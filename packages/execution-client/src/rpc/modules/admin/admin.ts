@@ -1,8 +1,8 @@
-import type { ExecutionNode } from '../../../node/index.ts'
-import { AdminRpcMethods, RpcMethods } from '../types.ts'
-import { addPeer } from './add-peer.ts'
-import { nodeInfo } from './node-info.ts'
-import { peers } from './peers.ts'
+import type { ExecutionNode } from '../../../node/index'
+import { AdminRpcMethods, RpcMethods } from '../types'
+import { addPeer } from './add-peer'
+import { nodeInfo } from './node-info'
+import { peers } from './peers'
 
 export const createAdminRpcMethods = (
   node: ExecutionNode,

@@ -1,4 +1,4 @@
-import { SyncMode } from './types.ts'
+import { SyncMode } from './types'
 
 export const SYNCMODE_DEFAULT = SyncMode.Full
 export const DATADIR_DEFAULT = `./datadir`

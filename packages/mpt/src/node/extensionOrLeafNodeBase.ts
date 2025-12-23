@@ -1,9 +1,9 @@
 import * as RLP from '../../rlp'
 
-import { addHexPrefix, removeHexPrefix } from '../util/hex.ts'
-import { nibblesTypeToPackedBytes } from '../util/nibbles.ts'
+import { addHexPrefix, removeHexPrefix } from '../util/hex'
+import { nibblesTypeToPackedBytes } from '../util/nibbles'
 
-import type { Nibbles, RawExtensionMPTNode, RawLeafMPTNode } from '../types.ts'
+import type { Nibbles, RawExtensionMPTNode, RawLeafMPTNode } from '../types'
 
 export abstract class ExtensionOrLeafMPTNodeBase {
   _nibbles: Nibbles

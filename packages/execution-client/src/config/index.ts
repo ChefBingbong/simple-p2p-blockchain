@@ -1,9 +1,10 @@
-export { Config } from './config.ts'
-export * as ConfigConstants from './constants.ts'
-export * from './types.ts'
-export type { ConfigOptions } from './types.ts'
+export { Config } from './config'
+export * as ConfigConstants from './constants'
+export * from './types'
+export type { ConfigOptions } from './types'
 export {
-  createConfigFromDefaults,
-  createConfigOptions,
-} from './utils.ts'
-export type { ResolvedConfigOptions } from './utils.ts'
+	createConfigFromDefaults,
+	createConfigOptions
+} from './utils'
+export type { ResolvedConfigOptions } from './utils'
+

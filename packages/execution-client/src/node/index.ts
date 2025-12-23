@@ -1,10 +1,9 @@
 export {
-  ExecutionNode,
-  STATS_INTERVAL,
-  MEMORY_SHUTDOWN_THRESHOLD,
-} from './execution-node.ts'
-export type { ProtocolMessage } from './execution-node.ts'
+	ExecutionNode, MEMORY_SHUTDOWN_THRESHOLD, STATS_INTERVAL
+} from './execution-node'
+export type { ProtocolMessage } from './execution-node'
 export type {
-  ExecutionNodeInitOptions,
-  ExecutionNodeModules,
-} from './types.ts'
+	ExecutionNodeInitOptions,
+	ExecutionNodeModules
+} from './types'
+

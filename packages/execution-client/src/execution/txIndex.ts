@@ -1,6 +1,6 @@
-import * as RLP from '../../rlp.ts'
-import { BIGINT_0, bytesToInt, intToBytes } from '../../utils.ts'
-import { DBKey, MetaDBManager } from '../util/metaDBManager.ts'
+import * as RLP from '../../rlp'
+import { BIGINT_0, bytesToInt, intToBytes } from '../../utils'
+import { DBKey, MetaDBManager } from '../util/metaDBManager'
 
 export type TxHashIndex = [blockHash: Uint8Array, txIndex: number]
 

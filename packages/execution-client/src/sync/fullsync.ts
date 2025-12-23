@@ -1,13 +1,13 @@
-import type { Block } from '../../block.ts'
-import { BIGINT_0, BIGINT_1, equalsBytes } from '../../utils.ts'
-import type { VMExecution } from '../execution/index.ts'
-import type { Peer } from '../net/peer/peer.ts'
-import type { TxPool } from '../service/txpool.ts'
-import { Event } from '../types.ts'
-import { short } from '../util/index.ts'
-import { BlockFetcher } from './fetcher/index.ts'
-import type { SynchronizerOptions } from './sync.ts'
-import { Synchronizer } from './sync.ts'
+import type { Block } from '../../block'
+import { BIGINT_0, BIGINT_1, equalsBytes } from '../../utils'
+import type { VMExecution } from '../execution/index'
+import type { Peer } from '../net/peer/peer'
+import type { TxPool } from '../service/txpool'
+import { Event } from '../types'
+import { short } from '../util/index'
+import { BlockFetcher } from './fetcher/index'
+import type { SynchronizerOptions } from './sync'
+import { Synchronizer } from './sync'
 
 interface FullSynchronizerOptions extends SynchronizerOptions {
   txPool: TxPool

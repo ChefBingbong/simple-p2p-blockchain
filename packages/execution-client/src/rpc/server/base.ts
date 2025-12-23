@@ -4,10 +4,10 @@ import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { Logger } from 'winston'
-import { isLocalhostIP } from '../../util/ip.ts'
-import { INTERNAL_ERROR, INVALID_REQUEST } from '../error-code.ts'
-import { getRpcErrorResponse } from '../helpers.ts'
-import type { RpcApiEnv } from '../types.ts'
+import { isLocalhostIP } from '../../util/ip'
+import { INTERNAL_ERROR, INVALID_REQUEST } from '../error-code'
+import { getRpcErrorResponse } from '../helpers'
+import type { RpcApiEnv } from '../types'
 
 export type RpcServerOpts = {
   port: number

@@ -1,9 +1,9 @@
 import { Chain } from '../chain-config'
 
-import { holeskyGenesis } from './genesisStates/holesky.ts'
-import { hoodiGenesis } from './genesisStates/hoodi.ts'
-import { mainnetGenesis } from './genesisStates/mainnet.ts'
-import { sepoliaGenesis } from './genesisStates/sepolia.ts'
+import { holeskyGenesis } from './genesisStates/holesky'
+import { hoodiGenesis } from './genesisStates/hoodi'
+import { mainnetGenesis } from './genesisStates/mainnet'
+import { sepoliaGenesis } from './genesisStates/sepolia'
 
 import type { GenesisState } from '../chain-config'
 

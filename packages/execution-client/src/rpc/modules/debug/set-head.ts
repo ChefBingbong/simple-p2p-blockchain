@@ -1,9 +1,9 @@
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { INTERNAL_ERROR, INVALID_PARAMS } from '../../error-code.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { setHeadSchema } from './schema.ts'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { INTERNAL_ERROR, INVALID_PARAMS } from '../../error-code'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { setHeadSchema } from './schema'
 
 export const setHead = (node: ExecutionNode) => {
   const chain = node.chain

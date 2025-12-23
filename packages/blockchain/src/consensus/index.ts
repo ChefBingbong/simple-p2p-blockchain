@@ -1,3 +1,3 @@
-import { EthashConsensus } from './ethash.ts'
+import { EthashConsensus } from './ethash'
 
 export { EthashConsensus }

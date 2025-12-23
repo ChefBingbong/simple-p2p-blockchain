@@ -1,7 +1,7 @@
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { coinbaseSchema } from './schema.ts'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { coinbaseSchema } from './schema'
 
 export const coinbase = (node: ExecutionNode) =>
   createRpcMethod(coinbaseSchema, async (_params, _c) => {

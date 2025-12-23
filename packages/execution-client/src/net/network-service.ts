@@ -1,12 +1,12 @@
-import type { P2PNode } from '../../p2p/libp2p/types.ts'
-import type { Chain } from '../blockchain/chain.ts'
-import type { Config } from '../config/index.ts'
-import type { VMExecution } from '../execution/index.ts'
-import { Event } from '../types.ts'
-import { NetworkCore } from './core/index.ts'
-import type { Peer } from './peer/peer.ts'
-import { EthMessageCode } from './protocol/eth/definitions.ts'
-import type { EthHandlerContext } from './protocol/eth/handlers.ts'
+import type { P2PNode } from '../../p2p/libp2p/types'
+import type { Chain } from '../blockchain/chain'
+import type { Config } from '../config/index'
+import type { VMExecution } from '../execution/index'
+import { Event } from '../types'
+import { NetworkCore } from './core/index'
+import type { Peer } from './peer/peer'
+import { EthMessageCode } from './protocol/eth/definitions'
+import type { EthHandlerContext } from './protocol/eth/handlers'
 
 export interface NetworkServiceModules {
   config: Config

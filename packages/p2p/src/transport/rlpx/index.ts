@@ -40,43 +40,32 @@
  */
 
 // Transport
-export { RLPxTransport, rlpx } from './transport.ts'
+export { rlpx, RLPxTransport } from './transport'
 
 // Listener
-export { RLPxListener } from './listener.ts'
-export type { RLPxListenerEvents } from './listener.ts'
+export { RLPxListener } from './listener'
+export type { RLPxListenerEvents } from './listener'
 
 // Connection
-export { RLPxConnection } from './connection.ts'
+export { RLPxConnection } from './connection'
 
 // Types
 export type {
-  // Transport options
-  RLPxTransportOptions,
-  RLPxSocketOptions,
-  RLPxComponents,
-  RLPxMetrics,
-  CloseServerOnMaxConnectionsOpts,
-  // Dial options
-  RLPxDialOptions,
-  RLPxDialEvents,
-  // Listener options
-  RLPxCreateListenerOptions,
-  // Connection options and types
-  RLPxConnectionOptions,
-  RLPxConnectionEvents,
-  RLPxConnectionState,
-  HelloMessage,
-  ProtocolDescriptor,
-  RLPxPrefix,
-} from './types.ts'
+	CloseServerOnMaxConnectionsOpts, HelloMessage,
+	ProtocolDescriptor, RLPxComponents, RLPxConnectionEvents,
+	// Connection options and types
+	RLPxConnectionOptions, RLPxConnectionState,
+	// Listener options
+	RLPxCreateListenerOptions, RLPxDialEvents,
+	// Dial options
+	RLPxDialOptions, RLPxMetrics, RLPxPrefix, RLPxSocketOptions,
+	// Transport options
+	RLPxTransportOptions
+} from './types'
 
 // Constants
 export {
-  RLPX_PREFIXES,
-  BASE_PROTOCOL_VERSION,
-  BASE_PROTOCOL_LENGTH,
-  PING_INTERVAL,
-  DISCONNECT_REASON,
-  DisconnectReasonNames,
-} from './types.ts'
+	BASE_PROTOCOL_LENGTH, BASE_PROTOCOL_VERSION, DISCONNECT_REASON,
+	DisconnectReasonNames, PING_INTERVAL, RLPX_PREFIXES
+} from './types'
+

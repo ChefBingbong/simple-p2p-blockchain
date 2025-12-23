@@ -1,3 +1,4 @@
-export * from './definitions.ts'
-export * from './eth-methods.ts'
-export * from './eth.ts'
+export * from './definitions'
+export * from './eth'
+export * from './eth-methods'
+

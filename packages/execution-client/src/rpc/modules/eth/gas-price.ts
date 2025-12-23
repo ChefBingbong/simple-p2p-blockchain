@@ -1,9 +1,9 @@
-import type { LegacyTx } from '../../../../tx/index.ts'
-import { BIGINT_0, bigIntToHex } from '../../../../utils/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { gasPriceSchema } from './schema.ts'
+import type { LegacyTx } from '../../../../tx/index'
+import { BIGINT_0, bigIntToHex } from '../../../../utils/index'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { gasPriceSchema } from './schema'
 
 export const gasPrice = (node: ExecutionNode) => {
   const chain = node.chain

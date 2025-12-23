@@ -1,5 +1,5 @@
-import { BIGINT_0 } from '../../utils/constants.ts'
-import type { Address } from '../../utils/index.ts'
+import { BIGINT_0 } from '../../utils/constants'
+import type { Address } from '../../utils/index'
 
 export interface AccountState {
   balance: bigint

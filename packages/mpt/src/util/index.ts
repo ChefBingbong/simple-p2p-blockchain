@@ -1,3 +1,4 @@
-export * from './encoding.ts'
-export * from './genesisState.ts'
-export * from './walkController.ts'
+export * from './encoding'
+export * from './genesisState'
+export * from './walkController'
+

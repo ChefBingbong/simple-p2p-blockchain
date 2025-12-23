@@ -1,8 +1,8 @@
 import { EVMMockBlockchain, createEVM } from '../evm'
 import { MerkleStateManager } from '../state-manager'
 import { EthereumJSErrorWithoutCode } from '../utils'
-import type { VMOpts } from './types.ts'
-import { VM } from './vm.ts'
+import type { VMOpts } from './types'
+import { VM } from './vm'
 
 /**
  * VM async constructor. Creates engine instance and initializes it.

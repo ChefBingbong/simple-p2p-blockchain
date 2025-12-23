@@ -1,4 +1,5 @@
-export * from './branch.ts'
-export * from './extension.ts'
-export * from './leaf.ts'
-export * from './util.ts'
+export * from './branch'
+export * from './extension'
+export * from './leaf'
+export * from './util'
+

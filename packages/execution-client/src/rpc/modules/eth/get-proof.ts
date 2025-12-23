@@ -1,21 +1,21 @@
-import type { Proof } from '../../../../state-manager/index.ts'
+import type { Proof } from '../../../../state-manager/index'
 import {
-  getMerkleStateProof,
-  MerkleStateManager,
-} from '../../../../state-manager/index.ts'
-import type { PrefixedHexString } from '../../../../utils/index.ts'
+	getMerkleStateProof,
+	MerkleStateManager,
+} from '../../../../state-manager/index'
+import type { PrefixedHexString } from '../../../../utils/index'
 import {
-  createAddressFromString,
-  EthereumJSErrorWithoutCode,
-  hexToBytes,
-  setLengthLeft,
-} from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { VM } from '../../../../vm/index.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getProofSchema } from './schema.ts'
+	createAddressFromString,
+	EthereumJSErrorWithoutCode,
+	hexToBytes,
+	setLengthLeft,
+} from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { VM } from '../../../../vm/index'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getProofSchema } from './schema'
 
 export const getProof = (node: ExecutionNode) => {
   const chain = node.chain

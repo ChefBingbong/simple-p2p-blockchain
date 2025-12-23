@@ -3,7 +3,7 @@
 
 import debugDefault from 'debug'
 import { LRUCache } from 'lru-cache'
-import { getPeerKeys, type PeerInfo } from './types.ts'
+import { getPeerKeys, type PeerInfo } from './types'
 
 const debug = debugDefault('kad:ban-list')
 

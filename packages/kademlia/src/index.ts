@@ -2,65 +2,44 @@
 // Ethereum-compatible Kademlia DHT for peer discovery
 
 // Main exports
+export { BanList } from './ban-list'
+export { KBucket } from './bucket'
 export {
-  KademliaNode,
-  Kademlia,
-  createKademlia,
-  type KademliaNodeConfig,
-} from './kademlia.ts'
-export { RoutingTable, type RoutingTableEvent } from './routing-table.ts'
-export { KBucket } from './bucket.ts'
-export { BanList } from './ban-list.ts'
-export { UdpTransport, UdpKademliaTransport } from './udp.ts'
+	createKademlia, Kademlia, KademliaNode, type KademliaNodeConfig
+} from './kademlia'
+export { RoutingTable, type RoutingTableEvent } from './routing-table'
+export { UdpKademliaTransport, UdpTransport } from './udp'
 
 // Message encoding
 export {
-  encode,
-  decode,
-  MessageTypes,
-  type DecodedMessage,
-  type MessageTypeName,
-  type PingData,
-  type PongData,
-  type FindNeighboursData,
-  type NeighboursData,
-} from './message.ts'
+	decode, encode, MessageTypes,
+	type DecodedMessage, type FindNeighboursData, type MessageTypeName, type NeighboursData, type PingData,
+	type PongData
+} from './message'
 
 // XOR utilities
 export {
-  xor,
-  xorDistance,
-  xorDistanceBigInt,
-  bucketIndex,
-  bucketIndexFromDistance,
-  hashToId,
-  pk2id,
-  id2pk,
-  zfill,
-  distance,
-} from './xor.ts'
+	bucketIndex,
+	bucketIndexFromDistance, distance, hashToId, id2pk, pk2id, xor,
+	xorDistance,
+	xorDistanceBigInt, zfill
+} from './xor'
 
 // Types
 export {
-  // Peer types
-  type PeerInfo,
-  type Contact,
-  // Event types
-  type KademliaEvent,
-  type KBucketEvent,
-  type KademliaTransportEvent,
-  // Config types
-  type KademliaConfig,
-  type KBucketOptions,
-  type KademliaTransportOptions,
-  type RoutingTableConfig,
-  type RoutingTableDump,
-  // Transport interface
-  type KademliaTransport,
-  // Utilities
-  type Deferred,
-  createDeferred,
-  getPeerKeys,
-  // Constants
-  DISCOVERY_VERSION,
-} from './types.ts'
+	createDeferred,
+	// Constants
+	DISCOVERY_VERSION, getPeerKeys, type Contact,
+	// Utilities
+	type Deferred,
+	// Config types
+	type KademliaConfig,
+	// Event types
+	type KademliaEvent,
+	// Transport interface
+	type KademliaTransport, type KademliaTransportEvent, type KademliaTransportOptions, type KBucketEvent, type KBucketOptions,
+	// Peer types
+	type PeerInfo, type RoutingTableConfig,
+	type RoutingTableDump
+} from './types'
+

@@ -1,7 +1,8 @@
-export * from './constructors.ts'
+export * from './constructors'
 export * from './db'
-export * from './mpt.ts'
+export * from './mpt'
 export * from './node'
 export * from './proof'
-export * from './types.ts'
+export * from './types'
 export * from './util'
+

@@ -1,49 +1,49 @@
 import * as mcl from 'mcl-wasm'
 import { initRustBN } from 'rustbn-wasm'
-import type { Block } from '../../block.ts'
+import type { Block } from '../../block'
 import {
-  DBSaveLookups,
-  DBSetBlockOrHeader,
-  DBSetHashToNumber,
-  DBSetTD,
-} from '../../blockchain.ts'
-import { getGenesis } from '../../genesis.ts'
-import { createMPT } from '../../mpt.ts'
-import { Caches, CacheType, MerkleStateManager } from '../../state-manager.ts'
+	DBSaveLookups,
+	DBSetBlockOrHeader,
+	DBSetHashToNumber,
+	DBSetTD,
+} from '../../blockchain'
+import { getGenesis } from '../../genesis'
+import { createMPT } from '../../mpt'
+import { Caches, CacheType, MerkleStateManager } from '../../state-manager'
 import {
-  BIGINT_0,
-  BIGINT_1,
-  bytesToHex,
-  equalsBytes,
-  EthereumJSErrorWithoutCode,
-  hexToBytes,
-  Lock,
-  PrefixedHexString,
-  ValueEncoding,
-} from '../../utils.ts'
+	BIGINT_0,
+	BIGINT_1,
+	bytesToHex,
+	equalsBytes,
+	EthereumJSErrorWithoutCode,
+	hexToBytes,
+	Lock,
+	PrefixedHexString,
+	ValueEncoding,
+} from '../../utils'
 import {
-  createVM,
-  runBlock,
-  RunBlockOpts,
-  runTx,
-  TxReceipt,
-  VM,
-} from '../../vm.ts'
+	createVM,
+	runBlock,
+	RunBlockOpts,
+	runTx,
+	TxReceipt,
+	VM,
+} from '../../vm'
 import {
-  classifyError,
-  createErrorContext,
-  ErrorCode,
-  ExecutionError,
-} from '../errors/index.ts'
-import { Event } from '../types.ts'
-import { debugCodeReplayBlock } from '../util/debug.ts'
-import { short } from '../util/index.ts'
-import type { ExecutionOptions } from './execution.ts'
-import { Execution } from './execution.ts'
-import { LevelDB } from './level.ts'
-import { PreimagesManager } from './preimage.ts'
-import { ReceiptsManager } from './receipt.ts'
-import { IndexOperation, IndexType, TxIndex } from './txIndex.ts'
+	classifyError,
+	createErrorContext,
+	ErrorCode,
+	ExecutionError,
+} from '../errors/index'
+import { Event } from '../types'
+import { debugCodeReplayBlock } from '../util/debug'
+import { short } from '../util/index'
+import type { ExecutionOptions } from './execution'
+import { Execution } from './execution'
+import { LevelDB } from './level'
+import { PreimagesManager } from './preimage'
+import { ReceiptsManager } from './receipt'
+import { IndexOperation, IndexType, TxIndex } from './txIndex'
 
 export type ExecStatus = (typeof ExecStatus)[keyof typeof ExecStatus]
 

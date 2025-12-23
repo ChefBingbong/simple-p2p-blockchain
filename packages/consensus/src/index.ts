@@ -1,31 +1,31 @@
 import { keccak256, keccak512 } from 'ethereum-cryptography/keccak.js'
-import type { BlockData, HeaderData } from '../block.ts'
-import { Block, BlockHeader, createBlock, createBlockHeader } from '../block.ts'
-import * as RLP from '../rlp.ts'
-import type { DB, DBObject, PrefixedHexString } from '../utils.ts'
+import type { BlockData, HeaderData } from '../block'
+import { Block, BlockHeader, createBlock, createBlockHeader } from '../block'
+import * as RLP from '../rlp'
+import type { DB, DBObject, PrefixedHexString } from '../utils'
 import {
-  BIGINT_0,
-  bigIntToBytes,
-  bytesToBigInt,
-  bytesToHex,
-  concatBytes,
-  equalsBytes,
-  hexToBytes,
-  KeyEncoding,
-  setLengthLeft,
-  TWO_POW256,
-  ValueEncoding,
-} from '../utils.ts'
+	BIGINT_0,
+	bigIntToBytes,
+	bytesToBigInt,
+	bytesToHex,
+	concatBytes,
+	equalsBytes,
+	hexToBytes,
+	KeyEncoding,
+	setLengthLeft,
+	TWO_POW256,
+	ValueEncoding,
+} from '../utils'
 import {
-  bytesReverse,
-  fnv,
-  fnvBytes,
-  getCacheSize,
-  getEpoc,
-  getFullSize,
-  getSeed,
-  params,
-} from './util.ts'
+	bytesReverse,
+	fnv,
+	fnvBytes,
+	getCacheSize,
+	getEpoc,
+	getFullSize,
+	getSeed,
+	params,
+} from './util'
 
 function xor(a: Uint8Array, b: Uint8Array) {
   const len = Math.max(a.length, b.length)

@@ -3,8 +3,8 @@ import debugDefault from 'debug'
 import type { Block, BlockHeader } from '../../block'
 import { ConsensusAlgorithm } from '../../chain-config'
 import { bytesToHex } from '../../utils'
-import type { Blockchain } from '../index.ts'
-import type { Consensus, ConsensusOptions } from '../types.ts'
+import type { Blockchain } from '../index'
+import type { Consensus, ConsensusOptions } from '../types'
 
 export type MinimalEthashInterface = {
   cacheDB?: any

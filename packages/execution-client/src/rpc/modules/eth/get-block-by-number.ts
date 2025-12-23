@@ -1,9 +1,9 @@
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { toJSONRPCBlock } from './helpers.ts'
-import { getBlockByNumberSchema } from './schema.ts'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { toJSONRPCBlock } from './helpers'
+import { getBlockByNumberSchema } from './schema'
 
 export const getBlockByNumber = (node: ExecutionNode) => {
   const chain = node.chain

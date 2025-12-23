@@ -1,10 +1,10 @@
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
-import type { PrefixedHexString } from '../../../../utils/index.ts'
-import { bytesToHex, hexToBytes } from '../../../../utils/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { sha3Schema } from './schema.ts'
+import type { PrefixedHexString } from '../../../../utils/index'
+import { bytesToHex, hexToBytes } from '../../../../utils/index'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { sha3Schema } from './schema'
 
 export const sha3 = (_node: ExecutionNode) =>
   createRpcMethod(sha3Schema, async (params: [PrefixedHexString], _c) => {

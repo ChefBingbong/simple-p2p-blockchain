@@ -9,21 +9,21 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { TypedEventEmitter } from 'main-event'
 import type {
-  ComponentLogger,
-  ConnectionManager,
-  Logger,
-  P2PNodeComponents,
-  PeerDiscovery,
-  PeerDiscoveryEvents,
-  PeerInfo,
-} from '../../../p2p/libp2p/types.ts'
+	ComponentLogger,
+	ConnectionManager,
+	Logger,
+	P2PNodeComponents,
+	PeerDiscovery,
+	PeerDiscoveryEvents,
+	PeerInfo,
+} from '../../../p2p/libp2p/types'
 import {
-  peerDiscoverySymbol,
-  peerIdEquals,
-  peerIdToString,
-} from '../../../p2p/libp2p/types.ts'
-import { DPT, type PeerInfo as DPTPeerInfo } from '../dpt-1/index.ts'
-import type { DPTOptions } from '../dpt-1/types.ts'
+	peerDiscoverySymbol,
+	peerIdEquals,
+	peerIdToString,
+} from '../../../p2p/libp2p/types'
+import { DPT, type PeerInfo as DPTPeerInfo } from '../dpt-1/index'
+import type { DPTOptions } from '../dpt-1/types'
 
 // ============================================================================
 // Constants

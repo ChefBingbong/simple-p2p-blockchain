@@ -6,14 +6,14 @@ import { Common } from '../chain-config'
 import { MerklePatriciaTrie } from '../mpt'
 import type { Account, Address } from '../utils'
 import {
-  createAccount,
-  createAccountFromRLP,
-  createAddressFromString,
-  equalsBytes,
-  EthereumJSErrorWithoutCode,
-  unprefixedHexToBytes,
+	createAccount,
+	createAccountFromRLP,
+	createAddressFromString,
+	equalsBytes,
+	EthereumJSErrorWithoutCode,
+	unprefixedHexToBytes,
 } from '../utils'
-import { modifyAccountFields } from './util.ts'
+import { modifyAccountFields } from './util'
 
 /**
  * Default StateManager implementation for the VM.

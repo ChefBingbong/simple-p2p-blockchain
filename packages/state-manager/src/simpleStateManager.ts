@@ -1,13 +1,13 @@
-import { EthereumJSErrorWithoutCode } from '../utils'
 import type { Account } from '../utils'
+import { EthereumJSErrorWithoutCode } from '../utils'
 
-import { modifyAccountFields } from './util.ts'
+import { modifyAccountFields } from './util'
 
 import type { SimpleStateManagerOpts } from '.'
 import type {
-  AccountFields,
-  Common,
-  StateManagerInterface,
+	AccountFields,
+	Common,
+	StateManagerInterface,
 } from '../chain-config'
 import type { Address, PrefixedHexString } from '../utils'
 

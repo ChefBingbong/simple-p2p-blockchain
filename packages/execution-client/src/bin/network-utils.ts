@@ -4,13 +4,13 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { createHash } from 'crypto'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import type { ChainConfig, GenesisState } from '../../chain-config/index.ts'
+import type { ChainConfig, GenesisState } from '../../chain-config/index'
 import {
-  type Address,
-  bytesToHex,
-  bytesToUnprefixedHex,
-  createAddressFromPrivateKey,
-} from '../../utils/index.ts'
+	type Address,
+	bytesToHex,
+	bytesToUnprefixedHex,
+	createAddressFromPrivateKey,
+} from '../../utils/index'
 
 export type Account = [address: Address, privateKey: Uint8Array]
 

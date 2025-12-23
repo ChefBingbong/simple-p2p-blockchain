@@ -3,29 +3,29 @@ import { EventEmitter } from 'eventemitter3'
 import type { Common, StateManagerInterface } from '../chain-config'
 import { Hardfork } from '../chain-config'
 import {
-  Account,
-  type Address,
-  BIGINT_0,
-  createZeroAddress,
-  EthereumJSErrorWithoutCode,
-  MAX_INTEGER,
+	Account,
+	type Address,
+	BIGINT_0,
+	createZeroAddress,
+	EthereumJSErrorWithoutCode,
+	MAX_INTEGER,
 } from '../utils'
-import type { BinaryTreeAccessWitness } from './binaryTreeAccessWitness.ts'
-import { EVMError } from './errors.ts'
-import { Journal } from './journal.ts'
-import type { MessageWithTo } from './message.ts'
-import { Message } from './message.ts'
-import { paramsEVM } from './params.ts'
+import type { BinaryTreeAccessWitness } from './binaryTreeAccessWitness'
+import { EVMError } from './errors'
+import { Journal } from './journal'
+import type { MessageWithTo } from './message'
+import { Message } from './message'
+import { paramsEVM } from './params'
 import type {
-  Block,
-  EVMEvent,
-  EVMInterface,
-  EVMMockBlockchainInterface,
-  EVMOpts,
-  EVMResult,
-  EVMRunCallOpts,
-  ExecResult,
-} from './types.ts'
+	Block,
+	EVMEvent,
+	EVMInterface,
+	EVMMockBlockchainInterface,
+	EVMOpts,
+	EVMResult,
+	EVMRunCallOpts,
+	ExecResult,
+} from './types'
 
 const debug = debugDefault('evm:evm')
 

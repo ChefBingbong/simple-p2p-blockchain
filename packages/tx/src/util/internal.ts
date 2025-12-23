@@ -1,4 +1,4 @@
-import { Common } from '../../chain-config'
+import { Common } from '@ts-ethereum/chain-config'
 import {
   Address,
   bigIntToHex,
@@ -9,16 +9,16 @@ import {
   MAX_INTEGER,
   MAX_UINT64,
   toBytes,
-} from '../../utils'
+} from '@ts-ethereum/utils'
 
-import { paramsTx } from '../params.ts'
+import { paramsTx } from '../params'
 
 import type {
   TransactionInterface,
   TransactionType,
   TxData,
   TxOptions,
-} from '../types.ts'
+} from '../types'
 
 /**
  * Gets a Common instance, creating a new one if none provided

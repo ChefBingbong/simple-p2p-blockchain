@@ -7,23 +7,23 @@ import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import type { Common, CustomCrypto } from '../../../chain-config'
 import * as RLP from '../../../rlp'
 import {
-  bigIntToBytes,
-  bytesToInt,
-  concatBytes,
-  hexToBytes,
-  intToBytes,
-  setLengthLeft,
+	bigIntToBytes,
+	bytesToInt,
+	concatBytes,
+	hexToBytes,
+	intToBytes,
+	setLengthLeft,
 } from '../../../utils'
 import {
-  assertEq,
-  genPrivateKey,
-  id2pk,
-  pk2id,
-  unstrictDecode,
-  xor,
-  zfill,
-} from '../../../utils/utils.ts'
-import { MAC } from './mac.ts'
+	assertEq,
+	genPrivateKey,
+	id2pk,
+	pk2id,
+	unstrictDecode,
+	xor,
+	zfill,
+} from '../../../utils/utils'
+import { MAC } from './mac'
 
 type Decipher = crypto.Decipheriv
 

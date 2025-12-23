@@ -1,13 +1,13 @@
-import { BlockHeader } from '../../block/index.ts'
-import { BIGINT_0, short } from '../../utils.ts'
-import type { Chain } from '../blockchain/index.ts'
-import type { Config } from '../config/index.ts'
-import { timestampToMilliseconds } from '../config/utils.ts'
-import { NetworkCore } from '../net/index.ts'
-import type { Peer } from '../net/peer/peer.ts'
-import { Event } from '../types.ts'
-import { wait } from '../util/wait.ts'
-import type { BlockFetcher } from './fetcher/index.ts'
+import { BlockHeader } from '../../block/index'
+import { BIGINT_0, short } from '../../utils'
+import type { Chain } from '../blockchain/index'
+import type { Config } from '../config/index'
+import { timestampToMilliseconds } from '../config/utils'
+import { NetworkCore } from '../net/index'
+import type { Peer } from '../net/peer/peer'
+import { Event } from '../types'
+import { wait } from '../util/wait'
+import type { BlockFetcher } from './fetcher/index'
 
 export interface SynchronizerOptions {
   /* Refresh interval in ms (default: 1000) */

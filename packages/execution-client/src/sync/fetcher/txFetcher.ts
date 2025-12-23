@@ -1,8 +1,8 @@
-import { bytesToUnprefixedHex, hexToBytes } from '../../../utils.ts'
-import type { Config } from '../../config/index.ts'
-import type { Peer } from '../../net/peer/peer.ts'
-import type { PeerPoolLike } from '../../net/peerpool-types.ts'
-import type { TxPool } from '../../service/txpool.ts'
+import { bytesToUnprefixedHex, hexToBytes } from '../../../utils'
+import type { Config } from '../../config/index'
+import type { Peer } from '../../net/peer/peer'
+import type { PeerPoolLike } from '../../net/peerpool-types'
+import type { TxPool } from '../../service/txpool'
 
 interface TxFetcherOptions {
   config: Config

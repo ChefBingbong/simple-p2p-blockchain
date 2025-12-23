@@ -9,34 +9,34 @@ import { defaultLogger } from '@libp2p/logger'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { setMaxListeners, TypedEventEmitter } from 'main-event'
-import { type AddressManager, createAddressManager } from './address-manager.ts'
+import { type AddressManager, createAddressManager } from './address-manager'
 import {
-  type ConnectionManager,
-  createConnectionManager,
-} from './connection-manager.ts'
-import { createRegistrar, type Registrar } from './registrar.ts'
+	type ConnectionManager,
+	createConnectionManager,
+} from './connection-manager'
+import { createRegistrar, type Registrar } from './registrar'
 import {
-  createTransportManager,
-  type TransportManager,
-} from './transport-manager.ts'
+	createTransportManager,
+	type TransportManager,
+} from './transport-manager'
 import type {
-  AbortOptions,
-  ComponentLogger,
-  Connection,
-  P2PNodeComponents,
-  P2PNodeEvents,
-  P2PNodeInit,
-  P2PNode as P2PNodeInterface,
-  P2PNodeStatus,
-  PeerDiscovery,
-  PeerId,
-  PeerInfo,
-  StreamHandler,
-  StreamHandlerOptions,
-  Topology,
-  TransportManagerDialOptions,
-} from './types.ts'
-import { peerIdEquals, peerIdToString } from './types.ts'
+	AbortOptions,
+	ComponentLogger,
+	Connection,
+	P2PNodeComponents,
+	P2PNodeEvents,
+	P2PNodeInit,
+	P2PNode as P2PNodeInterface,
+	P2PNodeStatus,
+	PeerDiscovery,
+	PeerId,
+	PeerInfo,
+	StreamHandler,
+	StreamHandlerOptions,
+	Topology,
+	TransportManagerDialOptions,
+} from './types'
+import { peerIdEquals, peerIdToString } from './types'
 
 /**
  * Get node ID (64-byte public key) from private key

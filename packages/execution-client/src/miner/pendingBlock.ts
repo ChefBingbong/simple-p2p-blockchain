@@ -1,24 +1,24 @@
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
-import type { Block, HeaderData } from '../../block.ts'
-import { TypedTransaction } from '../../tx.ts'
+import type { Block, HeaderData } from '../../block'
+import { TypedTransaction } from '../../tx'
 import {
-  BIGINT_1,
-  bigIntToUnpaddedBytes,
-  bytesToHex,
-  concatBytes,
-  equalsBytes,
-  toType,
-  TypeOutput,
-} from '../../utils.ts'
+	BIGINT_1,
+	bigIntToUnpaddedBytes,
+	bytesToHex,
+	concatBytes,
+	equalsBytes,
+	toType,
+	TypeOutput,
+} from '../../utils'
 import {
-  BlockBuilder,
-  buildBlock,
-  BuildStatus,
-  TxReceipt,
-  VM,
-} from '../../vm.ts'
-import type { Config } from '../config/index.ts'
-import type { TxPool } from '../service/txpool.ts'
+	BlockBuilder,
+	buildBlock,
+	BuildStatus,
+	TxReceipt,
+	VM,
+} from '../../vm'
+import type { Config } from '../config/index'
+import type { TxPool } from '../service/txpool'
 
 interface PendingBlockOpts {
   /* Config */

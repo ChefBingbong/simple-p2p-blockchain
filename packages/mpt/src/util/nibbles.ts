@@ -1,4 +1,4 @@
-import type { Nibbles } from '../types.ts'
+import type { Nibbles } from '../types'
 
 /**
  * Converts a bytes to a nibble array.

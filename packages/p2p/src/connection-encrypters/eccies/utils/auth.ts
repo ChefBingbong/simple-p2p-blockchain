@@ -2,23 +2,23 @@ import { keccak256 } from 'ethereum-cryptography/keccak'
 import { getRandomBytesSync } from 'ethereum-cryptography/random.js'
 import { ecdsaRecover } from 'ethereum-cryptography/secp256k1-compat'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import * as RLP from '../../../../rlp/index.ts'
+import * as RLP from '../../../../rlp/index'
 import {
-  bigIntToBytes,
-  bytesToInt,
-  concatBytes,
-  intToBytes,
-  setLengthLeft,
-} from '../../../../utils/index.ts'
+	bigIntToBytes,
+	bytesToInt,
+	concatBytes,
+	intToBytes,
+	setLengthLeft,
+} from '../../../../utils/index'
 import {
-  assertEq,
-  id2pk,
-  pk2id,
-  unstrictDecode,
-  xor,
-} from '../../../../utils/utils.ts'
-import { decryptMessage, eccieEncryptMessage, ecdhX } from './crypto.ts'
-import type { AuthResult } from './types.ts'
+	assertEq,
+	id2pk,
+	pk2id,
+	unstrictDecode,
+	xor,
+} from '../../../../utils/utils'
+import { decryptMessage, eccieEncryptMessage, ecdhX } from './crypto'
+import type { AuthResult } from './types'
 
 const OVERHEAD_LENGTH = 113
 

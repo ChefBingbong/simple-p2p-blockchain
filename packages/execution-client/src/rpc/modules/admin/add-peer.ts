@@ -1,11 +1,11 @@
 import z from 'zod'
-import { safeError, safeResult, safeTry } from '../../../../utils/safe.ts'
-import { DPT } from '../../../net/dpt-1/index.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
+import { safeError, safeResult, safeTry } from '../../../../utils/safe'
+import { DPT } from '../../../net/dpt-1/index'
+import type { ExecutionNode } from '../../../node/index'
 // RPC admin addPeer - TODO: Update for P2P architecture
 // import { P2PPeer } from "../../../net/peer/p2p-peer.ts";
-import { createRpcMethod } from '../../validation.ts'
-import { peerInfoSchema } from './schema.ts'
+import { createRpcMethod } from '../../validation'
+import { peerInfoSchema } from './schema'
 
 export const addPeer = (node: ExecutionNode, dpt: DPT) =>
   createRpcMethod(z.array(peerInfoSchema).length(1), async (params) => {

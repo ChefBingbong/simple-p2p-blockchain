@@ -1,7 +1,7 @@
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { logLevels, verbositySchema } from './schema.ts'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { logLevels, verbositySchema } from './schema'
 
 export const verbosity = (node: ExecutionNode) =>
   createRpcMethod(verbositySchema, async (params: [number], _c) => {

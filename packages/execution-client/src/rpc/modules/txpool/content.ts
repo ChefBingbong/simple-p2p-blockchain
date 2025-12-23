@@ -1,8 +1,8 @@
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { toJSONRPCTx } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { contentSchema } from './schema.ts'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { toJSONRPCTx } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { contentSchema } from './schema'
 
 export const content = (node: ExecutionNode) => {
   const txpool = node.txPool

@@ -1,8 +1,8 @@
 import { EventEmitter } from 'eventemitter3'
-import type { BlockHeader } from '../../../block/index.ts'
-import { EthHandler } from '../../../p2p/protocol/eth/handler.ts'
-import { BIGINT_0, BIGINT_1, short } from '../../../utils/index.ts'
-import type { Config } from '../../config/config.ts'
+import type { BlockHeader } from '../../../block/index'
+import { EthHandler } from '../../../p2p/protocol/eth/handler'
+import { BIGINT_0, BIGINT_1, short } from '../../../utils/index'
+import type { Config } from '../../config/config'
 
 export interface PeerOptions {
   /* Config */

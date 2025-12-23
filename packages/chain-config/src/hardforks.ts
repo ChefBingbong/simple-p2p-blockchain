@@ -1,4 +1,4 @@
-import type { HardforksDict } from './types.ts'
+import type { HardforksDict } from './types'
 
 // Only Chainstart hardfork - original Frontier behavior
 export const hardforksDict: HardforksDict = {

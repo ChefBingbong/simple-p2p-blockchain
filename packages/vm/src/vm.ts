@@ -3,9 +3,9 @@ import type { Common, StateManagerInterface } from '../chain-config'
 import type { EVMInterface, EVMMockBlockchainInterface } from '../evm'
 import { createEVM } from '../evm'
 import type { BigIntLike } from '../utils'
-import { createVM } from './constructors.ts'
-import { paramsVM } from './params.ts'
-import type { VMEvent, VMOpts } from './types.ts'
+import { createVM } from './constructors'
+import { paramsVM } from './params'
+import type { VMEvent, VMOpts } from './types'
 
 /**
  * The VM is a state transition machine that executes EVM bytecode and updates the state.

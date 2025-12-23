@@ -1,8 +1,8 @@
-import { intToHex } from '../../../../utils/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { protocolVersionSchema } from './schema.ts'
+import { intToHex } from '../../../../utils/index'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { protocolVersionSchema } from './schema'
 
 export const protocolVersion = (_node: ExecutionNode) => {
   // For P2P, protocols are handled via EthHandler - default to ETH/68

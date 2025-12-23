@@ -3,17 +3,17 @@
  */
 
 import type {
-  ComponentLogger,
-  CounterGroup,
-  DialTransportOptions,
-  Metrics,
-  OutboundConnectionUpgradeEvents,
+	ComponentLogger,
+	CounterGroup,
+	DialTransportOptions,
+	Metrics,
+	OutboundConnectionUpgradeEvents,
 } from '@libp2p/interface'
 import type { Socket } from 'net'
 import type { ProgressEvent } from 'progress-events'
-import type { Common } from '../../../chain-config/index.ts'
-import type { Capabilities } from '../../../client/net/dpt-1/types.ts'
-import type { Protocol } from '../../../client/net/protocol/protocol.ts'
+import type { Common } from '../../../chain-config/index'
+import type { Capabilities } from '../../../client/net/dpt-1/types'
+import type { Protocol } from '../../../client/net/protocol/protocol'
 
 /**
  * Hello message structure received from remote peer
@@ -419,7 +419,7 @@ export interface RLPxListenerEvents {
   /**
    * Emitted when a new connection is established (after Hello exchange)
    */
-  connection: [connection: import('./connection.ts').RLPxConnection]
+  connection: [connection: import('./connection').RLPxConnection]
 }
 
 /**
@@ -449,10 +449,10 @@ export const PING_INTERVAL = 35000
  * Disconnect reasons (re-exported for convenience)
  */
 export {
-  DISCONNECT_REASON,
-  DisconnectReasonNames,
-} from '../../../client/net/dpt-1/types.ts'
+	DISCONNECT_REASON,
+	DisconnectReasonNames
+} from '../../../client/net/dpt-1/types'
 /**
  * Protocol stream type (re-exported for convenience)
  */
-export type { ProtocolStream } from '../../../client/net/protocol/protocol-stream.ts'
+export type { ProtocolStream } from '../../../client/net/protocol/protocol-stream'

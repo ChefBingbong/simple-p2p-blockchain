@@ -3,34 +3,34 @@ import { ConsensusType } from '../chain-config'
 import { MerklePatriciaTrie } from '../mpt'
 import * as RLP from '../rlp'
 import {
-  Address,
-  BIGINT_0,
-  BIGINT_1,
-  EthereumJSErrorWithoutCode,
-  KECCAK256_RLP,
-  TypeOutput,
-  createZeroAddress,
-  toBytes,
-  toType,
+	Address,
+	BIGINT_0,
+	BIGINT_1,
+	EthereumJSErrorWithoutCode,
+	KECCAK256_RLP,
+	TypeOutput,
+	createZeroAddress,
+	toBytes,
+	toType,
 } from '../utils'
 
 import { runTx } from '.'
 import { Bloom } from './bloom'
 import {
-  calculateMinerReward,
-  encodeReceipt,
-  rewardAccount,
-} from './runBlock.ts'
+	calculateMinerReward,
+	encodeReceipt,
+	rewardAccount,
+} from './runBlock'
 
 import type { Block, HeaderData } from '../block'
 import type { TypedTransaction } from '../tx'
 import type {
-  BuildBlockOpts,
-  BuilderOpts,
-  RunTxResult,
-  SealBlockOpts,
-} from './types.ts'
-import type { VM } from './vm.ts'
+	BuildBlockOpts,
+	BuilderOpts,
+	RunTxResult,
+	SealBlockOpts,
+} from './types'
+import type { VM } from './vm'
 
 export type BuildStatus = (typeof BuildStatus)[keyof typeof BuildStatus]
 export const BuildStatus = {

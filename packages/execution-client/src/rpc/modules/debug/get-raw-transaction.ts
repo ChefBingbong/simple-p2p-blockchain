@@ -1,13 +1,13 @@
-import type { PrefixedHexString } from '../../../../utils/index.ts'
+import type { PrefixedHexString } from '../../../../utils/index'
 import {
-  bytesToHex,
-  EthereumJSErrorWithoutCode,
-  hexToBytes,
-} from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getRawTransactionSchema } from './schema.ts'
+	bytesToHex,
+	EthereumJSErrorWithoutCode,
+	hexToBytes,
+} from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { getRawTransactionSchema } from './schema'
 
 export const getRawTransaction = (node: ExecutionNode) => {
   const chain = node.chain

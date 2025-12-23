@@ -6,7 +6,7 @@
 import type { Listener, Transport } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { TypedEventTarget } from 'main-event'
-import type { RLPxConnection } from '../transport/rlpx/connection.ts'
+import type { RLPxConnection } from '../transport/rlpx/connection'
 
 // ============================================================================
 // Core Types

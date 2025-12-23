@@ -1,12 +1,12 @@
 import type { AbstractLevel } from 'abstract-level'
-import type { Blockchain } from '../../blockchain.ts'
-import type { GenesisState } from '../../chain-config.ts'
-import type { Chain } from '../blockchain/index.ts'
-import type { Config } from '../config/index.ts'
-import type { ExecutionService } from '../execution/execution-service.ts'
-import type { NetworkService } from '../net/network-service.ts'
-import type { TxFetcher } from '../sync/fetcher/txFetcher.ts'
-import type { MultiaddrLike } from '../types.ts'
+import type { Blockchain } from '../../blockchain'
+import type { GenesisState } from '../../chain-config'
+import type { Chain } from '../blockchain/index'
+import type { Config } from '../config/index'
+import type { ExecutionService } from '../execution/execution-service'
+import type { NetworkService } from '../net/network-service'
+import type { TxFetcher } from '../sync/fetcher/txFetcher'
+import type { MultiaddrLike } from '../types'
 
 /**
  * Options for initializing an ExecutionNode
@@ -82,5 +82,5 @@ export type ExecutionNodeModules = {
   network: NetworkService
   execution: ExecutionService
   txFetcher: TxFetcher
-  p2pNode: import('../../p2p/libp2p/types.ts').P2PNode
+  p2pNode: import('../../p2p/libp2p/types').P2PNode
 }

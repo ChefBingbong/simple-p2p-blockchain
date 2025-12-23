@@ -3,11 +3,11 @@
 
 import { EventEmitter } from 'eventemitter3'
 import {
-  KademliaNode,
-  type KademliaNodeConfig,
-  type PeerInfo,
-} from '../../../kademlia/index.ts'
-import type { DPTEvent, DPTOptions } from './types.ts'
+	KademliaNode,
+	type KademliaNodeConfig,
+	type PeerInfo,
+} from '../../../kademlia/index'
+import type { DPTEvent, DPTOptions } from './types'
 
 /**
  * DPT (Discovery Protocol) for Ethereum peer discovery.

@@ -1,2 +1,3 @@
-export * from './constructors.ts'
-export { LegacyTx } from './tx.ts'
+export * from './constructors'
+export { LegacyTx } from './tx'
+

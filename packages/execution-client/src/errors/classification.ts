@@ -5,20 +5,20 @@
  */
 
 import {
-  ClientError,
-  ExecutionError,
-  NetworkError,
-  StateError,
-  SyncError,
-  SystemError,
-  ValidationError,
-} from './base.ts'
+	ClientError,
+	ExecutionError,
+	NetworkError,
+	StateError,
+	SyncError,
+	SystemError,
+	ValidationError,
+} from './base'
 import {
-  ErrorCategory,
-  ErrorCode,
-  type ErrorContext,
-  ErrorRecoveryType,
-} from './types.ts'
+	ErrorCategory,
+	ErrorCode,
+	type ErrorContext,
+	ErrorRecoveryType,
+} from './types'
 
 /**
  * Classify an unknown error into a ClientError

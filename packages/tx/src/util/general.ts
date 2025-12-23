@@ -1,6 +1,6 @@
-import { TypeOutput, setLengthLeft, toBytes, toType } from '../../utils'
+import { TypeOutput, setLengthLeft, toBytes, toType } from '@ts-ethereum/utils'
 
-import type { TypedTxData } from '../types.ts'
+import type { TypedTxData } from '../types'
 
 /**
  * Normalizes values for transactions that are received from an RPC provider to be properly usable within

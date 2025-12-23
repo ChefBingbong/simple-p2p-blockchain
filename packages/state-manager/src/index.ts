@@ -1,6 +1,7 @@
 export * from './cache'
-export * from './merkleStateManager.ts'
+export * from './merkleStateManager'
 export * from './proof'
-export * from './rpcStateManager.ts'
-export * from './simpleStateManager.ts'
-export * from './types.ts'
+export * from './rpcStateManager'
+export * from './simpleStateManager'
+export * from './types'
+

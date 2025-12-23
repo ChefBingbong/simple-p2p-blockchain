@@ -1,5 +1,6 @@
-export { DPTDiscovery, dptDiscovery } from './dpt-discovery.ts'
+export { DPTDiscovery, dptDiscovery } from './dpt-discovery'
 export type {
-  DPTDiscoveryComponents,
-  DPTDiscoveryInit,
-} from './dpt-discovery.ts'
+	DPTDiscoveryComponents,
+	DPTDiscoveryInit
+} from './dpt-discovery'
+

@@ -2,5 +2,6 @@
  * @module miner
  */
 
-export * from './miner.ts'
-export * from './pendingBlock.ts'
+export * from './miner'
+export * from './pendingBlock'
+

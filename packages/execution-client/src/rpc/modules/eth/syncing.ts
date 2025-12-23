@@ -1,8 +1,8 @@
-import { BIGINT_0, bigIntToHex } from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { syncingSchema } from './schema.ts'
+import { BIGINT_0, bigIntToHex } from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { syncingSchema } from './schema'
 
 export const syncing = (node: ExecutionNode) => {
   const chain = node.chain

@@ -1,17 +1,17 @@
 import { KeyEncoding, ValueEncoding } from '../../utils'
 
 import {
-  HEADS_KEY,
-  HEAD_BLOCK_KEY,
-  HEAD_HEADER_KEY,
-  bodyKey,
-  hashToNumberKey,
-  headerKey,
-  numberToHashKey,
-  tdKey,
-} from './constants.ts'
+	HEADS_KEY,
+	HEAD_BLOCK_KEY,
+	HEAD_HEADER_KEY,
+	bodyKey,
+	hashToNumberKey,
+	headerKey,
+	numberToHashKey,
+	tdKey,
+} from './constants'
 
-import type { CacheMap } from './manager.ts'
+import type { CacheMap } from './manager'
 
 export type DBTarget = (typeof DBTarget)[keyof typeof DBTarget]
 

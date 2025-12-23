@@ -1,9 +1,9 @@
-import type { PrefixedHexString } from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption, toJSONRPCTx } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getTransactionByBlockNumberAndIndexSchema } from './schema.ts'
+import type { PrefixedHexString } from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption, toJSONRPCTx } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getTransactionByBlockNumberAndIndexSchema } from './schema'
 
 export const getTransactionByBlockNumberAndIndex = (node: ExecutionNode) => {
   const chain = node.chain

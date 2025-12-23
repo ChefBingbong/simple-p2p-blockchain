@@ -1,9 +1,9 @@
 import * as RLP from '../../rlp'
 
 import type {
-  BranchMPTNodeBranchValue,
-  NodeReferenceOrRawMPTNode,
-} from '../types.ts'
+	BranchMPTNodeBranchValue,
+	NodeReferenceOrRawMPTNode,
+} from '../types'
 
 export class BranchMPTNode {
   _branches: BranchMPTNodeBranchValue[]

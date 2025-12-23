@@ -2,8 +2,8 @@ import { PrioritizedTaskExecutor } from '../../utils'
 
 import { BranchMPTNode, ExtensionMPTNode, LeafMPTNode } from '../node'
 
-import type { MerklePatriciaTrie } from '../mpt.ts'
-import type { FoundNodeFunction, MPTNode, Nibbles } from '../types.ts'
+import type { MerklePatriciaTrie } from '../mpt'
+import type { FoundNodeFunction, MPTNode, Nibbles } from '../types'
 
 /**
  * WalkController is an interface to control how the trie is being traversed.

@@ -1,24 +1,24 @@
-import type { ExecutionNode } from '../../node/index.ts'
-import type { RpcHandler, RpcMethodFn } from '../types.ts'
-import { createRpcHandler } from '../validation.ts'
-import { createAdminRpcMethods } from './admin/admin.ts'
-import { createDebugRpcMethods } from './debug/index.ts'
-import { createEthRpcMethods } from './eth/eth.ts'
-import { createNetRpcMethods } from './net/net.ts'
-import { createTxPoolRpcMethods } from './txpool/txpool.ts'
-import { AllRpcMethods } from './types.ts'
-import { createWeb3RpcMethods } from './web3/web3.ts'
+import type { ExecutionNode } from '../../node/index'
+import type { RpcHandler, RpcMethodFn } from '../types'
+import { createRpcHandler } from '../validation'
+import { createAdminRpcMethods } from './admin/admin'
+import { createDebugRpcMethods } from './debug/index'
+import { createEthRpcMethods } from './eth/eth'
+import { createNetRpcMethods } from './net/net'
+import { createTxPoolRpcMethods } from './txpool/txpool'
+import { AllRpcMethods } from './types'
+import { createWeb3RpcMethods } from './web3/web3'
 
 export const list = ['Eth', 'Web3', 'Net', 'Admin', 'TxPool', 'Debug']
 
 // New functional module exports
-export * from './admin/index.ts'
-export * from './debug/index.ts'
+export * from './admin/index'
+export * from './debug/index'
 // Backward compatibility: export old class-based modules
-export * from './eth/index.ts'
-export * from './net/index.ts'
-export * from './txpool/index.ts'
-export * from './web3/index.ts'
+export * from './eth/index'
+export * from './net/index'
+export * from './txpool/index'
+export * from './web3/index'
 
 export const createRpcHandlers = (
   node: ExecutionNode,

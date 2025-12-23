@@ -4,14 +4,14 @@ import type { BlockBodyBytes, BlockHeader } from '../../../block'
 import type { Chain } from '../../../client/blockchain'
 import type { Config } from '../../../client/config'
 import type { VMExecution } from '../../../client/execution'
-import type { Peer } from '../../../client/net/peer/peer.ts'
+import type { Peer } from '../../../client/net/peer/peer'
 import {
-  ETH_MESSAGES,
-  EthMessageCode,
+	ETH_MESSAGES,
+	EthMessageCode,
 } from '../../../client/net/protocol/eth/definitions'
 import { ETH } from '../../../client/net/protocol/eth/eth'
 import type { EthProtocolMethods } from '../../../client/net/protocol/eth/eth-methods'
-import type { EthHandlerContext } from '../../../client/net/protocol/eth/handlers.ts'
+import type { EthHandlerContext } from '../../../client/net/protocol/eth/handlers'
 import type { TypedTransaction } from '../../../tx'
 import { BIGINT_0, bigIntToUnpaddedBytes, bytesToBigInt } from '../../../utils'
 import type { TxReceipt } from '../../../vm'

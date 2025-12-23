@@ -1,8 +1,8 @@
-import { BIGINT_0, BIGINT_1 } from '../../../utils.ts'
-import type { Chain } from '../../blockchain/index.ts'
-import type { FetcherOptions } from './fetcher.ts'
-import { Fetcher } from './fetcher.ts'
-import type { Job } from './types.ts'
+import { BIGINT_0, BIGINT_1 } from '../../../utils'
+import type { Chain } from '../../blockchain/index'
+import type { FetcherOptions } from './fetcher'
+import { Fetcher } from './fetcher'
+import type { Job } from './types'
 
 export interface BlockFetcherOptions extends FetcherOptions {
   /** Blockchain */

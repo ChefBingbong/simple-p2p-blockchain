@@ -1,17 +1,17 @@
 import { z } from 'zod'
 import {
-  INTERNAL_ERROR,
-  INVALID_PARAMS,
-  METHOD_NOT_FOUND,
-} from './error-code.ts'
-import { getRpcErrorResponse, getRpcResponse } from './helpers.ts'
+	INTERNAL_ERROR,
+	INVALID_PARAMS,
+	METHOD_NOT_FOUND,
+} from './error-code'
+import { getRpcErrorResponse, getRpcResponse } from './helpers'
 import {
-  RPCError,
-  RpcHandler,
-  RpcHandlerOptions,
-  RpcMethodFn,
-  RpcRequest,
-} from './types.ts'
+	RPCError,
+	RpcHandler,
+	RpcHandlerOptions,
+	RpcMethodFn,
+	RpcRequest,
+} from './types'
 
 export const rpcValidator =
   (schema: z.ZodType<RpcRequest>) => async (c, next) => {

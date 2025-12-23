@@ -1,14 +1,14 @@
 import {
-  bigIntToHex,
-  createAddressFromString,
-  EthereumJSErrorWithoutCode,
-} from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { VM } from '../../../../vm/index.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getBalanceSchema } from './schema.ts'
+	bigIntToHex,
+	createAddressFromString,
+	EthereumJSErrorWithoutCode,
+} from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { VM } from '../../../../vm/index'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getBalanceSchema } from './schema'
 
 export const getBalance = (node: ExecutionNode) => {
   const chain = node.chain

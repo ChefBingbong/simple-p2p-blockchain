@@ -1,9 +1,9 @@
 import type { Socket } from 'net'
-import type { Common } from '../../../chain-config/index.ts'
-import type { NestedUint8Array } from '../../../rlp/index.ts'
-import type { EthMessageCodes } from '../protocol/eth/eth.ts'
-import type { Protocol } from '../protocol/protocol.ts'
-import type { DPT } from './index.ts'
+import type { Common } from '../../../chain-config/index'
+import type { NestedUint8Array } from '../../../rlp/index'
+import type { EthMessageCodes } from '../protocol/eth/eth'
+import type { Protocol } from '../protocol/protocol'
+import type { DPT } from './index'
 
 export interface PeerEvent {
   error: [error: Error]

@@ -1,6 +1,7 @@
 /**
  * @module sync/fetcher
  */
-export * from './blockfetcher.ts'
-export * from './fetcher.ts'
-export * from './txFetcher.ts'
+export * from './blockfetcher'
+export * from './fetcher'
+export * from './txFetcher'
+

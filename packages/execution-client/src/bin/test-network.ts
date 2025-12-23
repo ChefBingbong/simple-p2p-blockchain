@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
 import { existsSync, rmSync } from 'fs'
-import { createBlockchain } from '../../blockchain/index.ts'
-import { readAccounts } from '../../chain-config/accounts.ts'
-import type { ChainConfig } from '../../chain-config/index.ts'
+import { createBlockchain } from '../../blockchain/index'
+import { readAccounts } from '../../chain-config/accounts'
+import type { ChainConfig } from '../../chain-config/index'
 import {
-  type ClientInitArgs,
-  getClientPaths,
-  initClientConfig,
-} from '../../chain-config/index.ts'
-import { getDbPaths, initDatabases } from '../../db/index.ts'
-import { Config } from '../config/index.ts'
-import { LevelDB } from '../execution/level.ts'
-import { getLogger, type Logger } from '../logging.ts'
-import { ExecutionNode } from '../node/index.ts'
+	type ClientInitArgs,
+	getClientPaths,
+	initClientConfig,
+} from '../../chain-config/index'
+import { getDbPaths, initDatabases } from '../../db/index'
+import { Config } from '../config/index'
+import { LevelDB } from '../execution/level'
+import { getLogger, type Logger } from '../logging'
+import { ExecutionNode } from '../node/index'
 
 // debug.enable("p2p:*");
 

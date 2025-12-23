@@ -5,11 +5,11 @@
 
 import debug from 'debug'
 import {
-  ETH_MESSAGES,
-  EthMessageCode,
+	ETH_MESSAGES,
+	EthMessageCode,
 } from '../../../../client/net/protocol/eth/definitions'
+import { handleNewBlockHashes as handleNewBlockHashesExec } from '../../../../client/net/protocol/eth/handlers'
 import type { EthHandler } from '../handler'
-import { handleNewBlockHashes as handleNewBlockHashesExec } from '../../../../client/net/protocol/eth/handlers.ts'
 
 const log = debug('p2p:eth:handlers:new-block-hashes')
 

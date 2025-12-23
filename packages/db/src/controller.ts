@@ -1,6 +1,6 @@
 import type { AbstractLevel } from 'abstract-level'
 import { Level } from 'level'
-import type { Logger } from '../client/logging.ts'
+import type { Logger } from '../client/logging'
 
 export interface DbOptions {
   /** Database path */

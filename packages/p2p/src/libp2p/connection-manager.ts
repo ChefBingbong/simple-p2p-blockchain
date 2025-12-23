@@ -7,19 +7,19 @@
 
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { TypedEventTarget } from 'main-event'
-import type { RLPxConnection } from '../transport/rlpx/connection.ts'
+import type { RLPxConnection } from '../transport/rlpx/connection'
 import type {
-  AbortOptions,
-  ComponentLogger,
-  Connection,
-  ConnectionManager as ConnectionManagerInterface,
-  Logger,
-  P2PNodeEvents,
-  PeerId,
-  TransportManager,
-  TransportManagerDialOptions,
-} from './types.ts'
-import { DEFAULT_MAX_CONNECTIONS, peerIdToString } from './types.ts'
+	AbortOptions,
+	ComponentLogger,
+	Connection,
+	ConnectionManager as ConnectionManagerInterface,
+	Logger,
+	P2PNodeEvents,
+	PeerId,
+	TransportManager,
+	TransportManagerDialOptions,
+} from './types'
+import { DEFAULT_MAX_CONNECTIONS, peerIdToString } from './types'
 
 // Debug logging helper
 const DEBUG_LOG_ENDPOINT =

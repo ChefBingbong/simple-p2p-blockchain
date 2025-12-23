@@ -3,22 +3,22 @@ import type { Block } from '../block'
 import type { Common } from '../chain-config'
 import type { LegacyTx, TypedTransaction } from '../tx'
 import {
-  Account,
-  BIGINT_0,
-  bytesToHex,
-  EthereumJSErrorWithoutCode,
-  short,
+	Account,
+	BIGINT_0,
+	bytesToHex,
+	EthereumJSErrorWithoutCode,
+	short,
 } from '../utils'
 import { Bloom } from './bloom'
 import type {
-  AfterTxEvent,
-  BaseTxReceipt,
-  PreByzantiumTxReceipt,
-  RunTxOpts,
-  RunTxResult,
-  TxReceipt,
-} from './types.ts'
-import type { VM } from './vm.ts'
+	AfterTxEvent,
+	BaseTxReceipt,
+	PreByzantiumTxReceipt,
+	RunTxOpts,
+	RunTxResult,
+	TxReceipt,
+} from './types'
+import type { VM } from './vm'
 
 const debug = debugDefault('vm:tx')
 const debugGas = debugDefault('vm:tx:gas')

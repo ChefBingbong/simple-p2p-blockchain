@@ -1,12 +1,12 @@
-import type { Common, Hardfork, ParamsDict } from '../chain-config'
+import type { Common, Hardfork, ParamsDict } from '@ts-ethereum/chain-config'
 import type {
   Address,
   AddressLike,
   BigIntLike,
   BytesLike,
   PrefixedHexString,
-} from '../utils'
-import type { LegacyTx } from './legacy/tx.ts'
+} from '@ts-ethereum/utils'
+import type { LegacyTx } from './legacy/tx'
 
 export type Capability = (typeof Capability)[keyof typeof Capability]
 

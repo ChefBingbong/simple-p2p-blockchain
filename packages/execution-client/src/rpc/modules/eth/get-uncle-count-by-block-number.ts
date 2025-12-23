@@ -1,7 +1,7 @@
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getUncleCountByBlockNumberSchema } from './schema.ts'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { createRpcMethod } from '../../validation'
+import { getUncleCountByBlockNumberSchema } from './schema'
 
 export const getUncleCountByBlockNumber = (node: ExecutionNode) => {
   const chain = node.chain

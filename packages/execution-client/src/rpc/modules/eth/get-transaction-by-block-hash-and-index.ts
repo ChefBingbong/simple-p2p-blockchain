@@ -1,10 +1,10 @@
-import type { PrefixedHexString } from '../../../../utils/index.ts'
-import { hexToBytes } from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { toJSONRPCTx } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getTransactionByBlockHashAndIndexSchema } from './schema.ts'
+import type { PrefixedHexString } from '../../../../utils/index'
+import { hexToBytes } from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { toJSONRPCTx } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getTransactionByBlockHashAndIndexSchema } from './schema'
 
 export const getTransactionByBlockHashAndIndex = (node: ExecutionNode) => {
   const chain = node.chain

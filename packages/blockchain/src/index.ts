@@ -1,12 +1,13 @@
-export { Blockchain } from './blockchain.ts'
-export { EthashConsensus } from './consensus/index.ts'
-export * from './constructors.ts'
+export { Blockchain } from './blockchain'
+export { EthashConsensus } from './consensus/index'
+export * from './constructors'
 export {
-  DBOp,
-  DBSaveLookups,
-  DBSetBlockOrHeader,
-  DBSetHashToNumber,
-  DBSetTD,
-} from './db/helpers.ts'
-export * from './helpers.ts'
-export * from './types.ts'
+	DBOp,
+	DBSaveLookups,
+	DBSetBlockOrHeader,
+	DBSetHashToNumber,
+	DBSetTD
+} from './db/helpers'
+export * from './helpers'
+export * from './types'
+

@@ -1,8 +1,8 @@
-import { getClientVersion } from '../../../util/index.ts'
-import { safeResult } from '../../../../utils/safe.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { clientVersionSchema } from './schema.ts'
+import { safeResult } from '../../../../utils/safe'
+import type { ExecutionNode } from '../../../node/index'
+import { getClientVersion } from '../../../util/index'
+import { createRpcMethod } from '../../validation'
+import { clientVersionSchema } from './schema'
 
 export const clientVersion = (_node: ExecutionNode) =>
   createRpcMethod(clientVersionSchema, async (_params, _c) => {

@@ -1,15 +1,15 @@
-import type { Block } from '../../../../block/index.ts'
+import type { Block } from '../../../../block/index'
 import {
-  BIGINT_0,
-  bigIntToHex,
-  createAddressFromString,
-} from '../../../../utils/index.ts'
-import { safeError, safeResult } from '../../../../utils/safe.ts'
-import type { VM } from '../../../../vm/index.ts'
-import type { ExecutionNode } from '../../../node/index.ts'
-import { getBlockByOption } from '../../helpers.ts'
-import { createRpcMethod } from '../../validation.ts'
-import { getTransactionCountSchema } from './schema.ts'
+	BIGINT_0,
+	bigIntToHex,
+	createAddressFromString,
+} from '../../../../utils/index'
+import { safeError, safeResult } from '../../../../utils/safe'
+import type { VM } from '../../../../vm/index'
+import type { ExecutionNode } from '../../../node/index'
+import { getBlockByOption } from '../../helpers'
+import { createRpcMethod } from '../../validation'
+import { getTransactionCountSchema } from './schema'
 
 export const getTransactionCount = (node: ExecutionNode) => {
   const chain = node.chain

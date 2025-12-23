@@ -1,11 +1,11 @@
-import type { Common } from '../../chain-config.ts'
+import type { Common } from '../../chain-config'
 import type { MetricsOptions } from '../../metrics/options.js'
-import type { P2PNode } from '../../p2p/libp2p/types.ts'
-import type { Address } from '../../utils.ts'
-import type { VM } from '../../vm.ts'
-import type { Logger } from '../logging.ts'
-import type { PeerInfo as DPTPeerInfo } from '../net/dpt-1/index.ts'
-import type { PrometheusMetrics } from '../types.ts'
+import type { P2PNode } from '../../p2p/libp2p/types'
+import type { Address } from '../../utils'
+import type { VM } from '../../vm'
+import type { Logger } from '../logging'
+import type { PeerInfo as DPTPeerInfo } from '../net/dpt-1/index'
+import type { PrometheusMetrics } from '../types'
 
 export type DataDirectory = (typeof DataDirectory)[keyof typeof DataDirectory]
 
@@ -258,7 +258,7 @@ export interface ConfigOptions {
   /**
    * Rate limiting configuration for RPC server
    */
-  rateLimit?: import('../rpc/rate-limit/types.ts').RateLimitOptions
+  rateLimit?: import('../rpc/rate-limit/types').RateLimitOptions
 
   /**
    * Use the new P2P server implementation with Transport + Mplex + Multi-stream-select

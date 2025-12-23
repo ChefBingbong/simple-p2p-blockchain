@@ -1,2 +1,3 @@
-export * from './proof.ts'
-export * from './range.ts'
+export * from './proof'
+export * from './range'
+

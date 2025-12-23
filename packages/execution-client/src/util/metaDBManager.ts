@@ -1,7 +1,7 @@
 import type { AbstractLevel } from 'abstract-level'
-import { concatBytes, intToBytes } from '../../utils.ts'
-import type { Chain } from '../blockchain/index.ts'
-import type { Config } from '../config/index.ts'
+import { concatBytes, intToBytes } from '../../utils'
+import type { Chain } from '../blockchain/index'
+import type { Config } from '../config/index'
 
 const encodingOpts = { keyEncoding: 'view', valueEncoding: 'view' }
 

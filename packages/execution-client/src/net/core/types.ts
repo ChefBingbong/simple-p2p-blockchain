@@ -1,7 +1,7 @@
-import type { P2PNode } from '../../../p2p/libp2p/types.ts'
-import type { Chain } from '../../blockchain/chain.ts'
-import type { Config } from '../../config/index.ts'
-import type { VMExecution } from '../../execution/index.ts'
+import type { P2PNode } from '../../../p2p/libp2p/types'
+import type { Chain } from '../../blockchain/chain'
+import type { Config } from '../../config/index'
+import type { VMExecution } from '../../execution/index'
 
 /**
  * Options for initializing NetworkCore

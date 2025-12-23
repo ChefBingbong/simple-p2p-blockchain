@@ -9,21 +9,21 @@ import type { Common } from '../chain-config'
 import { bytesToHex, bytesToUnprefixedHex } from '../utils'
 
 import {
-  decode,
-  type DecodedMessage,
-  encode,
-  type MessageTypeName,
-} from './message.ts'
+	decode,
+	type DecodedMessage,
+	encode,
+	type MessageTypeName,
+} from './message'
 import {
-  createDeferred,
-  type Deferred,
-  DISCOVERY_VERSION,
-  type KademliaTransport,
-  type KademliaTransportEvent,
-  type KademliaTransportOptions,
-  type PeerInfo,
-} from './types.ts'
-import { pk2id } from './xor.ts'
+	createDeferred,
+	type Deferred,
+	DISCOVERY_VERSION,
+	type KademliaTransport,
+	type KademliaTransportEvent,
+	type KademliaTransportOptions,
+	type PeerInfo,
+} from './types'
+import { pk2id } from './xor'
 
 const debug = debugDefault('kad:transport')
 const verbose = debugDefault('verbose').enabled

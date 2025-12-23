@@ -1,18 +1,18 @@
-import type { Block, BlockHeader } from '../../block.ts'
+import type { Block, BlockHeader } from '../../block'
 import {
-  Ethash,
-  type Miner as EthashMiner,
-  type Solution,
-} from '../../eth-hash.ts'
-import { BIGINT_0, BIGINT_1, bytesToHex } from '../../utils.ts'
-import { buildBlock, type TxReceipt } from '../../vm.ts'
-import { Chain } from '../blockchain/chain.ts'
-import type { Config } from '../config/index.ts'
-import type { VMExecution } from '../execution/index.ts'
-import { IndexOperation, IndexType } from '../execution/txIndex.ts'
-import { TxPool } from '../service/txpool.ts'
-import type { FullSynchronizer } from '../sync/index.ts'
-import { Event } from '../types.ts'
+	Ethash,
+	type Miner as EthashMiner,
+	type Solution,
+} from '../../eth-hash'
+import { BIGINT_0, BIGINT_1, bytesToHex } from '../../utils'
+import { buildBlock, type TxReceipt } from '../../vm'
+import { Chain } from '../blockchain/chain'
+import type { Config } from '../config/index'
+import type { VMExecution } from '../execution/index'
+import { IndexOperation, IndexType } from '../execution/txIndex'
+import { TxPool } from '../service/txpool'
+import type { FullSynchronizer } from '../sync/index'
+import { Event } from '../types'
 
 export interface MinerOptions {
   /* Config */
@@ -298,7 +298,7 @@ export class Miner {
     if (interrupt) return
 
     // Create the final sealed block with the PoW solution
-    const { createBlock } = await import('../../block.ts')
+    const { createBlock } = await import('../../block')
     const sealedBlockData = unsealedBlock.toJSON()
     sealedBlockData.header!.nonce = bytesToHex(solution.nonce)
     sealedBlockData.header!.mixHash = bytesToHex(solution.mixHash)

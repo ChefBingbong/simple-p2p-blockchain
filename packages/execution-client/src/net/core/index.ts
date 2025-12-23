@@ -1,2 +1,3 @@
-export { NetworkCore } from './network-core.ts'
-export type { NetworkCoreOptions } from './types.ts'
+export { NetworkCore } from './network-core'
+export type { NetworkCoreOptions } from './types'
+

@@ -1,9 +1,9 @@
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { Logger } from '../client/logging.ts'
-import { bytesToHex, hexToBytes } from '../utils/index.ts'
-import { genPrivateKey } from '../utils/utils.ts'
+import type { Logger } from '../client/logging'
+import { bytesToHex, hexToBytes } from '../utils/index'
+import { genPrivateKey } from '../utils/utils'
 
 export interface PrivateKeyInfo {
   privateKey: Uint8Array

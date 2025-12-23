@@ -1,7 +1,6 @@
-import { keccak256 } from 'ethereum-cryptography/keccak.js'
-import type { Common } from '../../chain-config'
-import * as RLP from '../../rlp'
-import type { Address } from '../../utils'
+import type { Common } from '@ts-ethereum/chain-config'
+import { RLP } from '@ts-ethereum/rlp'
+import type { Address } from '@ts-ethereum/utils'
 import {
   bigIntToHex,
   bigIntToUnpaddedBytes,
@@ -9,9 +8,10 @@ import {
   EthereumJSErrorWithoutCode,
   MAX_INTEGER,
   toBytes,
-} from '../../utils'
-import * as Legacy from '../capabilities/legacy.ts'
-import { paramsTx } from '../params.ts'
+} from '@ts-ethereum/utils'
+import { keccak256 } from 'ethereum-cryptography/keccak.js'
+import * as Legacy from '../capabilities/legacy'
+import { paramsTx } from '../params'
 import type {
   TxData as AllTypesTxData,
   TxValuesArray as AllTypesTxValuesArray,
@@ -19,14 +19,14 @@ import type {
   TransactionCache,
   TransactionInterface,
   TxOptions,
-} from '../types.ts'
-import { Capability, TransactionType } from '../types.ts'
+} from '../types'
+import { Capability, TransactionType } from '../types'
 import {
   getBaseJSON,
   sharedConstructor,
   valueOverflowCheck,
-} from '../util/internal.ts'
-import { createLegacyTx } from './constructors.ts'
+} from '../util/internal'
+import { createLegacyTx } from './constructors'
 
 export type TxData = AllTypesTxData[typeof TransactionType.Legacy]
 export type TxValuesArray = AllTypesTxValuesArray[typeof TransactionType.Legacy]

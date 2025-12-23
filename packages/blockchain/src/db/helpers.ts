@@ -2,8 +2,8 @@ import { Block } from '../../block'
 import * as RLP from '../../rlp'
 import { BIGINT_0 } from '../../utils'
 
-import { bytesBE8 } from './constants.ts'
-import { DBOp, DBTarget } from './operation.ts'
+import { bytesBE8 } from './constants'
+import { DBOp, DBTarget } from './operation'
 
 import type { BlockHeader } from '../../block'
 

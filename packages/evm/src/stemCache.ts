@@ -1,8 +1,8 @@
 import type { PrefixedHexString } from '../utils'
 import type {
-  BinaryStemAccessEvent,
-  BinaryStemMeta,
-} from './binaryTreeAccessWitness.ts'
+	BinaryStemAccessEvent,
+	BinaryStemMeta,
+} from './binaryTreeAccessWitness'
 
 /**
  * Simple cache for binary tree stem access events.

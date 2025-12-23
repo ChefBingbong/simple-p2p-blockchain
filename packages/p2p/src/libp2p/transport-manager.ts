@@ -6,22 +6,22 @@
  */
 
 import {
-  FaultTolerance,
-  type Listener,
-  type Transport,
+	FaultTolerance,
+	type Listener,
+	type Transport,
 } from '@libp2p/interface'
 import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
 import type { TypedEventTarget } from 'main-event'
-import type { RLPxConnection } from '../transport/rlpx/connection.ts'
-import { ConnectionWrapper } from './connection-manager.ts'
+import type { RLPxConnection } from '../transport/rlpx/connection'
+import { ConnectionWrapper } from './connection-manager'
 import type {
-  AddressManager,
-  ComponentLogger,
-  Logger,
-  P2PNodeEvents,
-  TransportManagerDialOptions,
-  TransportManager as TransportManagerInterface,
-} from './types.ts'
+	AddressManager,
+	ComponentLogger,
+	Logger,
+	P2PNodeEvents,
+	TransportManagerDialOptions,
+	TransportManager as TransportManagerInterface,
+} from './types'
 
 // Debug logging helper to avoid verbose fetch calls
 const DEBUG_LOG_ENDPOINT =

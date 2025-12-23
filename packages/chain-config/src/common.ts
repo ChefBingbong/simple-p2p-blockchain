@@ -1,14 +1,14 @@
 import { EventEmitter } from 'eventemitter3'
-import { unprefixedHexToBytes } from '../utils/index.ts'
+import { unprefixedHexToBytes } from '../utils/index'
 import {
-  type ChainConfig,
-  type CommonEvent,
-  type CommonOpts,
-  type CustomCrypto,
-  type EthashConfig,
-  Hardfork,
-  type ParamsConfig,
-} from './types.ts'
+	type ChainConfig,
+	type CommonEvent,
+	type CommonOpts,
+	type CustomCrypto,
+	type EthashConfig,
+	Hardfork,
+	type ParamsConfig,
+} from './types'
 
 export class Common {
   protected _chainParams: ChainConfig

@@ -5,10 +5,10 @@
 
 import debug from 'debug'
 import {
-  ETH_MESSAGES,
-  EthMessageCode,
+	ETH_MESSAGES,
+	EthMessageCode,
 } from '../../../../client/net/protocol/eth/definitions'
-import { handleNewPooledTransactionHashes as handleNewPooledTransactionHashesExec } from '../../../../client/net/protocol/eth/handlers.ts'
+import { handleNewPooledTransactionHashes as handleNewPooledTransactionHashesExec } from '../../../../client/net/protocol/eth/handlers'
 import type { EthHandler } from '../handler'
 
 const log = debug('p2p:eth:handlers:new-pooled-transaction-hashes')

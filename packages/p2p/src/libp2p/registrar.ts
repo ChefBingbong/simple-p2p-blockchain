@@ -10,25 +10,25 @@
 
 import type { TypedEventTarget } from 'main-event'
 import type {
-  ComponentLogger,
-  Connection,
-  IdentifyResult,
-  Logger,
-  P2PNodeEvents,
-  Peer,
-  PeerId,
-  PeerUpdate,
-  Registrar as RegistrarInterface,
-  StreamHandler,
-  StreamHandlerOptions,
-  StreamHandlerRecord,
-  Topology,
-} from './types.ts'
+	ComponentLogger,
+	Connection,
+	IdentifyResult,
+	Logger,
+	P2PNodeEvents,
+	Peer,
+	PeerId,
+	PeerUpdate,
+	Registrar as RegistrarInterface,
+	StreamHandler,
+	StreamHandlerOptions,
+	StreamHandlerRecord,
+	Topology,
+} from './types'
 import {
-  DEFAULT_MAX_INBOUND_STREAMS,
-  DEFAULT_MAX_OUTBOUND_STREAMS,
-  peerIdToString,
-} from './types.ts'
+	DEFAULT_MAX_INBOUND_STREAMS,
+	DEFAULT_MAX_OUTBOUND_STREAMS,
+	peerIdToString,
+} from './types'
 
 /**
  * Error thrown when a protocol handler already exists

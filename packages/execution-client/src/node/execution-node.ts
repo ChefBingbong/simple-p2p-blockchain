@@ -1,22 +1,22 @@
-import { getHttpMetricsServer } from '../../metrics/index.ts'
+import { getHttpMetricsServer } from '../../metrics/index'
 import type {
-  HealthCheckFn,
-  HttpMetricsServer,
+	HealthCheckFn,
+	HttpMetricsServer,
 } from '../../metrics/server/http.js'
-import type { P2PNode as P2PNodeType } from '../../p2p/libp2p/types.ts'
-import { Chain } from '../blockchain/index.ts'
-import type { Config } from '../config/index.ts'
-import { ExecutionService } from '../execution/execution-service.ts'
-import { VMExecution } from '../execution/vmexecution.ts'
-import { NetworkService } from '../net/network-service.ts'
-import type { Peer } from '../net/peer/peer.ts'
-import { RpcServer } from '../rpc/server/index.ts'
-import { TxFetcher } from '../sync/fetcher/txFetcher.ts'
-import { Event } from '../types.ts'
-import type { V8Engine } from '../util/index.ts'
-import { getV8Engine } from '../util/index.ts'
-import { createP2PNodeFromConfig } from './createP2pNode.ts'
-import type { ExecutionNodeInitOptions, ExecutionNodeModules } from './types.ts'
+import type { P2PNode as P2PNodeType } from '../../p2p/libp2p/types'
+import { Chain } from '../blockchain/index'
+import type { Config } from '../config/index'
+import { ExecutionService } from '../execution/execution-service'
+import { VMExecution } from '../execution/vmexecution'
+import { NetworkService } from '../net/network-service'
+import type { Peer } from '../net/peer/peer'
+import { RpcServer } from '../rpc/server/index'
+import { TxFetcher } from '../sync/fetcher/txFetcher'
+import { Event } from '../types'
+import type { V8Engine } from '../util/index'
+import { getV8Engine } from '../util/index'
+import { createP2PNodeFromConfig } from './createP2pNode'
+import type { ExecutionNodeInitOptions, ExecutionNodeModules } from './types'
 
 export const STATS_INTERVAL = 1000 * 30 // 30 seconds
 export const MEMORY_SHUTDOWN_THRESHOLD = 92

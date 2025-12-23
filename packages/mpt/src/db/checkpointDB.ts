@@ -1,13 +1,13 @@
 import { LRUCache } from 'lru-cache'
 import {
-  KeyEncoding,
-  ValueEncoding,
-  bytesToUnprefixedHex,
-  unprefixedHexToBytes,
+	KeyEncoding,
+	ValueEncoding,
+	bytesToUnprefixedHex,
+	unprefixedHexToBytes,
 } from '../../utils'
 
 import type { BatchDBOp, DB, EncodingOpts } from '../../utils'
-import type { Checkpoint, CheckpointDBOpts } from '../types.ts'
+import type { Checkpoint, CheckpointDBOpts } from '../types'
 
 /**
  * DB is a thin wrapper around the underlying levelup db,

@@ -1,9 +1,9 @@
 import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { PeerInfo } from '../kademlia/types.ts'
-import { bytesToUnprefixedHex, hexToBytes } from '../utils/index.ts'
-import { getNodeId } from './keys.ts'
+import type { PeerInfo } from '../kademlia/types'
+import { bytesToUnprefixedHex, hexToBytes } from '../utils/index'
+import { getNodeId } from './keys'
 
 /**
  * Read bootnode enode URL from file
