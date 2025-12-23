@@ -204,7 +204,11 @@
     "packages/rlp": {
       "name": "@ts-ethereum/rlp",
       "version": "0.0.0",
+      "dependencies": {
+        "benchmark": "^2.1.4",
+      },
       "devDependencies": {
+        "@types/benchmark": "^2.1.5",
         "@types/bun": "latest",
       },
       "peerDependencies": {
@@ -524,6 +528,8 @@
     "@ts-ethereum/utils": ["@ts-ethereum/utils@workspace:packages/utils"],
 
     "@ts-ethereum/vm": ["@ts-ethereum/vm@workspace:packages/vm"],
+
+    "@types/benchmark": ["@types/benchmark@2.1.5", "", {}, "sha512-cKio2eFB3v7qmKcvIHLUMw/dIx/8bhWPuzpzRT4unCPRTD8VdA9Zb0afxpcxOqR4PixRS7yT42FqGS8BYL8g1w=="],
 
     "@types/bn.js": ["@types/bn.js@5.2.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-DLbJ1BPqxvQhIGbeu8VbUC1DiAiahHtAYvA0ZEAa4P31F7IaArc8z3C3BRQdWX4mtLQuABG4yzp76ZrS02Ui1Q=="],
 

@@ -1,6 +1,6 @@
-import { bytesToUnprefixedHex } from './bytes.ts'
+import { bytesToUnprefixedHex } from './bytes'
 
-import type { BatchDBOp, DB, DBObject } from './db.ts'
+import type { BatchDBOp, DB, DBObject } from './db'
 
 export class MapDB<
   TKey extends Uint8Array | string | number,

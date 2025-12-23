@@ -1,9 +1,9 @@
 import { sha256 } from 'ethereum-cryptography/sha256.js'
 
-import { bytesToHex, hexToBytes, utf8ToBytes } from './bytes.ts'
+import { bytesToHex, hexToBytes, utf8ToBytes } from './bytes'
 
-import type { KZG } from './kzg.ts'
-import type { PrefixedHexString } from './types.ts'
+import type { KZG } from './kzg'
+import type { PrefixedHexString } from './types'
 
 /**
  * These utilities for constructing blobs are borrowed from https://github.com/Inphi/eip4844-interop.git

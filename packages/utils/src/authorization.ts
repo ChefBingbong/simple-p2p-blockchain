@@ -2,9 +2,9 @@
 
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import * as RLP from '../rlp/index.ts'
-import { publicToAddress } from './account.ts'
-import { Address } from './address.ts'
+import { RLP } from '@ts-ethereum/rlp'
+import { publicToAddress } from './account'
+import { Address } from './address'
 import {
   bigIntToUnpaddedBytes,
   bytesToBigInt,
@@ -13,14 +13,14 @@ import {
   hexToBytes,
   setLengthLeft,
   unpadBytes,
-} from './bytes.ts'
-import { ecrecover } from './signature.ts'
+} from './bytes'
+import { ecrecover } from './signature'
 import type {
   EOACode7702AuthorizationListBytesItem,
   EOACode7702AuthorizationListBytesItemUnsigned,
   EOACode7702AuthorizationListItem,
   EOACode7702AuthorizationListItemUnsigned,
-} from './types.ts'
+} from './types'
 
 export const EOA_CODE_7702_AUTHORITY_SIGNING_MAGIC = hexToBytes('0x05')
 

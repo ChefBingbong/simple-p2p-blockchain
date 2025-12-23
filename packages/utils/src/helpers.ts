@@ -1,4 +1,4 @@
-import { isHexString } from './internal.ts'
+import { isHexString } from './internal'
 
 /**
  * Throws if a string is not hex prefixed

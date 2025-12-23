@@ -1,4 +1,4 @@
-import { BIGINT_0, BIGINT_1 } from './constants.ts'
+import { BIGINT_0, BIGINT_1 } from './constants'
 
 /** Conversion constants to wei */
 export const GWEI_TO_WEI = BigInt(10 ** 9) // Multiplier to convert from Gwei to Wei

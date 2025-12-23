@@ -6,6 +6,13 @@ out
 dist
 *.tgz
 
+_cjs
+_esm
+_types
+
+_cjs
+_esm
+_types
 # code coverage
 coverage
 *.lcov

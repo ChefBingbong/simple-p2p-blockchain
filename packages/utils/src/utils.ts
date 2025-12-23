@@ -1,6 +1,7 @@
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { CODE_UNIX, multiaddr } from '@multiformats/multiaddr'
 import { Unix } from '@multiformats/multiaddr-matcher'
+import { RLP } from '@ts-ethereum/rlp'
 import debug from 'debug'
 import { publicKeyConvert } from 'ethereum-cryptography/secp256k1-compat.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
@@ -12,8 +13,6 @@ import type {
 import os from 'os'
 import path from 'path'
 import { bytesToHex, bytesToUnprefixedHex, concatBytes, equalsBytes } from '.'
-import type { EthStatusMsg } from '../client/net/protocol'
-import * as RLP from '../rlp'
 import { getNetConfig } from './getNetConfig'
 
 // Do not use :# here, no logging without sub namespace occurring and current code structure
@@ -56,7 +55,7 @@ export function xor(a: Uint8Array, b: any): Uint8Array {
   return bytes
 }
 
-type assertInput = Uint8Array | Uint8Array[] | EthStatusMsg | number | null
+type assertInput = Uint8Array | Uint8Array[] | number | null
 
 export function assertEq(
   expected: assertInput,

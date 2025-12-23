@@ -22,9 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE
  */
 
-import { bytesToUnprefixedHex, utf8ToBytes } from './bytes.ts'
+import { bytesToUnprefixedHex, utf8ToBytes } from './bytes'
 
-import type { PrefixedHexString } from './types.ts'
+import type { PrefixedHexString } from './types'
 
 /**
  * Returns a boolean on whether or not the the input starts with '0x' and matches the optional length

@@ -1,42 +1,42 @@
 /**
  * Constants
  */
-export * from './constants.ts'
+export * from './constants'
 
 /**
  * Errors
  */
-export * from './helpers.ts'
+export * from './helpers'
 
 /**
  * Account class and helper functions
  */
-export * from './account.ts'
+export * from './account'
 /**
  * Address type
  */
-export * from './address.ts'
+export * from './address'
 /**
  * Units helpers
  */
-export * from './units.ts'
+export * from './units'
 
 /**
  * DB type
  */
-export * from './db.ts'
-export * from './mapDB.ts'
+export * from './db'
+export * from './mapDB'
 
 /**
  * Export ethjs-util methods
  */
-export * from './authorization.ts'
-export * from './binaryTree.ts'
-export * from './blobs.ts'
+export * from './authorization'
+export * from './binaryTree'
+export * from './blobs'
 /**
  * Utilities for manipulating bytes, Uint8Arrays, etc.
  */
-export * from './bytes.ts'
+export * from './bytes'
 export {
   arrayContainsArray,
   fromAscii,
@@ -47,25 +47,25 @@ export {
   padToEven,
   stripHexPrefix,
   toAscii,
-} from './internal.ts'
-export * from './kzg.ts'
-export * from './lock.ts'
+} from './internal'
+export * from './kzg'
+export * from './lock'
 /**
  * ECDSA signature
  */
-export * from './signature.ts'
-export * from './tasks.ts'
+export * from './signature'
+export * from './tasks'
 /**
  * Helpful TypeScript types
  */
-export * from './types.ts'
+export * from './types'
 
 /**
  * Provider
  */
-export * from './provider.ts'
+export * from './provider'
 
 /**
  * Request type
  */
-export * from './request.ts'
+export * from './request'

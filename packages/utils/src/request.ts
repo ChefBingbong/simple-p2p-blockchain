@@ -1,6 +1,6 @@
-import { concatBytes } from './bytes.ts'
+import { concatBytes } from './bytes'
 
-import type { PrefixedHexString } from './types.ts'
+import type { PrefixedHexString } from './types'
 
 export type RequestBytes = Uint8Array
 

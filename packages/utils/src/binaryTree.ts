@@ -1,5 +1,5 @@
-import type { Account } from './account.ts'
-import type { Address } from './address.ts'
+import type { Account } from './account'
+import type { Address } from './address'
 import {
   bigIntToBytes,
   bytesToBigInt,
@@ -9,8 +9,8 @@ import {
   intToBytes,
   setLengthLeft,
   setLengthRight,
-} from './bytes.ts'
-import type { PrefixedHexString } from './types.ts'
+} from './bytes'
+import type { PrefixedHexString } from './types'
 
 /**
  * @dev Returns the 31-bytes binary tree stem for a given address and tree index.

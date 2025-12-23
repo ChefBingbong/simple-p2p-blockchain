@@ -10,7 +10,7 @@ import {
   hexToBytes,
   setLengthLeft,
   utf8ToBytes,
-} from './bytes.ts'
+} from './bytes'
 import {
   BIGINT_0,
   BIGINT_1,
@@ -18,10 +18,10 @@ import {
   BIGINT_27,
   SECP256K1_ORDER,
   SECP256K1_ORDER_DIV_2,
-} from './constants.ts'
-import { assertIsBytes } from './helpers.ts'
+} from './constants'
+import { assertIsBytes } from './helpers'
 
-import type { PrefixedHexString } from './types.ts'
+import type { PrefixedHexString } from './types'
 
 export function calculateSigRecovery(v: bigint, chainId?: bigint): bigint {
   if (v === BIGINT_0 || v === BIGINT_1) return v

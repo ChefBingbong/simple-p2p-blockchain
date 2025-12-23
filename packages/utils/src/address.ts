@@ -4,7 +4,7 @@ import {
   isValidAddress,
   privateToAddress,
   pubToAddress,
-} from './account.ts'
+} from './account'
 import {
   bigIntToBytes,
   bytesToBigInt,
@@ -12,10 +12,10 @@ import {
   equalsBytes,
   hexToBytes,
   setLengthLeft,
-} from './bytes.ts'
-import { BIGINT_0 } from './constants.ts'
+} from './bytes'
+import { BIGINT_0 } from './constants'
 
-import type { PrefixedHexString } from './types.ts'
+import type { PrefixedHexString } from './types'
 
 /**
  * Handling and generating Ethereum addresses

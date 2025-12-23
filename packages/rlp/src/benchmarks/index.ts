@@ -1,6 +1,7 @@
 import Benchmark from 'benchmark'
-import { decode, encode } from '../index'
+import { RLP } from '..'
 
+const { encode, decode } = RLP
 const suite = new Benchmark.Suite()
 
 const buf = (length: number, start = 0) =>

@@ -1,6 +1,6 @@
+import { RLP } from '@ts-ethereum/rlp'
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import * as RLP from '../rlp/index.ts'
 
 import {
   bigIntToUnpaddedBytes,
@@ -13,17 +13,17 @@ import {
   intToUnpaddedBytes,
   toBytes,
   utf8ToBytes,
-} from './bytes.ts'
-import { BIGINT_0, KECCAK256_NULL, KECCAK256_RLP } from './constants.ts'
-import { assertIsBytes, assertIsHexString, assertIsString } from './helpers.ts'
-import { stripHexPrefix } from './internal.ts'
+} from './bytes'
+import { BIGINT_0, KECCAK256_NULL, KECCAK256_RLP } from './constants'
+import { assertIsBytes, assertIsHexString, assertIsString } from './helpers'
+import { stripHexPrefix } from './internal'
 
 import type {
   BigIntLike,
   BytesLike,
   NestedUint8Array,
   PrefixedHexString,
-} from './types.ts'
+} from './types'
 
 export interface AccountData {
   nonce?: BigIntLike
@@ -354,24 +354,12 @@ export function createPartialAccount(partialAccountData: PartialAccountData) {
   }
 
   return new Account(
-    nonce !== undefined && nonce !== null
-      ? bytesToBigInt(toBytes(nonce))
-      : (nonce as bigint),
-    balance !== undefined && balance !== null
-      ? bytesToBigInt(toBytes(balance))
-      : (balance as bigint),
-    storageRoot !== undefined && storageRoot !== null
-      ? toBytes(storageRoot)
-      : (storageRoot as Uint8Array),
-    codeHash !== undefined && codeHash !== null
-      ? toBytes(codeHash)
-      : (codeHash as Uint8Array),
-    codeSize !== undefined && codeSize !== null
-      ? bytesToInt(toBytes(codeSize))
-      : (codeSize as number),
-    version !== undefined && version !== null
-      ? bytesToInt(toBytes(version))
-      : (version as number),
+    bytesToBigInt(toBytes(nonce)),
+    bytesToBigInt(toBytes(balance)),
+    toBytes(storageRoot),
+    toBytes(codeHash),
+    bytesToInt(toBytes(codeSize)),
+    bytesToInt(toBytes(version)),
   )
 }
 

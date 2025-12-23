@@ -1,7 +1,7 @@
-import type { Address } from './address.ts'
-import type { ToBytesInputTypes } from './bytes.ts'
-import { bytesToBigInt, bytesToHex, toBytes } from './bytes.ts'
-import { isHexString } from './internal.ts'
+import type { Address } from './address'
+import type { ToBytesInputTypes } from './bytes'
+import { bytesToBigInt, bytesToHex, toBytes } from './bytes'
+import { isHexString } from './internal'
 
 /*
  * A type that represents an input that can be converted to a BigInt.
