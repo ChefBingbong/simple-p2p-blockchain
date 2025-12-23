@@ -13,7 +13,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/ChefBingbong/simple-p2p-blockchain.git",
-    "directory": "packages/block"
+    "directory": "packages/tx"
   },
   "scripts": {
     "check": "tsc --pretty --noEmit",
