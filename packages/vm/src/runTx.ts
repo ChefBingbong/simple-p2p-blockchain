@@ -1,14 +1,14 @@
 import debugDefault from 'debug'
-import type { Block } from '../block'
-import type { Common } from '../chain-config'
-import type { LegacyTx, TypedTransaction } from '../tx'
+import type { Block } from '@ts-ethereum/block'
+import type { Common } from '@ts-ethereum/chain-config'
+import type { LegacyTx, TypedTransaction } from '@ts-ethereum/tx'
 import {
 	Account,
 	BIGINT_0,
 	bytesToHex,
 	EthereumJSErrorWithoutCode,
 	short,
-} from '../utils'
+} from '@ts-ethereum/utils'
 import { Bloom } from './bloom'
 import type {
 	AfterTxEvent,

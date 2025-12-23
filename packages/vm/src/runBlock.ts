@@ -1,14 +1,14 @@
 import debugDefault from 'debug'
 import { runTx } from '.'
-import type { Block } from '../block'
-import { createBlock } from '../block'
-import type { Common } from '../chain-config'
-import { ConsensusType } from '../chain-config'
-import type { EVMInterface } from '../evm'
-import { MerklePatriciaTrie } from '../mpt'
-import * as RLP from '../rlp'
-import { TransactionType } from '../tx'
-import type { PrefixedHexString } from '../utils'
+import type { Block } from '@ts-ethereum/block'
+import { createBlock } from '@ts-ethereum/block'
+import type { Common } from '@ts-ethereum/chain-config'
+import { ConsensusType } from '@ts-ethereum/chain-config'
+import type { EVMInterface } from '@ts-ethereum/evm'
+import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
+import { RLP } from '@ts-ethereum/rlp'
+import { TransactionType } from '@ts-ethereum/tx'
+import type { PrefixedHexString } from '@ts-ethereum/utils'
 import {
 	Account,
 	Address,
@@ -20,7 +20,7 @@ import {
 	intToBytes,
 	KECCAK256_RLP,
 	short,
-} from '../utils'
+} from '@ts-ethereum/utils'
 import { Bloom } from './bloom'
 import type {
 	AfterBlockEvent,

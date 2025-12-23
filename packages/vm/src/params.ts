@@ -1,4 +1,4 @@
-import type { ParamsDict } from '../chain-config'
+import type { ParamsDict } from '@ts-ethereum/chain-config'
 
 /**
  * VM parameters for Frontier/Chainstart only.

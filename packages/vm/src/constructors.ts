@@ -1,6 +1,6 @@
-import { EVMMockBlockchain, createEVM } from '../evm'
-import { MerkleStateManager } from '../state-manager'
-import { EthereumJSErrorWithoutCode } from '../utils'
+import { EVMMockBlockchain, createEVM } from '@ts-ethereum/evm'
+import { MerkleStateManager } from '@ts-ethereum/state-manager'
+import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
 import type { VMOpts } from './types'
 import { VM } from './vm'
 

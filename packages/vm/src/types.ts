@@ -1,13 +1,13 @@
-import type { Block, BlockOptions, HeaderData } from '../block'
-import type { Common, ParamsDict, StateManagerInterface } from '../chain-config'
+import type { Block, BlockOptions, HeaderData } from '@ts-ethereum/block'
+import type { Common, ParamsDict, StateManagerInterface } from '@ts-ethereum/chain-config'
 import type {
   EVMInterface,
   EVMMockBlockchainInterface,
   EVMOpts,
   EVMResult,
-} from '../evm'
-import type { TypedTransaction } from '../tx'
-import type { BigIntLike, PrefixedHexString } from '../utils'
+} from '@ts-ethereum/evm'
+import type { TypedTransaction } from '@ts-ethereum/tx'
+import type { BigIntLike, PrefixedHexString } from '@ts-ethereum/utils'
 import type { Bloom } from './bloom'
 
 /**

@@ -1,34 +1,34 @@
-import { createBlock, genTransactionsTrieRoot } from '../block'
-import { ConsensusType } from '../chain-config'
-import { MerklePatriciaTrie } from '../mpt'
-import * as RLP from '../rlp'
+import { createBlock, genTransactionsTrieRoot } from '@ts-ethereum/block'
+import { ConsensusType } from '@ts-ethereum/chain-config'
+import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
+import { RLP } from '@ts-ethereum/rlp'
 import {
-	Address,
-	BIGINT_0,
-	BIGINT_1,
-	EthereumJSErrorWithoutCode,
-	KECCAK256_RLP,
-	TypeOutput,
-	createZeroAddress,
-	toBytes,
-	toType,
-} from '../utils'
+  Address,
+  BIGINT_0,
+  BIGINT_1,
+  EthereumJSErrorWithoutCode,
+  KECCAK256_RLP,
+  TypeOutput,
+  createZeroAddress,
+  toBytes,
+  toType,
+} from '@ts-ethereum/utils'
 
 import { runTx } from '.'
 import { Bloom } from './bloom'
 import {
-	calculateMinerReward,
-	encodeReceipt,
-	rewardAccount,
+  calculateMinerReward,
+  encodeReceipt,
+  rewardAccount,
 } from './runBlock'
 
-import type { Block, HeaderData } from '../block'
-import type { TypedTransaction } from '../tx'
+import type { Block, HeaderData } from '@ts-ethereum/block'
+import type { TypedTransaction } from '@ts-ethereum/tx'
 import type {
-	BuildBlockOpts,
-	BuilderOpts,
-	RunTxResult,
-	SealBlockOpts,
+  BuildBlockOpts,
+  BuilderOpts,
+  RunTxResult,
+  SealBlockOpts,
 } from './types'
 import type { VM } from './vm'
 
