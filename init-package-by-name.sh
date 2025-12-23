@@ -42,3 +42,14 @@ fi
 
 echo "🎉 Package @ts-ethereum/${PACKAGE_NAME} initialized successfully!"
 
+# Go back to monorepo root for git commands
+cd ../..
+
+# Stage and commit the new package
+echo "📝 Staging changes..."
+git add "packages/${PACKAGE_NAME}"
+
+echo "💾 Committing..."
+git commit -m "feat: add @ts-ethereum/${PACKAGE_NAME} package"
+
+echo "✅ Committed: feat: add @ts-ethereum/${PACKAGE_NAME} package"

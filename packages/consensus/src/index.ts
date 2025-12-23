@@ -1,8 +1,13 @@
 import { keccak256, keccak512 } from "ethereum-cryptography/keccak.js";
-import type { BlockData, HeaderData } from "../block";
-import { Block, BlockHeader, createBlock, createBlockHeader } from "../block";
-import * as RLP from "../rlp";
-import type { DB, DBObject, PrefixedHexString } from "../utils";
+import type { BlockData, HeaderData } from "../block.ts";
+import {
+	Block,
+	BlockHeader,
+	createBlock,
+	createBlockHeader,
+} from "../block.ts";
+import * as RLP from "../rlp.ts";
+import type { DB, DBObject, PrefixedHexString } from "../utils.ts";
 import {
 	BIGINT_0,
 	bigIntToBytes,
@@ -15,7 +20,7 @@ import {
 	setLengthLeft,
 	TWO_POW256,
 	ValueEncoding,
-} from "../utils";
+} from "../utils.ts";
 import {
 	bytesReverse,
 	fnv,

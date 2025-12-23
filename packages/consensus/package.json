@@ -1,5 +1,5 @@
 {
-  "name": "@ts-ethereum/eth-hash",
+  "name": "@ts-ethereum/consensus",
   "module": "index.ts",
   "type": "module",
   "private": true,
