@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { multiaddr } from '@multiformats/multiaddr'
 import type { ChainConfig, GenesisState } from '@ts-ethereum/chain-config'
 import {
@@ -8,9 +16,7 @@ import {
   bytesToUnprefixedHex,
   createAddressFromPrivateKey,
 } from '@ts-ethereum/utils'
-import { createHash } from 'crypto'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 
 export type Account = [address: Address, privateKey: Uint8Array]
 

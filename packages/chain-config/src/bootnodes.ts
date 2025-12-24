@@ -1,7 +1,7 @@
-import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
-import { bytesToUnprefixedHex, hexToBytes } from '@ts-ethereum/utils'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
+import { bytesToUnprefixedHex, hexToBytes } from '@ts-ethereum/utils'
 // import type { PeerInfo } from '../kademlia/types'
 import { getNodeId } from './keys'
 
@@ -68,7 +68,7 @@ export function enodeToDPTPeerInfo(enodeUrl: string): PeerInfo | null {
 
   const [, nodeIdHex, ip, port] = match
   const nodeId = hexToBytes(`0x${nodeIdHex}`)
-  const tcpPort = parseInt(port, 10)
+  const tcpPort = Number.parseInt(port, 10)
   const udpPort = tcpPort // DPT uses same port for UDP
 
   return {

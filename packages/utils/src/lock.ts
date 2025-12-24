@@ -1,6 +1,6 @@
 // Based on https://github.com/jsoendermann/semaphore-async-await/blob/master/src/Semaphore.ts
 export class Lock {
-  private permits: number = 1
+  private permits = 1
   private promiseResolverQueue: Array<(v: boolean) => void> = []
 
   /**

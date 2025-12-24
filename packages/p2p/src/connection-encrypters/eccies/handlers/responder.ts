@@ -1,12 +1,12 @@
 import debug from 'debug'
 import {
+  type AuthResult,
   BufferAccumulator,
   createAckEIP8,
   createAckOld,
+  type HandlerContext,
   parseAuthEIP8,
   parseAuthPlain,
-  type AuthResult,
-  type HandlerContext,
 } from '../utils'
 
 const log = debug('p2p:ecies:responder')

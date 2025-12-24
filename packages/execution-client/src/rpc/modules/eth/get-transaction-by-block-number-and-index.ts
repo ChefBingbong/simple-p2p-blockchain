@@ -12,7 +12,7 @@ export const getTransactionByBlockNumberAndIndex = (node: ExecutionNode) => {
     async (params: [PrefixedHexString, string], _c) => {
       try {
         const [blockNumber, txIndexHex] = params
-        const txIndex = parseInt(txIndexHex, 16)
+        const txIndex = Number.parseInt(txIndexHex, 16)
         const block = await getBlockByOption(blockNumber, chain)
         if (block.transactions.length <= txIndex) {
           return safeResult(null)

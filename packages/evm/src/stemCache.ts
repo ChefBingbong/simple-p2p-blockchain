@@ -1,7 +1,7 @@
 import type { PrefixedHexString } from '@ts-ethereum/utils'
 import type {
-	BinaryStemAccessEvent,
-	BinaryStemMeta,
+  BinaryStemAccessEvent,
+  BinaryStemMeta,
 } from './binaryTreeAccessWitness'
 
 /**

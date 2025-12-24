@@ -5,15 +5,15 @@
  * Handles listen and announce addresses
  */
 
-import { multiaddr, type Multiaddr } from '@multiformats/multiaddr'
+import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
 import type { TypedEventTarget } from 'main-event'
 import type {
-	AddressManager as AddressManagerInterface,
-	ComponentLogger,
-	Logger,
-	P2PNodeEvents,
-	PeerId,
-	TransportManager,
+  AddressManager as AddressManagerInterface,
+  ComponentLogger,
+  Logger,
+  P2PNodeEvents,
+  PeerId,
+  TransportManager,
 } from './types'
 
 /**

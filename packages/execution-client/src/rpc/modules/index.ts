@@ -6,7 +6,7 @@ import { createDebugRpcMethods } from './debug/index'
 import { createEthRpcMethods } from './eth/eth'
 import { createNetRpcMethods } from './net/net'
 import { createTxPoolRpcMethods } from './txpool/txpool'
-import { AllRpcMethods } from './types'
+import type { AllRpcMethods } from './types'
 import { createWeb3RpcMethods } from './web3/web3'
 
 export const list = ['Eth', 'Web3', 'Net', 'Admin', 'TxPool', 'Debug']

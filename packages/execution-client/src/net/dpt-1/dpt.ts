@@ -1,12 +1,12 @@
 // src/devp2p/dpt/dpt.ts
 // DPT (Discovery Protocol) - Thin wrapper around Kademlia with DNS discovery support
 
-import { EventEmitter } from 'eventemitter3'
 import {
-	KademliaNode,
-	type KademliaNodeConfig,
-	type PeerInfo,
+  KademliaNode,
+  type KademliaNodeConfig,
+  type PeerInfo,
 } from '@ts-ethereum/kademlia'
+import { EventEmitter } from 'eventemitter3'
 import type { DPTEvent, DPTOptions } from './types'
 
 /**
@@ -156,7 +156,7 @@ export class DPT {
   /**
    * Add peers with staggered timing.
    */
-  private _addPeerBatch(peers: PeerInfo[]): void {
+  public _addPeerBatch(peers: PeerInfo[]): void {
     const DIFF_TIME_MS = 200
     let ms = 0
 

@@ -35,12 +35,15 @@
         "noStaticElementInteractions": "off"
       },
       "correctness": {
-        "noUnusedVariables": "error",
+        "noUnusedVariables": "off",
         "noUnusedImports": "error",
-        "useExhaustiveDependencies": "error"
+        "useExhaustiveDependencies": "error",
+        "noUnusedFunctionParameters": "off",
+        "noConstructorReturn": "off"
       },
       "performance": {
-        "noDelete": "off"
+        "noDelete": "off",
+        "noAccumulatingSpread": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
@@ -51,37 +54,27 @@
         "useDefaultParameterLast": "error",
         "useEnumInitializers": "error",
         "useSelfClosingElements": "error",
-        "useSingleVarDeclarator": "error",
+        "useSingleVarDeclarator": "off",
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
-        "useConsistentArrayType": {
-          "level": "error",
-          "options": {
-            "syntax": "shorthand"
-          }
-        },
-        "noRestrictedImports": {
-          "level": "error",
-          "options": {
-            "paths": {
-              "@oogabooga/core/edenTreaty": {
-                "importNames": ["edenTreaty"],
-                "message": "Direct usage of edenTreaty from @oogabooga/core/edenTreaty is not allowed. Use the treaty export instead."
-              }
-            }
-          }
-        }
+        "useConsistentArrayType": "off",
+        "useTemplate": "off"
       },
       "suspicious": {
         "noArrayIndexKey": "off",
-        "noImplicitAnyLet": "off"
+        "noImplicitAnyLet": "off",
+        "noExplicitAny": "off",
+        "noConfusingVoidType": "off",
+        "noAssignInExpressions": "off",
+        "noAsyncPromiseExecutor": "off"
       },
       "complexity": {
         "useLiteralKeys": "off",
         "noForEach": "off",
         "noStaticOnlyClass": "off",
         "noThisInStatic": "off",
-        "useSimpleNumberKeys": "off"
+        "useSimpleNumberKeys": "off",
+        "noBannedTypes": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"

@@ -1,14 +1,14 @@
 import { KeyEncoding, ValueEncoding } from '@ts-ethereum/utils'
 
 import {
-	HEADS_KEY,
-	HEAD_BLOCK_KEY,
-	HEAD_HEADER_KEY,
-	bodyKey,
-	hashToNumberKey,
-	headerKey,
-	numberToHashKey,
-	tdKey,
+  bodyKey,
+  HEAD_BLOCK_KEY,
+  HEAD_HEADER_KEY,
+  HEADS_KEY,
+  hashToNumberKey,
+  headerKey,
+  numberToHashKey,
+  tdKey,
 } from './constants'
 
 import type { CacheMap } from './manager'

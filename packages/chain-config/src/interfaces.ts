@@ -3,10 +3,10 @@
  */
 
 import type {
-	Account,
-	Address,
-	BinaryTreeExecutionWitness,
-	PrefixedHexString,
+  Account,
+  Address,
+  BinaryTreeExecutionWitness,
+  PrefixedHexString,
 } from '@ts-ethereum/utils'
 
 export type AccountFields = Partial<

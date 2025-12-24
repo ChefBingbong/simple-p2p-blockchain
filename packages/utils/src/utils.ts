@@ -1,17 +1,17 @@
+import os from 'node:os'
+import path from 'node:path'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { CODE_UNIX, multiaddr } from '@multiformats/multiaddr'
 import { Unix } from '@multiformats/multiaddr-matcher'
 import { RLP } from '@ts-ethereum/rlp'
 import debug from 'debug'
-import { publicKeyConvert } from 'ethereum-cryptography/secp256k1-compat.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
+import { publicKeyConvert } from 'ethereum-cryptography/secp256k1-compat.js'
 import type {
   IpcSocketConnectOpts,
   ListenOptions,
   TcpSocketConnectOpts,
 } from 'net'
-import os from 'os'
-import path from 'path'
 import { bytesToHex, bytesToUnprefixedHex, concatBytes, equalsBytes } from '.'
 import { getNetConfig } from './getNetConfig'
 
@@ -130,7 +130,7 @@ export function id2pk(id: Uint8Array): Uint8Array {
 export function zfill(
   bytes: Uint8Array,
   size: number,
-  leftpad: boolean = true,
+  leftpad = true,
 ): Uint8Array {
   if (bytes.length >= size) return bytes
   if (leftpad === undefined) leftpad = true
@@ -230,7 +230,7 @@ export const ipToString = (
   length = length ?? bytes.length - offset
 
   const tempArray: Array<number | string> = []
-  let result: string = ''
+  let result = ''
   if (length === 4) {
     // IPv4
     for (let i = 0; i < length; i++) {
@@ -256,18 +256,14 @@ const ipv4Regex = /^(\d{1,3}\.){3,3}\d{1,3}$/
 const ipv6Regex =
   /^(::)?(((\d{1,3}\.){3}(\d{1,3}){1})?([0-9a-f]){0,4}:{0,2}){1,8}(::)?$/i
 
-export const isV4Format = function (ip: string): boolean {
-  return ipv4Regex.test(ip)
-}
+export const isV4Format = (ip: string): boolean => ipv4Regex.test(ip)
 
-export const isV6Format = function (ip: string): boolean {
-  return ipv6Regex.test(ip)
-}
+export const isV6Format = (ip: string): boolean => ipv6Regex.test(ip)
 
 export const ipToBytes = (
   ip: string,
   bytes?: Uint8Array,
-  offset: number = 0,
+  offset = 0,
 ): Uint8Array => {
   offset = ~~offset
 
@@ -275,8 +271,8 @@ export const ipToBytes = (
 
   if (isV4Format(ip)) {
     result = bytes ?? new Uint8Array(offset + 4)
-    ip.split(/\./g).map((byte) => {
-      result[offset++] = parseInt(byte, 10) & 0xff
+    ip.split(/\./g).forEach((byte) => {
+      result[offset++] = Number.parseInt(byte, 10) & 0xff
     })
   } else if (isV6Format(ip)) {
     const sections = ip.split(':', 8)
@@ -312,7 +308,7 @@ export const ipToBytes = (
 
     result = bytes ?? new Uint8Array(offset + 16)
     for (i = 0; i < sections.length; i++) {
-      const word = parseInt(sections[i], 16)
+      const word = Number.parseInt(sections[i], 16)
       result[offset++] = (word >> 8) & 0xff
       result[offset++] = word & 0xff
     }
@@ -386,7 +382,7 @@ export function getHostPortFromMultiaddr(addr: Multiaddr): {
   const hostIdx = parts.indexOf('ip4') + 1
   const tcpIdx = parts.indexOf('tcp') + 1
   const host = parts[hostIdx] ?? '127.0.0.1'
-  const port = parseInt(parts[tcpIdx] ?? '0', 10)
+  const port = Number.parseInt(parts[tcpIdx] ?? '0', 10)
   return { host, port }
 }
 

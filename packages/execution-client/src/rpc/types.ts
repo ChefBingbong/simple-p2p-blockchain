@@ -1,7 +1,6 @@
-import type { PrefixedHexString } from '@ts-ethereum/utils'
-import { SafePromise } from '@ts-ethereum/utils'
-import { Context } from 'hono'
-import { ContentfulStatusCode } from 'hono/utils/http-status'
+import type { PrefixedHexString, SafePromise } from '@ts-ethereum/utils'
+import type { Context } from 'hono'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import z from 'zod'
 
 export interface RPCTx {

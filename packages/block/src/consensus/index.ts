@@ -1,2 +1,1 @@
-export * from './ethash';
-
+export * from './ethash'

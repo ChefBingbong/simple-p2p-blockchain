@@ -47,9 +47,10 @@ export interface AbortOptions {
 /**
  * Handler function for incoming protocol streams
  */
-export interface StreamHandler {
-  (data: { stream: any; connection: Connection }): void | Promise<void>
-}
+export type StreamHandler = (data: {
+  stream: any
+  connection: Connection
+}) => void | Promise<void>
 
 /**
  * Options for registering a stream handler

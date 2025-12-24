@@ -18,10 +18,10 @@ export type CliqueConfig = {
   epoch: number
 }
 
-export type EthashConfig = {}
+export type EthashConfig = any
 
 // Kept for compatibility but Casper is not used
-export type CasperConfig = {}
+export type CasperConfig = any
 
 type ConsensusConfig = {
   type: ConsensusType | string

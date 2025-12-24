@@ -1,5 +1,5 @@
 import type { ExecutionNode } from '../../../node/index'
-import { EthRpcMethods, RpcMethods } from '../types'
+import type { EthRpcMethods, RpcMethods } from '../types'
 import { blockNumber } from './block-number'
 import { chainId } from './chain-id'
 import { coinbase } from './coinbase'

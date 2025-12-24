@@ -1,7 +1,7 @@
-import type { Caches } from '.'
 import type { Common } from '@ts-ethereum/chain-config'
 import type { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import type { PrefixedHexString } from '@ts-ethereum/utils'
+import type { Caches } from '.'
 
 /**
  * Basic state manager options (not to be used directly)

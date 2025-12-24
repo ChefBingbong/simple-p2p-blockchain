@@ -1,6 +1,6 @@
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { Block, BlockHeader } from '@ts-ethereum/block'
-import { Blockchain } from '@ts-ethereum/blockchain'
+import type { Blockchain } from '@ts-ethereum/blockchain'
 import type { GenesisState } from '@ts-ethereum/chain-config'
 import type { Address } from '@ts-ethereum/utils'
 import type { AbstractLevel } from 'abstract-level'

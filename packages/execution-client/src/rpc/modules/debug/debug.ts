@@ -1,5 +1,5 @@
 import type { ExecutionNode } from '../../../node/index'
-import { DebugRpcMethods, RpcMethods } from '../types'
+import type { DebugRpcMethods, RpcMethods } from '../types'
 import { getRawBlock } from './get-raw-block'
 import { getRawHeader } from './get-raw-header'
 import { getRawReceipts } from './get-raw-receipts'

@@ -1,8 +1,8 @@
-import { EventEmitter } from 'eventemitter3'
 import type { Common, StateManagerInterface } from '@ts-ethereum/chain-config'
 import type { EVMInterface, EVMMockBlockchainInterface } from '@ts-ethereum/evm'
 import { createEVM } from '@ts-ethereum/evm'
 import type { BigIntLike } from '@ts-ethereum/utils'
+import { EventEmitter } from 'eventemitter3'
 import { createVM } from './constructors'
 import { paramsVM } from './params'
 import type { VMEvent, VMOpts } from './types'
@@ -35,7 +35,7 @@ export class VM {
   readonly evm: EVMInterface
 
   protected readonly _opts: VMOpts
-  protected _isInitialized: boolean = false
+  protected _isInitialized = false
 
   protected readonly _setHardfork: boolean | BigIntLike
 
@@ -54,7 +54,7 @@ export class VM {
    * performance reasons to avoid string literal evaluation
    * @hidden
    */
-  readonly DEBUG: boolean = false
+  DEBUG = false
 
   /**
    * Instantiates a new {@link VM} Object.

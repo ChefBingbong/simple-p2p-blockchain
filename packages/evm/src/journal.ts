@@ -1,13 +1,12 @@
-import {
-  EthereumJSErrorWithoutCode,
-  RIPEMD160_ADDRESS_STRING,
-  bytesToHex,
-  bytesToUnprefixedHex,
-  unprefixedHexToBytes,
-} from '@ts-ethereum/utils'
-
 import type { StateManagerInterface } from '@ts-ethereum/chain-config'
 import type { Account, Address, PrefixedHexString } from '@ts-ethereum/utils'
+import {
+  bytesToHex,
+  bytesToUnprefixedHex,
+  EthereumJSErrorWithoutCode,
+  RIPEMD160_ADDRESS_STRING,
+  unprefixedHexToBytes,
+} from '@ts-ethereum/utils'
 
 type AddressString = string
 type SlotString = string
@@ -113,7 +112,7 @@ export class Journal {
   }
 
   async revert() {
-    let finalI: number = 0
+    let finalI = 0
     for (let i = this.journalDiff.length - 1; i >= 0; i--) {
       finalI = i
       const [height, diff] = this.journalDiff[i]

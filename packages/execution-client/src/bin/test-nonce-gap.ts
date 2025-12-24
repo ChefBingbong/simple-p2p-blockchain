@@ -18,16 +18,16 @@
  *   all              Run all scenarios sequentially
  */
 
-import { existsSync, readFileSync } from 'fs'
-import path from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import {
   type Account,
   createWalletClient,
   defineChain,
   type Hex,
   http,
-  parseEther,
   type PublicActions,
+  parseEther,
   publicActions,
   type WalletClient,
 } from 'viem'

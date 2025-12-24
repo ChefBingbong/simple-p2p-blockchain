@@ -5,7 +5,7 @@ import type { Context } from 'hono'
 import type { ContentfulStatusCode } from 'hono/utils/http-status.js'
 import type { Chain } from '../blockchain/index'
 import { INVALID_BLOCK, INVALID_PARAMS } from './error-code'
-import { RPCError, RpcApiEnv } from './types'
+import type { RPCError, RpcApiEnv } from './types'
 
 /**
  * Returns tx formatted to the standard JSON-RPC fields (legacy transactions only)

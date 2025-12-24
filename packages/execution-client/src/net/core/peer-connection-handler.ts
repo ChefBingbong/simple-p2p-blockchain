@@ -1,5 +1,5 @@
 import type { Connection } from '@ts-ethereum/p2p'
-import { peerIdToString, RLPxConnection } from '@ts-ethereum/p2p'
+import { peerIdToString, type RLPxConnection } from '@ts-ethereum/p2p'
 import { P2PPeer } from '../peer/p2p-peer'
 import type { NetworkCore } from './network-core'
 

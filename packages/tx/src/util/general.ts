@@ -1,4 +1,4 @@
-import { TypeOutput, setLengthLeft, toBytes, toType } from '@ts-ethereum/utils'
+import { setLengthLeft, TypeOutput, toBytes, toType } from '@ts-ethereum/utils'
 
 import type { TypedTxData } from '../types'
 

@@ -1,11 +1,11 @@
-import { TransactionType } from '@ts-ethereum/tx'
+import type { TransactionType } from '@ts-ethereum/tx'
 import {
   bytesToHex,
   EthereumJSErrorWithoutCode,
   safeError,
   safeResult,
 } from '@ts-ethereum/utils'
-import { encodeReceipt, TxReceipt } from '@ts-ethereum/vm'
+import { encodeReceipt, type TxReceipt } from '@ts-ethereum/vm'
 import type { ExecutionNode } from '../../../node/index'
 import { getBlockByOption } from '../../helpers'
 import { createRpcMethod } from '../../validation'

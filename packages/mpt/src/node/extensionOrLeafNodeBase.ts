@@ -1,9 +1,7 @@
 import { RLP } from '@ts-ethereum/rlp'
-
+import type { Nibbles, RawExtensionMPTNode, RawLeafMPTNode } from '../types'
 import { addHexPrefix, removeHexPrefix } from '../util/hex'
 import { nibblesTypeToPackedBytes } from '../util/nibbles'
-
-import type { Nibbles, RawExtensionMPTNode, RawLeafMPTNode } from '../types'
 
 export abstract class ExtensionOrLeafMPTNodeBase {
   _nibbles: Nibbles

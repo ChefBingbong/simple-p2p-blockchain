@@ -457,7 +457,7 @@ export class Registrar implements RegistrarInterface {
   stop(): void {
     this.components.events.removeEventListener(
       'peer:disconnect',
-        this._onDisconnect as any,
+      this._onDisconnect as any,
     )
     this.components.events.removeEventListener(
       'peer:update',

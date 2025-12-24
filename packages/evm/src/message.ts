@@ -1,11 +1,10 @@
+import type { BinaryTreeAccessWitnessInterface } from '@ts-ethereum/chain-config'
+import type { Address } from '@ts-ethereum/utils'
 import {
   BIGINT_0,
-  EthereumJSErrorWithoutCode,
   createZeroAddress,
+  EthereumJSErrorWithoutCode,
 } from '@ts-ethereum/utils'
-
-import type { BinaryTreeAccessWitnessInterface } from '@ts-ethereum/chain-config'
-import type { Address, PrefixedHexString } from '@ts-ethereum/utils'
 
 const defaults = {
   value: BIGINT_0,

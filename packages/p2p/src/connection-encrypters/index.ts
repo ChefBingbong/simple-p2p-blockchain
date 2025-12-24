@@ -1,2 +1,1 @@
-export * from './eccies';
-
+export * from './eccies'

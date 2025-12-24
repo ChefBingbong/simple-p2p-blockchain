@@ -1,6 +1,5 @@
 import type { PrefixedHexString } from '@ts-ethereum/utils'
-import { hexToBytes } from '@ts-ethereum/utils'
-import { safeError, safeResult } from '@ts-ethereum/utils'
+import { hexToBytes, safeError, safeResult } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
 import { toJSONRPCTx } from '../../helpers'
 import { createRpcMethod } from '../../validation'
@@ -13,7 +12,7 @@ export const getTransactionByBlockHashAndIndex = (node: ExecutionNode) => {
     async (params: [PrefixedHexString, string], _c) => {
       try {
         const [blockHash, txIndexHex] = params
-        const txIndex = parseInt(txIndexHex, 16)
+        const txIndex = Number.parseInt(txIndexHex, 16)
         const block = await chain.getBlock(hexToBytes(blockHash))
         if (block.transactions.length <= txIndex) {
           return safeResult(null)

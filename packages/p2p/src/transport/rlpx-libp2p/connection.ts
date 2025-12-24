@@ -844,7 +844,9 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
   /**
    * Disconnect from peer
    */
-  disconnect(reason: number = DISCONNECT_REASON.DISCONNECT_REQUESTED): void {
+  disconnect(
+    reason: DISCONNECT_REASON = DISCONNECT_REASON.DISCONNECT_REQUESTED,
+  ): void {
     this._sendDisconnect(reason)
   }
 

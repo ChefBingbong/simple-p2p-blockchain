@@ -3,19 +3,15 @@ import {
   BIGINT_0,
   bigIntToUnpaddedBytes,
   bytesToHex,
-  ecrecover,
   EthereumJSErrorWithoutCode,
+  ecrecover,
   publicToAddress,
   SECP256K1_ORDER_DIV_2,
   unpadBytes,
 } from '@ts-ethereum/utils'
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1'
-import type {
-  LegacyTxInterface,
-  Transaction,
-  TransactionType,
-} from '../types'
+import type { LegacyTxInterface, Transaction, TransactionType } from '../types'
 
 /**
  * Creates an error message with transaction context
@@ -245,7 +241,7 @@ export function verifySignature(tx: LegacyTxInterface): boolean {
  * Returns the sender's address
  */
 export function getSenderAddress(tx: LegacyTxInterface): Address {
-  return new Address(publicToAddress(tx.getSenderPublicKey()))
+  return new Address(publicToAddress(tx.getSenderPublicKey(), false))
 }
 
 /**

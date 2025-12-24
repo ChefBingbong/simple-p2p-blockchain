@@ -14,7 +14,8 @@ import { ETH } from '../net/protocol/eth/eth'
 debug.enable('p2p:*')
 
 function getNodeIdFromPrivateKey(privateKey: { raw: Uint8Array }): Uint8Array {
-  const rawKey = privateKey.raw.length === 32 ? privateKey.raw : privateKey.raw.slice(-32)
+  const rawKey =
+    privateKey.raw.length === 32 ? privateKey.raw : privateKey.raw.slice(-32)
   return secp256k1.getPublicKey(rawKey, false).slice(1)
 }
 
@@ -28,7 +29,10 @@ function findRLPxListener(node: Libp2p): any {
     (t: any) => t[Symbol.toStringTag] === '@libp2p/rlpx',
   ) as any
   const transportListener = rlpxTransport?._listener
-  if (transportListener && typeof transportListener.getConnections === 'function') {
+  if (
+    transportListener &&
+    typeof transportListener.getConnections === 'function'
+  ) {
     return transportListener
   }
 
@@ -73,15 +77,22 @@ export async function runTwoNodeExample(): Promise<void> {
   const node2Key = await generateKeyPair('secp256k1')
   const node1Id = getNodeIdFromPrivateKey(node1Key)
   const node2Id = getNodeIdFromPrivateKey(node2Key)
-  const node1RlpxKey = node1Key.raw.length === 32 ? node1Key.raw : node1Key.raw.slice(-32)
-  const node2RlpxKey = node2Key.raw.length === 32 ? node2Key.raw : node2Key.raw.slice(-32)
+  const node1RlpxKey =
+    node1Key.raw.length === 32 ? node1Key.raw : node1Key.raw.slice(-32)
+  const node2RlpxKey =
+    node2Key.raw.length === 32 ? node2Key.raw : node2Key.raw.slice(-32)
 
   // Setup Common
   const common = new Common({
     chain: {
       name: 'testnet',
       chainId: 1,
-      genesis: { gasLimit: 5000, difficulty: '0x10', nonce: '0x0000000000000000', extraData: '0x' },
+      genesis: {
+        gasLimit: 5000,
+        difficulty: '0x10',
+        nonce: '0x0000000000000000',
+        extraData: '0x',
+      },
       hardforks: [],
       bootstrapNodes: [],
       consensus: { type: 'pow', algorithm: 'ethash' },
@@ -145,7 +156,9 @@ export async function runTwoNodeExample(): Promise<void> {
         privateKey: node2RlpxKey,
         bindAddr: '127.0.0.1',
         bindPort: port2,
-        bootstrapNodes: [{ id: node1Id, address: '127.0.0.1', udpPort: port1, tcpPort: port1 }],
+        bootstrapNodes: [
+          { id: node1Id, address: '127.0.0.1', udpPort: port1, tcpPort: port1 },
+        ],
         autoDial: false,
         autoDialBootstrap: false,
       }),
@@ -162,15 +175,18 @@ export async function runTwoNodeExample(): Promise<void> {
   // Node 1 dials Node 2
   console.log('\nNode 1 dialing Node 2...')
   const transportManager = (node1 as any).components?.transportManager
-  const rlpxTransport = Array.from((transportManager as any).transports.values()).find(
-    (t: any) => t[Symbol.toStringTag] === '@libp2p/rlpx',
-  )
+  const rlpxTransport = Array.from(
+    (transportManager as any).transports.values(),
+  ).find((t: any) => t[Symbol.toStringTag] === '@libp2p/rlpx')
 
-  const node2Addr = multiaddr(node2.getMultiaddrs()[0].toString().split('/p2p/')[0])
+  const node2Addr = multiaddr(
+    node2.getMultiaddrs()[0].toString().split('/p2p/')[0],
+  )
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const connection = await (rlpxTransport as any).dial(node2Addr, {
     remoteId: node2Id,
-    onProgress: (event: any) => console.log(`  Progress: ${event.type || event.detail?.type}`),
+    onProgress: (event: any) =>
+      console.log(`  Progress: ${event.type || event.detail?.type}`),
   })
 
   console.log('✅ Connected!')
@@ -178,7 +194,9 @@ export async function runTwoNodeExample(): Promise<void> {
   // Send status message from Node 1
   if (connection instanceof RLPxConnectionAdapter) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ethProtocol = connection.getProtocols().find((p: any) => p instanceof ETH) as ETH | undefined
+    const ethProtocol = connection
+      .getProtocols()
+      .find((p: any) => p instanceof ETH) as ETH | undefined
     if (ethProtocol) {
       ethProtocol.sendStatus({
         td: bigIntToBytes(BigInt(0)),
@@ -201,7 +219,9 @@ export async function runTwoNodeExample(): Promise<void> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const protocols = (connections[0] as any).getProtocols?.() || []
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ethProtocol = protocols.find((p: any) => p instanceof ETH) as ETH | undefined
+      const ethProtocol = protocols.find((p: any) => p instanceof ETH) as
+        | ETH
+        | undefined
       if (ethProtocol) {
         checkStatusMessage(ethProtocol)
       }
@@ -214,7 +234,10 @@ export async function runTwoNodeExample(): Promise<void> {
   console.log('\n✅ Test complete')
 }
 
-if (typeof process !== 'undefined' && process.argv[1]?.endsWith('test-rlpx-libp2p.ts')) {
+if (
+  typeof process !== 'undefined' &&
+  process.argv[1]?.endsWith('test-rlpx-libp2p.ts')
+) {
   runTwoNodeExample().catch((err) => {
     console.error('Test failed:', err)
     process.exit(1)

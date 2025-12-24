@@ -113,7 +113,7 @@ export class RoutingTable {
   /**
    * Get the n closest peers to the given id.
    */
-  closest(id: Uint8Array, n: number = KBUCKET_SIZE): PeerInfo[] {
+  closest(id: Uint8Array, n = KBUCKET_SIZE): PeerInfo[] {
     return this._kbucket.closest(id, n)
   }
 

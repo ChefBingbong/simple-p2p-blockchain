@@ -1,12 +1,6 @@
 /**
  * Constants
  */
-export * from './constants'
-
-/**
- * Errors
- */
-export * from './helpers'
 
 /**
  * Account class and helper functions
@@ -17,17 +11,6 @@ export * from './account'
  */
 export * from './address'
 /**
- * Units helpers
- */
-export * from './units'
-
-/**
- * DB type
- */
-export * from './db'
-export * from './mapDB'
-
-/**
  * Export ethjs-util methods
  */
 export * from './authorization'
@@ -37,6 +20,15 @@ export * from './blobs'
  * Utilities for manipulating bytes, Uint8Arrays, etc.
  */
 export * from './bytes'
+export * from './constants'
+/**
+ * DB type
+ */
+export * from './db'
+/**
+ * Errors
+ */
+export * from './helpers'
 export {
   arrayContainsArray,
   fromAscii,
@@ -46,10 +38,20 @@ export {
   isHexString,
   padToEven,
   stripHexPrefix,
-  toAscii
+  toAscii,
 } from './internal'
 export * from './kzg'
 export * from './lock'
+export * from './mapDB'
+/**
+ * Provider
+ */
+export * from './provider'
+/**
+ * Request type
+ */
+export * from './request'
+export * from './safe'
 /**
  * ECDSA signature
  */
@@ -59,16 +61,8 @@ export * from './tasks'
  * Helpful TypeScript types
  */
 export * from './types'
-
 /**
- * Provider
+ * Units helpers
  */
-export * from './provider'
-
-/**
- * Request type
- */
-export * from './request'
-
-export * from './safe'
+export * from './units'
 export * from './utils'

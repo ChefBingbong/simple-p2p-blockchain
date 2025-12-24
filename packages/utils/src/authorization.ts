@@ -1,8 +1,8 @@
 // Utility helpers to convert authorization lists from the byte format and JSON format and vice versa
 
+import { RLP } from '@ts-ethereum/rlp'
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import { RLP } from '@ts-ethereum/rlp'
 import { publicToAddress } from './account'
 import { Address } from './address'
 import {
@@ -185,5 +185,5 @@ export function eoaCode7702RecoverAuthority(
     nonce,
   ])
   const pubKey = ecrecover(msgHash, bytesToBigInt(yParity), r, s)
-  return new Address(publicToAddress(pubKey))
+  return new Address(publicToAddress(pubKey, false))
 }

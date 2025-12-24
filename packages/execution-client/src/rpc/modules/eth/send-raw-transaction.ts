@@ -2,12 +2,13 @@ import type { TypedTransaction } from '@ts-ethereum/tx'
 import { createTxFromRLP } from '@ts-ethereum/tx'
 import type { PrefixedHexString } from '@ts-ethereum/utils'
 import {
-	BIGINT_0,
-	BIGINT_1,
-	bytesToHex,
-	hexToBytes,
+  BIGINT_0,
+  BIGINT_1,
+  bytesToHex,
+  hexToBytes,
+  safeError,
+  safeResult,
 } from '@ts-ethereum/utils'
-import { safeError, safeResult } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
 import { createRpcMethod } from '../../validation'
 import { sendRawTransactionSchema } from './schema'

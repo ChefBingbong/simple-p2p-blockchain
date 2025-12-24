@@ -1,5 +1,5 @@
-import type { AbstractLevel } from 'abstract-level'
 import { mkdirSync } from 'node:fs'
+import type { AbstractLevel } from 'abstract-level'
 import { DbController } from './controller'
 import type { DbPaths } from './paths'
 

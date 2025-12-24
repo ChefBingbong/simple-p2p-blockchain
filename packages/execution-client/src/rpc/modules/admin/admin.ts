@@ -1,5 +1,5 @@
 import type { ExecutionNode } from '../../../node/index'
-import { AdminRpcMethods, RpcMethods } from '../types'
+import type { AdminRpcMethods, RpcMethods } from '../types'
 import { addPeer } from './add-peer'
 import { nodeInfo } from './node-info'
 import { peers } from './peers'

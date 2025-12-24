@@ -5,8 +5,8 @@
 
 import debug from 'debug'
 import {
-    ETH_MESSAGES,
-    EthMessageCode,
+  ETH_MESSAGES,
+  EthMessageCode,
 } from '../../../net/protocol/eth/definitions'
 import type { EthHandler } from '../handler'
 
@@ -22,7 +22,9 @@ export async function handleGetNodeData(
 ): Promise<void> {
   try {
     // Payload is already decoded: [reqId, hashes]
-    const decoded = ETH_MESSAGES[EthMessageCode.GET_NODE_DATA].decode(payload as any)
+    const decoded = ETH_MESSAGES[EthMessageCode.GET_NODE_DATA].decode(
+      payload as any,
+    )
     const { reqId, hashes } = decoded
 
     log('GET_NODE_DATA: reqId=%d, hashes=%d', reqId, hashes.length)

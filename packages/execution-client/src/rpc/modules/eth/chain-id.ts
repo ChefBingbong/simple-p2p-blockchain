@@ -1,5 +1,4 @@
-import { bigIntToHex } from '@ts-ethereum/utils'
-import { safeResult } from '@ts-ethereum/utils'
+import { bigIntToHex, safeResult } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
 import { createRpcMethod } from '../../validation'
 import { chainIdSchema } from './schema'

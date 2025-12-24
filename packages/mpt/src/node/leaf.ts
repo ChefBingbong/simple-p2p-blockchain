@@ -1,6 +1,5 @@
-import { ExtensionOrLeafMPTNodeBase } from './extensionOrLeafNodeBase'
-
 import type { Nibbles, RawLeafMPTNode } from '../types'
+import { ExtensionOrLeafMPTNodeBase } from './extensionOrLeafNodeBase'
 
 export class LeafMPTNode extends ExtensionOrLeafMPTNodeBase {
   constructor(nibbles: Nibbles, value: Uint8Array) {

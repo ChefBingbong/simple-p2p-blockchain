@@ -1,6 +1,5 @@
 import type { PrefixedHexString } from '@ts-ethereum/utils'
-import { hexToBytes } from '@ts-ethereum/utils'
-import { safeResult } from '@ts-ethereum/utils'
+import { hexToBytes, safeResult } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
 import { createRpcMethod } from '../../validation'
 import { toJSONRPCBlock } from './helpers'

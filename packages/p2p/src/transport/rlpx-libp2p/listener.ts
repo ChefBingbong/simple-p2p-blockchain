@@ -4,6 +4,7 @@
  * Based on the libp2p Listener interface pattern from transport/tcp/listener.ts
  */
 
+import net from 'node:net'
 import type {
   AbortOptions,
   CounterGroup,
@@ -19,13 +20,12 @@ import {
 } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { multiaddr } from '@multiformats/multiaddr'
-import net from 'node:net'
 // import type { NetConfig } from '../tcp/utils'
 // import { getThinWaistAddresses, multiaddrToNetConfig } from '../tcp/utils'
 import {
   getThinWaistAddresses,
   multiaddrToNetConfig,
-  NetConfig,
+  type NetConfig,
 } from '@ts-ethereum/utils'
 import { setMaxListeners, TypedEventEmitter } from 'main-event'
 import { pEvent } from 'p-event'
@@ -95,7 +95,7 @@ export class RLPxListener
   private status: Status = { code: RLPxListenerStatusCode.INACTIVE }
   private metrics: RLPxListenerMetrics
   private addr: string
-  private actualListenPort: number = 0
+  private actualListenPort = 0
   private readonly log: Logger
   private readonly shutdownController: AbortController
   private readonly context: RLPxListenerContext
@@ -109,7 +109,7 @@ export class RLPxListener
     context.allowHalfOpen = context.allowHalfOpen ?? false
     this.actualListenPort = context.listenPort ?? 0
     this.shutdownController = new AbortController()
-    setMaxListeners(Infinity, this.shutdownController.signal)
+    setMaxListeners(Number.POSITIVE_INFINITY, this.shutdownController.signal)
 
     this.log = context.logger.forComponent('rlpx:listener')
     this.addr = 'unknown'
@@ -434,7 +434,7 @@ export class RLPxListener
   /**
    * Pause listening
    */
-  private pause(permanent: boolean = false): void {
+  private pause(permanent = false): void {
     if (
       !this.server.listening &&
       this.status.code === RLPxListenerStatusCode.PAUSED &&

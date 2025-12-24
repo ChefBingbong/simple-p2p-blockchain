@@ -1,5 +1,5 @@
-import { Context } from 'hono'
-import { z } from 'zod'
+import type { Context } from 'hono'
+import type { z } from 'zod'
 import { INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND } from './error-code'
 import { getRpcErrorResponse, getRpcResponse } from './helpers'
 import type {

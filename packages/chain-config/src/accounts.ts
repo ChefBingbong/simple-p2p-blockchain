@@ -1,11 +1,11 @@
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import {
   bytesToHex,
   createAddressFromPrivateKey,
   hexToBytes,
 } from '@ts-ethereum/utils'
-import { createHash } from 'crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import path from 'node:path'
 import type { Address } from 'viem'
 
 export type Account = [address: Address, privateKey: Uint8Array]
@@ -99,7 +99,7 @@ export function writeAccounts(filepath: string, accounts: Account[]): void {
 export function getNodeAccount(
   accounts: Account[],
   port: number,
-  bootnodePort: number = 8000,
+  bootnodePort = 8000,
 ): Account {
   const nodeIndex = port - bootnodePort
   const accountIndex = Math.min(nodeIndex, accounts.length - 1)

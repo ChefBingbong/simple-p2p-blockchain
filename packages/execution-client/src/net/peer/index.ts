@@ -4,4 +4,3 @@
 
 export * from './p2p-peer'
 export * from './peer'
-

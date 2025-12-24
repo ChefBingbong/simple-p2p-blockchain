@@ -1,5 +1,5 @@
 import type { ExecutionNode } from '../../../node/index'
-import { NetRpcMethods, RpcMethods } from '../types'
+import type { NetRpcMethods, RpcMethods } from '../types'
 import { listening } from './listening'
 import { peerCount } from './peer-count'
 import { version } from './version'

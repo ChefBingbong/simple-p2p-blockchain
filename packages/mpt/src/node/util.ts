@@ -1,5 +1,5 @@
 import { RLP } from '@ts-ethereum/rlp'
-import { type NestedUint8Array } from '@ts-ethereum/utils'
+import type { NestedUint8Array } from '@ts-ethereum/utils'
 
 import { isTerminator } from '../util/hex'
 import { bytesToNibbles } from '../util/nibbles'

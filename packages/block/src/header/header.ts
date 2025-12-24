@@ -15,8 +15,8 @@ import {
   EthereumJSErrorWithoutCode,
   KECCAK256_RLP,
   KECCAK256_RLP_ARRAY,
-  toType,
   TypeOutput,
+  toType,
 } from '@ts-ethereum/utils'
 import { keccak256 } from 'ethereum-cryptography/keccak'
 
@@ -67,7 +67,7 @@ export class BlockHeader {
    * @deprecated Use the public static factory methods to assist in creating a Header object from
    * varying data types. For a default empty header, use {@link createBlockHeader}.
    *
-   */ 
+   */
   constructor(headerData: HeaderData, opts: BlockOptions = {}) {
     this.common = opts.common?.copy() ?? new Common({} as any)
 

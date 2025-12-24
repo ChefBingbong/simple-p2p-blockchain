@@ -5,19 +5,19 @@
  * allowing RLPX connections to work with libp2p's connection management.
  */
 
+import { randomBytes } from 'node:crypto'
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 import type {
-    Connection,
-    ConnectionStatus,
-    Logger,
-    PeerId,
-    Stream,
+  Connection,
+  ConnectionStatus,
+  Logger,
+  PeerId,
+  Stream,
 } from '@libp2p/interface'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { multiaddr } from '@multiformats/multiaddr'
-import { randomBytes } from 'node:crypto'
-import { RLPxConnection } from './connection'
+import type { RLPxConnection } from './connection'
 import type { HelloMessage } from './types'
 
 /**

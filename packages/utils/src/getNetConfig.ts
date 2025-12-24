@@ -27,7 +27,7 @@ export function getNetConfig(ma: Multiaddr): NetConfig {
 
   if (components[index]?.name === 'tcp' || components[index]?.name === 'udp') {
     config.protocol = components[index].name === 'tcp' ? 'tcp' : 'udp'
-    config.port = parseInt(`${components[index].value}`, 10)
+    config.port = Number.parseInt(`${components[index].value}`, 10)
     index++
   }
 

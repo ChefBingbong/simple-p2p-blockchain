@@ -61,7 +61,7 @@ export class TransportUnavailableError extends Error {
  * Error when address is not supported
  */
 export class UnsupportedListenAddressError extends Error {
-  constructor(message: string = 'Unsupported listen address') {
+  constructor(message = 'Unsupported listen address') {
     super(message)
     this.name = 'UnsupportedListenAddressError'
   }

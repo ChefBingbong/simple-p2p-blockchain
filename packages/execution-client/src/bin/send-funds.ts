@@ -15,8 +15,8 @@
  *   --chainId  Chain ID (default: 12345)
  */
 
-import { existsSync, readFileSync } from 'fs'
-import path from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import {
   createWalletClient,
   defineChain,

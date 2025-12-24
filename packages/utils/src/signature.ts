@@ -41,13 +41,13 @@ function isValidSigRecovery(recovery: bigint): boolean {
  * NOTE: Accepts `v === 0 | v === 1` for EIP1559 transactions
  * @returns Recovered public key
  */
-export const ecrecover = function (
+export const ecrecover = (
   msgHash: Uint8Array,
   v: bigint,
   r: Uint8Array,
   s: Uint8Array,
   chainId?: bigint,
-): Uint8Array {
+): Uint8Array => {
   const signature = concatBytes(setLengthLeft(r, 32), setLengthLeft(s, 32))
   const recovery = calculateSigRecovery(v, chainId)
   if (!isValidSigRecovery(recovery)) {
@@ -66,12 +66,12 @@ export const ecrecover = function (
  * NOTE: Accepts `v === 0 | v === 1` for EIP1559 transactions
  * @returns Signature
  */
-export const toRPCSig = function (
+export const toRPCSig = (
   v: bigint,
   r: Uint8Array,
   s: Uint8Array,
   chainId?: bigint,
-): string {
+): string => {
   const recovery = calculateSigRecovery(v, chainId)
   if (!isValidSigRecovery(recovery)) {
     throw new Error('Invalid signature v value')
@@ -89,12 +89,12 @@ export const toRPCSig = function (
  * NOTE: Accepts `v === 0 | v === 1` for EIP1559 transactions
  * @returns Signature
  */
-export const toCompactSig = function (
+export const toCompactSig = (
   v: bigint,
   r: Uint8Array,
   s: Uint8Array,
   chainId?: bigint,
-): string {
+): string => {
   const recovery = calculateSigRecovery(v, chainId)
   if (!isValidSigRecovery(recovery)) {
     throw new Error('Invalid signature v value')
@@ -120,11 +120,13 @@ export const toCompactSig = function (
  * NOTE: After EIP1559, `v` could be `0` or `1` but this function assumes
  * it's a signed message (EIP-191 or EIP-712) adding `27` at the end. Remove if needed.
  */
-export const fromRPCSig = function (sig: PrefixedHexString): {
+export const fromRPCSig = (
+  sig: PrefixedHexString,
+): {
   v: bigint
   r: Uint8Array
   s: Uint8Array
-} {
+} => {
   const bytes: Uint8Array = hexToBytes(sig)
 
   let r: Uint8Array
@@ -162,13 +164,13 @@ export const fromRPCSig = function (sig: PrefixedHexString): {
  * NOTE: Accepts `v === 0 | v === 1` for EIP1559 transactions
  * @param homesteadOrLater Indicates whether this is being used on either the homestead hardfork or a later one
  */
-export const isValidSignature = function (
+export const isValidSignature = (
   v: bigint,
   r: Uint8Array,
   s: Uint8Array,
-  homesteadOrLater: boolean = true,
+  homesteadOrLater = true,
   chainId?: bigint,
-): boolean {
+): boolean => {
   if (r.length !== 32 || s.length !== 32) {
     return false
   }
@@ -202,7 +204,7 @@ export const isValidSignature = function (
  * call for a given `message`, or fed to `ecrecover` along with a signature to recover the public key
  * used to produce the signature.
  */
-export const hashPersonalMessage = function (message: Uint8Array): Uint8Array {
+export const hashPersonalMessage = (message: Uint8Array): Uint8Array => {
   assertIsBytes(message)
   const prefix = utf8ToBytes(
     `\u0019Ethereum Signed Message:\n${message.length}`,

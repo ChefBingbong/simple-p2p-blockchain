@@ -8,7 +8,7 @@ import type { NetworkCore } from '../net/core/network-core'
 import { TxPool } from '../service/txpool'
 import { FullSynchronizer } from '../sync/index'
 import { Event } from '../types'
-import { VMExecution } from './vmexecution'
+import type { VMExecution } from './vmexecution'
 
 export interface ExecutionServiceModules {
   config: Config

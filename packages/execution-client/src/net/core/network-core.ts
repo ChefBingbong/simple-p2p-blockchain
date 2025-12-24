@@ -1,4 +1,9 @@
-import type { Connection, P2PNode, PeerId, RLPxConnection } from '@ts-ethereum/p2p'
+import type {
+  Connection,
+  P2PNode,
+  PeerId,
+  RLPxConnection,
+} from '@ts-ethereum/p2p'
 import { peerIdToString } from '@ts-ethereum/p2p'
 import { bigIntToUnpaddedBytes } from '@ts-ethereum/utils'
 import type { Chain } from '../../blockchain/chain'
@@ -21,9 +26,9 @@ export class NetworkCore {
 
   public readonly peers: Map<string, Peer> = new Map()
   public readonly pendingPeers: Map<string, P2PPeer> = new Map()
-  private noPeerPeriods: number = 0
-  private opened: boolean = false
-  public running: boolean = false
+  private noPeerPeriods = 0
+  private opened = false
+  public running = false
 
   private readonly DEFAULT_STATUS_CHECK_INTERVAL = 20000
   private readonly DEFAULT_PEER_BEST_HEADER_UPDATE_INTERVAL = 5000
@@ -149,7 +154,7 @@ export class NetworkCore {
   }
 
   removePeer(peer?: Peer): void {
-    if (peer && peer.id) {
+    if (peer?.id) {
       if (this.peers.delete(peer.id)) {
         peer.pooled = false
         this.config.events.emit(Event.POOL_PEER_REMOVED, peer)
@@ -158,7 +163,7 @@ export class NetworkCore {
     }
   }
 
-  banPeer(peer: Peer, maxAge: number = 60000): void {
+  banPeer(peer: Peer, maxAge = 60000): void {
     if (peer instanceof P2PPeer) {
       this.node.hangUp(peer.connection.remotePeer).catch(() => {})
     }
@@ -218,9 +223,9 @@ export class NetworkCore {
     }
 
     const protocols = rlpxConnection.getProtocols()
-    const ethProtocol = protocols.find((p: any) => p.constructor.name === 'ETH') as
-      | ETH
-      | undefined
+    const ethProtocol = protocols.find(
+      (p: any) => p.constructor.name === 'ETH',
+    ) as ETH | undefined
 
     if (!ethProtocol) {
       return

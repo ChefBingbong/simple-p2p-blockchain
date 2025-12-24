@@ -1,7 +1,9 @@
-import { Account, bytesToHex } from '@ts-ethereum/utils'
-
-import type { AccountFields, StateManagerInterface } from '@ts-ethereum/chain-config'
+import type {
+  AccountFields,
+  StateManagerInterface,
+} from '@ts-ethereum/chain-config'
 import type { Address } from '@ts-ethereum/utils'
+import { Account, bytesToHex } from '@ts-ethereum/utils'
 
 export async function modifyAccountFields(
   stateManager: StateManagerInterface,
@@ -17,7 +19,7 @@ export async function modifyAccountFields(
   account.codeSize = accountFields.codeSize ?? account.codeSize
   if ('debug' in stateManager) {
     for (const [field, value] of Object.entries(accountFields)) {
-      (stateManager as any).debug?.(
+      ;(stateManager as any).debug?.(
         `modifyAccountFields address=${address.toString()} ${field}=${value instanceof Uint8Array ? bytesToHex(value) : value} `,
       )
     }

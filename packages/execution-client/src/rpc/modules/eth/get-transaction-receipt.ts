@@ -1,7 +1,11 @@
 import type { LegacyTx } from '@ts-ethereum/tx'
 import type { PrefixedHexString } from '@ts-ethereum/utils'
-import { equalsBytes, hexToBytes } from '@ts-ethereum/utils'
-import { safeError, safeResult } from '@ts-ethereum/utils'
+import {
+  equalsBytes,
+  hexToBytes,
+  safeError,
+  safeResult,
+} from '@ts-ethereum/utils'
 import type { VM } from '@ts-ethereum/vm'
 import { runBlock } from '@ts-ethereum/vm'
 import type { ReceiptsManager } from '../../../execution/receipt'

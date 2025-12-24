@@ -1,11 +1,11 @@
-import type { EventEmitter } from 'eventemitter3'
 import type {
-	BinaryTreeAccessWitnessInterface,
-	Common,
-	ParamsDict,
-	StateManagerInterface,
+  BinaryTreeAccessWitnessInterface,
+  Common,
+  ParamsDict,
+  StateManagerInterface,
 } from '@ts-ethereum/chain-config'
 import type { Account, Address, PrefixedHexString } from '@ts-ethereum/utils'
+import type { EventEmitter } from 'eventemitter3'
 import type { BinaryTreeAccessWitness } from './binaryTreeAccessWitness'
 import type { EVMError } from './errors'
 import type { Message } from './message'

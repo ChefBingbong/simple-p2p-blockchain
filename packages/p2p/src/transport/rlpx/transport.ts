@@ -6,6 +6,7 @@
  * its own protocol negotiation mechanism.
  */
 
+import os from 'node:os'
 import type { Listener, Logger, Transport } from '@libp2p/interface'
 import {
   AbortError,
@@ -15,14 +16,17 @@ import {
 } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import { TCP as TCPMatcher } from '@multiformats/multiaddr-matcher'
+// import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
+import {
+  bytesToUnprefixedHex,
+  multiaddrToNetConfig,
+  utf8ToBytes,
+} from '@ts-ethereum/utils'
 import debug from 'debug'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import type { IpcSocketConnectOpts, Socket, TcpSocketConnectOpts } from 'net'
 import net from 'net'
-import os from 'os'
 import { CustomProgressEvent } from 'progress-events'
-// import type { ProtocolStream } from "../../../client/net/protocol/protocol-stream.ts";
-import { bytesToUnprefixedHex, multiaddrToNetConfig, utf8ToBytes } from '@ts-ethereum/utils'
 import { RLPxConnection } from './connection'
 import { RLPxListener } from './listener'
 import type {
@@ -112,7 +116,7 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
    * @param options - Dial options including required remoteId
    * @returns Promise resolving to RLPxConnection after Hello exchange
    */
-  async dial(ma: Multiaddr, options: RLPxDialOptions){
+  async dial(ma: Multiaddr, options: RLPxDialOptions) {
     options.keepAlive = options.keepAlive ?? true
     options.noDelay = options.noDelay ?? true
     options.allowHalfOpen = options.allowHalfOpen ?? false
@@ -399,7 +403,7 @@ export class RLPxTransport implements Transport<RLPxDialEvents> {
    * Create an RLPx listener for inbound connections
    */
   createListener(
-    options: RLPxCreateListenerOptions & { listeningPort?: number } | any,
+    options: (RLPxCreateListenerOptions & { listeningPort?: number }) | any,
   ): Listener {
     return new RLPxListener({
       ...options,

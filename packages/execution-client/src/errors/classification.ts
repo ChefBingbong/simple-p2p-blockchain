@@ -5,19 +5,19 @@
  */
 
 import {
-	ClientError,
-	ExecutionError,
-	NetworkError,
-	StateError,
-	SyncError,
-	SystemError,
-	ValidationError,
+  ClientError,
+  ExecutionError,
+  NetworkError,
+  StateError,
+  SyncError,
+  SystemError,
+  ValidationError,
 } from './base'
 import {
-	ErrorCategory,
-	ErrorCode,
-	type ErrorContext,
-	ErrorRecoveryType,
+  ErrorCategory,
+  ErrorCode,
+  type ErrorContext,
+  ErrorRecoveryType,
 } from './types'
 
 /**

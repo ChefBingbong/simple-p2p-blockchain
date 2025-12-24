@@ -1,6 +1,5 @@
 import type { PrefixedHexString } from '@ts-ethereum/utils'
-import { hexToBytes } from '@ts-ethereum/utils'
-import { safeError, safeResult } from '@ts-ethereum/utils'
+import { hexToBytes, safeError, safeResult } from '@ts-ethereum/utils'
 import type { TxIndex } from '../../../execution/txIndex'
 import type { ExecutionNode } from '../../../node/index'
 import { toJSONRPCTx } from '../../helpers'
