@@ -1,17 +1,16 @@
 #!/usr/bin/env bun
 
-
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import path from 'node:path'
 import {
-    derivePrivateKey,
-    generateAccounts,
-    writeAccounts,
-    writePrivateKey,
+  derivePrivateKey,
+  generateAccounts,
+  writeAccounts,
+  writePrivateKey,
 } from '@ts-ethereum/chain-config'
 import { Ethash } from '@ts-ethereum/consensus'
 import { initDatabases } from '@ts-ethereum/db'
 import { bytesToHex, KeyEncoding, ValueEncoding } from '@ts-ethereum/utils'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
-import path from 'node:path'
 import { getCacheSize, getFullSize } from '../packages/consensus/src/util'
 import { LevelDB } from '../packages/execution-client/src/execution/level'
 
@@ -76,10 +75,7 @@ async function writeEthashCacheToDb(chainDB: any, cacheData: any) {
 /**
  * Generate databases for a node with Ethash cache pre-populated
  */
-async function generateNodeDatabases(
-  nodeDir: string,
-  nodeName: string,
-) {
+async function generateNodeDatabases(nodeDir: string, nodeName: string) {
   const dataDir = path.join(nodeDir, 'data')
 
   const dbPaths = {
@@ -90,15 +86,15 @@ async function generateNodeDatabases(
 
   console.log(`  Creating databases for ${nodeName}...`)
   const databases = await initDatabases(dbPaths)
-  
-    // Generate Ethash cache
-    console.log('\nGenerating Ethash cache for epoch 0...')
-    console.log('  (This may take 5-10 seconds)')
-  
-    const startTime = Date.now()
-    const cacheData = await generateEthashCacheData(databases.chainDB)
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
-    console.log(`  Cache generated in ${elapsed}s`)
+
+  // Generate Ethash cache
+  console.log('\nGenerating Ethash cache for epoch 0...')
+  console.log('  (This may take 5-10 seconds)')
+
+  const startTime = Date.now()
+  const cacheData = await generateEthashCacheData(databases.chainDB)
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+  console.log(`  Cache generated in ${elapsed}s`)
 
   // Write Ethash cache to chainDB
   await writeEthashCacheToDb(databases.chainDB, cacheData)
@@ -156,14 +152,8 @@ async function main() {
 
   // Generate databases for both nodes with Ethash cache
   console.log('\nGenerating node databases with Ethash cache...')
-  const node1DataDir = await generateNodeDatabases(
-    NODE1_DIR,
-    'Node 1',
-  )
-  const node2DataDir = await generateNodeDatabases(
-    NODE2_DIR,
-    'Node 2',
-  )
+  const node1DataDir = await generateNodeDatabases(NODE1_DIR, 'Node 1')
+  const node2DataDir = await generateNodeDatabases(NODE2_DIR, 'Node 2')
 
   console.log('\n' + '='.repeat(44))
   console.log('  SNAPSHOT GENERATED SUCCESSFULLY')

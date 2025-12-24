@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import { cpSync, existsSync, rmSync } from 'node:fs'
+import path from 'node:path'
 import { createBlockchain } from '@ts-ethereum/blockchain'
 import {
   type ChainConfig,
@@ -12,8 +14,6 @@ import {
 } from '@ts-ethereum/chain-config'
 import { initDatabases } from '@ts-ethereum/db'
 import { BIGINT_0, bytesToHex } from '@ts-ethereum/utils'
-import { cpSync, existsSync, rmSync } from 'node:fs'
-import path from 'node:path'
 import {
   createWalletClient,
   defineChain,
@@ -634,7 +634,10 @@ async function checkChainConsistency(): Promise<{
         details.push(`Node 2: ${truncateHex(node2Hash)}`)
       }
 
-      return { passed: node1Height === node2Height && hashesMatch && txHashesMatch, details }
+      return {
+        passed: node1Height === node2Height && hashesMatch && txHashesMatch,
+        details,
+      }
     }
 
     // Both at genesis is also consistent
