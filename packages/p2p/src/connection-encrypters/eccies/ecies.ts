@@ -15,12 +15,12 @@ import {
   xor,
   zfill,
 } from '@ts-ethereum/utils'
-import * as crypto from 'crypto'
 import debugDefault from 'debug'
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { getRandomBytesSync } from 'ethereum-cryptography/random.js'
 import { ecdh, ecdsaRecover } from 'ethereum-cryptography/secp256k1-compat.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
+import * as crypto from 'node:crypto'
 import { MAC } from './mac'
 
 type Decipher = crypto.Decipheriv
@@ -71,8 +71,8 @@ export class ECIES {
   protected _remoteNonce: Uint8Array | null = null
   protected _initMsg: Uint8Array | null | undefined = null
   protected _remoteInitMsg: Uint8Array | null = null
-  protected _gotEIP8Auth: boolean = false
-  protected _gotEIP8Ack: boolean = false
+  protected _gotEIP8Auth = false
+  protected _gotEIP8Ack = false
   protected _ingressAes: Decipher | null = null
   protected _egressAes: Decipher | null = null
   protected _ingressMac: MAC | null = null
@@ -96,7 +96,7 @@ export class ECIES {
     privateKey: Uint8Array,
     id: Uint8Array,
     remoteId: Uint8Array,
-    common?: Common,
+    _common?: Common,
   ) {
     this._privateKey = privateKey
     this._publicKey = id2pk(id)

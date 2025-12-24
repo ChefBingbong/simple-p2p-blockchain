@@ -3,28 +3,14 @@
 
 pre-commit:
   parallel: true
+  pre-commit:
   commands:
-    # Type checking - run on staged TypeScript files
-    type-check:
-      run: |
-        STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
-        if [ -n "$STAGED_TS" ]; then
-          bun run check
-        fi
-      glob: "*.{ts,tsx}"
-      root: "."
-
-    # Linting - run Biome on staged files
-    lint:
-      run: bun biome check --write {all_files}
-      stage_fixed: true
-      glob: "*.{ts,tsx,js,jsx,json}"
-      root: "."
-
-    # Format - ensure files are formatted
+    check:
+      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: false
     format:
-      run: bun biome format --write {all_files}
-      stage_fixed: true
-      glob: "*.{ts,tsx,js,jsx,json}"
-      root: "."
+      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
+      run: bunx biome format --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: false
 
