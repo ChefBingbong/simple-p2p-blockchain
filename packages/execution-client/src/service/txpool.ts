@@ -11,8 +11,8 @@ import {
   BIGINT_1,
   bytesToHex,
   bytesToUnprefixedHex,
-  EthereumJSErrorWithoutCode,
   equalsBytes,
+  EthereumJSErrorWithoutCode,
   hexToBytes,
 } from '@ts-ethereum/utils'
 import type { VM } from '@ts-ethereum/vm'
@@ -21,6 +21,7 @@ import type { Config } from '../config/index'
 import type { VMExecution } from '../execution/vmexecution'
 import type { QHeap } from '../ext/qheap'
 import { Heap } from '../ext/qheap'
+import { TransactionsByPriceAndNonce } from '../miner/ordering'
 import type { NetworkCore } from '../net/index'
 import type { Peer } from '../net/peer/peer'
 import type { PeerPoolLike } from '../net/peerpool-types'
@@ -1336,21 +1337,46 @@ export class TxPool {
    * Returns eligible txs to be mined sorted by price in such a way that the
    * nonce orderings within a single account are maintained.
    *
-   * @param baseFee Unused for legacy transactions
+   * Returns a TransactionsByPriceAndNonce instance for incremental selection.
+   *
+   * @param vm VM instance for account nonce verification
+   * @param options Options including baseFee (unused for legacy), minGasPrice, and priorityAddresses
    */
   async txsByPriceAndNonce(
     vm: VM,
-    { baseFee, allowedBlobs }: { baseFee?: bigint; allowedBlobs?: number } = {},
-  ) {
-    const txs: TypedTransaction[] = []
-    const byNonce = new Map<string, TypedTransaction[]>()
+    {
+      baseFee,
+      allowedBlobs,
+      minGasPrice,
+      priorityAddresses,
+    }: {
+      baseFee?: bigint
+      allowedBlobs?: number
+      minGasPrice?: bigint
+      priorityAddresses?: Address[]
+    } = {},
+  ): Promise<TransactionsByPriceAndNonce> {
+    const byNonce = new Map<string, TxPoolObject[]>()
     let skippedByNonce = 0
+
+    // Convert priority addresses to unprefixed strings for comparison
+    const priorityAddressSet = new Set<string>()
+    if (priorityAddresses) {
+      for (const addr of priorityAddresses) {
+        priorityAddressSet.add(addr.toString().slice(2))
+      }
+    }
+
+    // Split into priority and normal transactions
+    const priorityTxs = new Map<string, TxPoolObject[]>()
+    const normalTxs = new Map<string, TxPoolObject[]>()
 
     // Only iterate over pending pool - these are executable
     for (const [address, poolObjects] of this.pending) {
-      const txsSortedByNonce = poolObjects
-        .map((obj) => obj.tx)
-        .sort((a, b) => Number(a.nonce - b.nonce))
+      // Sort by nonce
+      const txsSortedByNonce = [...poolObjects].sort(
+        (a, b) => Number(a.tx.nonce - b.tx.nonce),
+      )
 
       // Verify account nonce matches lowest tx nonce
       let account = await vm.stateManager.getAccount(
@@ -1360,45 +1386,43 @@ export class TxPool {
         account = new Account()
       }
 
-      if (txsSortedByNonce[0].nonce !== account.nonce) {
+      if (txsSortedByNonce[0].tx.nonce !== account.nonce) {
         // Shouldn't happen if promoteExecutables works correctly
         skippedByNonce += txsSortedByNonce.length
         continue
       }
-      byNonce.set(address, txsSortedByNonce)
-    }
-    // Initialize a price based heap with the head transactions
-    const byPrice = new Heap({
-      comparBefore: (a: TypedTransaction, b: TypedTransaction) =>
-        this.normalizedGasPrice(b, baseFee) -
-          this.normalizedGasPrice(a, baseFee) <
-        BIGINT_0,
-    }) as QHeap<TypedTransaction>
-    for (const [address, txs] of byNonce) {
-      byPrice.insert(txs[0])
-      byNonce.set(address, txs.slice(1))
-    }
-    // Merge by replacing the best with the next from the same account
-    while (byPrice.length > 0) {
-      // Retrieve the next best transaction by price
-      const best = byPrice.remove()
-      if (best === undefined) break
 
-      // Push in its place the next transaction from the same account
-      const address = best.getSenderAddress().toString().slice(2)
-      const accTxs = byNonce.get(address)!
-
-      if (accTxs.length > 0) {
-        byPrice.insert(accTxs[0])
-        byNonce.set(address, accTxs.slice(1))
+      // Split by priority
+      if (priorityAddressSet.has(address)) {
+        priorityTxs.set(address, txsSortedByNonce)
+      } else {
+        normalTxs.set(address, txsSortedByNonce)
       }
-      // Accumulate the best priced transaction
-      txs.push(best)
     }
-    this.config.options.logger?.info(
-      `txsByPriceAndNonce selected txs=${txs.length}, skipped byNonce=${skippedByNonce}`,
+
+    // Combine priority first, then normal
+    // Priority transactions will be processed first due to how TransactionsByPriceAndNonce works
+    const allTxs = new Map<string, TxPoolObject[]>()
+    for (const [address, txs] of priorityTxs) {
+      allTxs.set(address, txs)
+    }
+    for (const [address, txs] of normalTxs) {
+      allTxs.set(address, txs)
+    }
+
+    // Create TransactionsByPriceAndNonce instance
+    const minGasPriceValue = minGasPrice ?? BIGINT_0
+    const txSet = new TransactionsByPriceAndNonce(
+      allTxs,
+      (tx) => this.txGasPrice(tx).tip,
+      minGasPriceValue,
     )
-    return txs
+
+    this.config.options.logger?.info(
+      `txsByPriceAndNonce created txSet with ${allTxs.size} accounts, skipped byNonce=${skippedByNonce}`,
+    )
+
+    return txSet
   }
 
   /**

@@ -2,23 +2,24 @@ import type { Block, HeaderData } from '@ts-ethereum/block'
 import type { TypedTransaction } from '@ts-ethereum/tx'
 import {
   BIGINT_1,
+  TypeOutput,
   bigIntToUnpaddedBytes,
   bytesToHex,
+  bytesToUnprefixedHex,
   concatBytes,
-  equalsBytes,
-  TypeOutput,
-  toType,
+  toType
 } from '@ts-ethereum/utils'
 import {
-  type BlockBuilder,
   BuildStatus,
   buildBlock,
+  type BlockBuilder,
   type TxReceipt,
   type VM,
 } from '@ts-ethereum/vm'
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import type { Config } from '../config/index'
 import type { TxPool } from '../service/txpool'
+import { TransactionsByPriceAndNonce } from './ordering'
 
 interface PendingBlockOpts {
   /* Config */
@@ -41,6 +42,8 @@ interface PendingBlockOpts {
 
 // Max two payload to be cached
 const MAX_PAYLOAD_CACHE = 2
+// TTL for pending block cache (2 seconds, matching Geth's pendingTTL)
+const PENDING_TTL = 2000
 
 type AddTxResult = (typeof AddTxResult)[keyof typeof AddTxResult]
 
@@ -52,11 +55,17 @@ const AddTxResult = {
   RemovedByErrors: 'RemovedByErrors',
 } as const
 
+interface CachedPendingBlock {
+  builder: BlockBuilder
+  parentHash: string // Unprefixed hash
+  created: number // Timestamp
+}
+
 export class PendingBlock {
   config: Config
   txPool: TxPool
 
-  pendingPayloads: Map<string, BlockBuilder> = new Map()
+  pendingPayloads: Map<string, CachedPendingBlock> = new Map()
 
   private skipHardForkValidation?: boolean
 
@@ -84,6 +93,33 @@ export class PendingBlock {
   }
 
   /**
+   * Resolves a cached pending block if available and valid.
+   * Returns null if cache miss or invalid.
+   */
+  private resolveCached(
+    payloadId: string,
+    parentHash: string,
+  ): BlockBuilder | null {
+    const cached = this.pendingPayloads.get(payloadId)
+    if (!cached) return null
+
+    // Check parent hash matches
+    if (cached.parentHash !== parentHash) {
+      this.pendingPayloads.delete(payloadId)
+      return null
+    }
+
+    // Check TTL
+    const age = Date.now() - cached.created
+    if (age > PENDING_TTL) {
+      this.pendingPayloads.delete(payloadId)
+      return null
+    }
+
+    return cached.builder
+  }
+
+  /**
    * Starts building a pending block with the given payload
    * @returns an 8-byte payload identifier to call {@link BlockBuilder.build} with
    */
@@ -95,6 +131,7 @@ export class PendingBlock {
     const number = parentBlock.header.number + BIGINT_1
     const { timestamp, mixHash, coinbase } = headerData
     const { gasLimit } = parentBlock.header
+    const parentHash = bytesToUnprefixedHex(parentBlock.hash())
 
     // payload is uniquely defined by timestamp, parent and mixHash, gasLimit can also be
     // potentially included in the fcU in future and can be safely added in uniqueness calc
@@ -123,8 +160,12 @@ export class PendingBlock {
 
     const payloadId = bytesToHex(payloadIdBytes)
 
-    // If payload has already been triggered, then return the payloadid
-    if (this.pendingPayloads.get(payloadId) !== undefined) {
+    // Check cache first
+    const cachedBuilder = this.resolveCached(payloadId, parentHash)
+    if (cachedBuilder) {
+      this.config.options.logger?.debug(
+        `Pending: Using cached pending block for payload ${payloadId}`,
+      )
       return payloadIdBytes
     }
 
@@ -147,20 +188,27 @@ export class PendingBlock {
       },
     })
 
-    this.pendingPayloads.set(payloadId, builder)
+    // Cache the builder
+    this.pendingPayloads.set(payloadId, {
+      builder,
+      parentHash,
+      created: Date.now(),
+    })
 
-    // Add current txs in pool
-    const txs = await this.txPool.txsByPriceAndNonce(vm, {})
-    this.config.options.logger?.info(
-      `Pending: Assembling block from ${txs.length} eligible txs`,
-    )
+    // Add current txs in pool using incremental selection
+    const txSet = await this.txPool.txsByPriceAndNonce(vm, {
+      minGasPrice: this.config.options.minerGasPrice,
+      priorityAddresses: this.config.options.minerPriorityAddresses
+        ? [...this.config.options.minerPriorityAddresses]
+        : undefined,
+    })
 
     const { addedTxs, skippedByAddErrors } = await this.addTransactions(
       builder,
-      txs,
+      txSet,
     )
     this.config.options.logger?.info(
-      `Pending: Added txs=${addedTxs} skippedByAddErrors=${skippedByAddErrors} from total=${txs.length} tx candidates`,
+      `Pending: Added txs=${addedTxs} skippedByAddErrors=${skippedByAddErrors}`,
     )
 
     return payloadIdBytes
@@ -174,10 +222,10 @@ export class PendingBlock {
       typeof payloadIdBytes !== 'string'
         ? bytesToHex(payloadIdBytes)
         : payloadIdBytes
-    const builder = this.pendingPayloads.get(payloadId)
-    if (builder === undefined) return
+    const cached = this.pendingPayloads.get(payloadId)
+    if (cached === undefined) return
     // Revert blockBuilder
-    void builder.revert()
+    void cached.builder.revert()
     // Remove from pendingPayloads
     this.pendingPayloads.delete(payloadId)
   }
@@ -192,10 +240,11 @@ export class PendingBlock {
       typeof payloadIdBytes !== 'string'
         ? bytesToHex(payloadIdBytes)
         : payloadIdBytes
-    const builder = this.pendingPayloads.get(payloadId)
-    if (builder === undefined) {
+    const cached = this.pendingPayloads.get(payloadId)
+    if (cached === undefined) {
       return
     }
+    const builder = cached.builder
     const blockStatus = builder.getStatus()
     if (blockStatus.status === BuildStatus.Build) {
       return [
@@ -209,15 +258,26 @@ export class PendingBlock {
       headerData: HeaderData
     }
 
-    // Add new txs that the pool received
-    const txs = (await this.txPool.txsByPriceAndNonce(vm, {})).filter(
-      (tx) =>
-        (builder as any).transactions.some((t: TypedTransaction) =>
-          equalsBytes(t.hash(), tx.hash()),
-        ) === false,
-    )
+    // Get existing transaction hashes
+    const existingTxHashes = new Set<string>()
+    for (const tx of (builder as any).transactions as TypedTransaction[]) {
+      existingTxHashes.add(bytesToUnprefixedHex(tx.hash()))
+    }
 
-    const { skippedByAddErrors } = await this.addTransactions(builder, txs)
+    // Get new transactions using incremental selection
+    const txSet = await this.txPool.txsByPriceAndNonce(vm, {
+      minGasPrice: this.config.options.minerGasPrice,
+      priorityAddresses: this.config.options.minerPriorityAddresses
+        ? [...this.config.options.minerPriorityAddresses]
+        : undefined,
+    })
+
+    // Filter out already included transactions and add new ones
+    const { skippedByAddErrors } = await this.addTransactions(
+      builder,
+      txSet,
+      existingTxHashes,
+    )
 
     const { block } = await builder.build()
 
@@ -234,36 +294,71 @@ export class PendingBlock {
 
   private async addTransactions(
     builder: BlockBuilder,
-    txs: TypedTransaction[],
+    txSet: TransactionsByPriceAndNonce,
+    existingTxHashes?: Set<string>,
   ) {
-    this.config.options.logger?.info(
-      `Pending: Adding ${txs.length} additional eligible txs`,
-    )
-    let index = 0
-    let blockFull = false
+    let addedTxs = 0
     let skippedByAddErrors = 0
+    let blockFull = false
+    const gasLimit = (builder as any).headerData.gasLimit as bigint
 
-    while (index < txs.length && !blockFull) {
-      const tx = txs[index]
+    // Incremental transaction selection
+    while (!txSet.empty() && !blockFull) {
+      const peeked = txSet.peek()
+      if (!peeked) break
+
+      const { tx } = peeked
+
+      // Skip if already included
+      if (existingTxHashes?.has(bytesToUnprefixedHex(tx.hash()))) {
+        txSet.shift()
+        continue
+      }
+
+      // Check gas limit
+      const remainingGas = gasLimit - builder.gasUsed
+      if (remainingGas < tx.gasLimit) {
+        if (remainingGas < BigInt(21000)) {
+          blockFull = true
+          this.config.options.logger?.info(`Pending: Assembled block full`)
+        }
+        txSet.shift()
+        continue
+      }
+
+      // Try to add transaction
       const addTxResult = await this.addTransaction(builder, tx)
 
       switch (addTxResult) {
         case AddTxResult.Success:
+          addedTxs++
+          txSet.shift()
           break
         case AddTxResult.BlockFull:
           blockFull = true
           skippedByAddErrors++
+          txSet.shift()
           break
-        default:
+        case AddTxResult.SkippedByGasLimit:
           skippedByAddErrors++
+          txSet.shift()
+          break
+        case AddTxResult.SkippedByErrors:
+          // Nonce issue or recoverable error: shift
+          skippedByAddErrors++
+          txSet.shift()
+          break
+        case AddTxResult.RemovedByErrors:
+          // Invalid transaction: pop account
+          skippedByAddErrors++
+          txSet.pop()
+          break
       }
-      index++
     }
 
     return {
-      addedTxs: index - skippedByAddErrors,
+      addedTxs,
       skippedByAddErrors,
-      totalTxs: txs.length,
     }
   }
 
@@ -276,8 +371,9 @@ export class PendingBlock {
       })
       addTxResult = AddTxResult.Success
     } catch (error: any) {
+      const errorMsg = error.message
       if (
-        error.message ===
+        errorMsg ===
         'tx has a higher gas limit than the remaining gas in the block'
       ) {
         if (
@@ -290,12 +386,21 @@ export class PendingBlock {
         } else {
           addTxResult = AddTxResult.SkippedByGasLimit
         }
+      } else if (
+        errorMsg.includes('insufficient balance') ||
+        errorMsg.includes('invalid')
+      ) {
+        // Invalid transaction: should pop account
+        this.config.options.logger?.debug(
+          `Pending: Invalid tx ${bytesToHex(tx.hash())}: ${errorMsg}`,
+        )
+        addTxResult = AddTxResult.RemovedByErrors
       } else {
-        // If there is an error adding a tx, it will be skipped
+        // Other errors: skip transaction but continue with account
         this.config.options.logger?.debug(
           `Pending: Skipping tx ${bytesToHex(
             tx.hash(),
-          )}, error encountered when trying to add tx:\n${error}`,
+          )}, error encountered: ${errorMsg}`,
         )
         addTxResult = AddTxResult.SkippedByErrors
       }

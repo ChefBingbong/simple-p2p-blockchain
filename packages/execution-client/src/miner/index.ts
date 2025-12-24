@@ -4,3 +4,4 @@
 
 export * from './miner'
 export * from './pendingBlock'
+export * from './ordering'

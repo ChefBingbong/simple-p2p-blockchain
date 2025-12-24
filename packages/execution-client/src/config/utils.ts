@@ -40,6 +40,10 @@ export interface ResolvedConfigOptions {
   readonly isSingleNode: boolean
   readonly accounts: readonly [address: Address, privKey: Uint8Array][]
   readonly minerCoinbase?: Address
+  readonly minerGasPrice?: bigint
+  readonly minerGasCeil?: bigint
+  readonly minerExtraData?: Uint8Array
+  readonly minerPriorityAddresses?: readonly Address[]
   readonly vmProfilerOpts?: VMProfilerOpts
   readonly safeReorgDistance: number
   readonly syncedStateRemovalPeriod: number
@@ -128,6 +132,10 @@ export function createConfigOptions(
     isSingleNode: options.isSingleNode ?? defaults.isSingleNode,
     accounts: options.accounts ?? defaults.accounts,
     minerCoinbase: options.minerCoinbase,
+    minerGasPrice: options.minerGasPrice,
+    minerGasCeil: options.minerGasCeil,
+    minerExtraData: options.minerExtraData,
+    minerPriorityAddresses: options.minerPriorityAddresses,
     vmProfilerOpts:
       options.vmProfileBlocks !== undefined ||
       options.vmProfileTxs !== undefined

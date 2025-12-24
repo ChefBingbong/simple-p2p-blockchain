@@ -35,7 +35,7 @@ export interface MinerOptions {
  * @memberof module:miner
  */
 export class Miner {
-  private DEFAULT_PERIOD = 10
+  private DEFAULT_PERIOD = 6
   private _nextAssemblyTimeoutId: NodeJS.Timeout | undefined /* global NodeJS */
   private _boundChainUpdatedHandler: (() => void) | undefined
   private config: Config
@@ -49,6 +49,8 @@ export class Miner {
   private currentEthashMiner: EthashMiner | undefined
   private skipHardForkValidation?: boolean
   public running: boolean
+  // Timeout for block building (default: 30 seconds)
+  private readonly BUILD_TIMEOUT = 30000
 
   /**
    * Create miner
@@ -186,6 +188,8 @@ export class Miner {
     // eslint-disable-next-line prefer-const
     let _boundSetInterruptHandler: () => void
     let interrupt = false
+    let timeoutInterrupt: NodeJS.Timeout | undefined
+
     const setInterrupt = () => {
       interrupt = true
       this.assembling = false
@@ -193,9 +197,21 @@ export class Miner {
         Event.CHAIN_UPDATED,
         _boundSetInterruptHandler,
       )
+      if (timeoutInterrupt) {
+        clearTimeout(timeoutInterrupt)
+        timeoutInterrupt = undefined
+      }
     }
     _boundSetInterruptHandler = setInterrupt.bind(this)
     this.config.events.once(Event.CHAIN_UPDATED, _boundSetInterruptHandler)
+
+    // Set timeout interrupt
+    timeoutInterrupt = setTimeout(() => {
+      this.config.options.logger?.warn(
+        `Miner: Block building timed out after ${this.BUILD_TIMEOUT}ms`,
+      )
+      setInterrupt()
+    }, this.BUILD_TIMEOUT)
 
     const parentBlock = this.chain.blocks.latest!
 
@@ -228,12 +244,21 @@ export class Miner {
     const coinbase =
       this.config.options.minerCoinbase ?? this.config.options.accounts[0][0]
 
+    // Apply miner configuration
+    const minerGasCeil =
+      this.config.options.minerGasCeil ?? gasLimit
+    const targetGasLimit = minerGasCeil < gasLimit ? minerGasCeil : gasLimit
+    const minerExtraData = this.config.options.minerExtraData
+    const minerGasPrice = this.config.options.minerGasPrice
+    const minerPriorityAddresses = this.config.options.minerPriorityAddresses
+
     const blockBuilder = await buildBlock(vmCopy, {
       parentBlock,
       headerData: {
         number,
-        gasLimit,
+        gasLimit: targetGasLimit,
         coinbase,
+        extraData: minerExtraData,
       },
       blockOpts: {
         calcDifficultyFromHeader,
@@ -241,43 +266,106 @@ export class Miner {
       },
     })
 
-    // Frontier/Chainstart - no base fee
-    const txs = await this.txPool.txsByPriceAndNonce(vmCopy, {})
+    // Get transaction set with incremental selection support
+    const txSet = await this.txPool.txsByPriceAndNonce(vmCopy, {
+      minGasPrice: minerGasPrice,
+      priorityAddresses: minerPriorityAddresses
+        ? [...minerPriorityAddresses]
+        : undefined,
+    })
+
     this.config.options.logger?.info(
-      `Miner: Assembling block from ${txs.length} eligible txs`,
+      `Miner: Assembling block with target gas limit ${targetGasLimit}`,
     )
-    let index = 0
-    let blockFull = false
+
+    // Track block size (in addition to gas)
+    let blockSize = 0 // Will be updated as transactions are added
     const receipts: TxReceipt[] = []
-    while (index < txs.length && !blockFull && !interrupt) {
+    let blockFull = false
+
+    // Incremental transaction selection
+    while (!txSet.empty() && !blockFull && !interrupt) {
+      const peeked = txSet.peek()
+      if (!peeked) break
+
+      const { tx } = peeked
+
+      // Check if transaction fits in block size (rough estimate)
+      // For Chainstart, we mainly care about gas, but track size for future use
+      const txSize = tx.serialize().byteLength
+      const estimatedBlockSize = blockSize + txSize
+
+      // Check gas limit
+      const remainingGas = targetGasLimit - blockBuilder.gasUsed
+      if (remainingGas < tx.gasLimit) {
+        // Not enough gas for this transaction
+        if (remainingGas < BigInt(21000)) {
+          // Less than 21000 gas remaining, consider block full
+          blockFull = true
+          this.config.options.logger?.info(
+            `Miner: Assembled block full (gasLeft: ${remainingGas})`,
+          )
+        }
+        // Skip this transaction, try next
+        txSet.shift()
+        continue
+      }
+
+      // Try to add transaction
       try {
-        const txResult = await blockBuilder.addTransaction(txs[index], {
+        const txResult = await blockBuilder.addTransaction(tx, {
           skipHardForkValidation: this.skipHardForkValidation,
         })
         if (this.config.options.saveReceipts) {
           receipts.push(txResult.receipt)
         }
+        blockSize = estimatedBlockSize
+        // Success: shift to next transaction from same account
+        txSet.shift()
       } catch (error) {
+        const errorMsg = (error as Error).message
+        const txHash = bytesToHex(tx.hash())
+
+        // Classify error and handle accordingly
         if (
-          (error as Error).message ===
+          errorMsg ===
           'tx has a higher gas limit than the remaining gas in the block'
         ) {
-          if (blockBuilder.gasUsed > gasLimit - BigInt(21000)) {
-            // If block has less than 21000 gas remaining, consider it full
+          if (blockBuilder.gasUsed > targetGasLimit - BigInt(21000)) {
             blockFull = true
             this.config.options.logger?.info(
-              `Miner: Assembled block full (gasLeft: ${gasLimit - blockBuilder.gasUsed})`,
+              `Miner: Assembled block full (gasLeft: ${targetGasLimit - blockBuilder.gasUsed})`,
             )
           }
-        } else {
-          // If there is an error adding a tx, it will be skipped
-          const hash = bytesToHex(txs[index].hash())
+          // Shift to next tx (might be a gas limit issue, not account issue)
+          txSet.shift()
+        } else if (
+          errorMsg.includes('nonce too low') ||
+          errorMsg.includes('nonce too high')
+        ) {
+          // Nonce issue: could be race condition (shift) or gap (pop)
+          // For now, treat as recoverable (shift) - might be race condition
           this.config.options.logger?.debug(
-            `Skipping tx ${hash}, error encountered when trying to add tx:\n${error}`,
+            `Skipping tx ${txHash} due to nonce issue: ${errorMsg}`,
           )
+          txSet.shift()
+        } else if (
+          errorMsg.includes('insufficient balance') ||
+          errorMsg.includes('invalid')
+        ) {
+          // Invalid transaction or insufficient balance: skip entire account
+          this.config.options.logger?.debug(
+            `Skipping account for tx ${txHash} due to: ${errorMsg}`,
+          )
+          txSet.pop()
+        } else {
+          // Unknown error: shift to next tx (conservative approach)
+          this.config.options.logger?.debug(
+            `Skipping tx ${txHash}, error encountered: ${errorMsg}`,
+          )
+          txSet.shift()
         }
       }
-      index++
     }
     if (interrupt) return
 
@@ -338,6 +426,10 @@ export class Miner {
       Event.CHAIN_UPDATED,
       _boundSetInterruptHandler,
     )
+    if (timeoutInterrupt) {
+      clearTimeout(timeoutInterrupt)
+      timeoutInterrupt = undefined
+    }
   }
 
   /**

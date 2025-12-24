@@ -229,6 +229,32 @@ export interface ConfigOptions {
   minerCoinbase?: Address
 
   /**
+   * Minimum gas price for transaction inclusion (in wei)
+   * Transactions below this price will be filtered out
+   * Default: 1 gwei (1e9 wei)
+   */
+  minerGasPrice?: bigint
+
+  /**
+   * Target gas ceiling for mined blocks
+   * Miner will try to fill blocks up to this gas limit
+   * Default: parent block's gas limit
+   */
+  minerGasCeil?: bigint
+
+  /**
+   * Extra data to include in block headers
+   * Max 32 bytes
+   */
+  minerExtraData?: Uint8Array
+
+  /**
+   * List of addresses to prioritize for transaction inclusion
+   * Transactions from these addresses get priority over others
+   */
+  minerPriorityAddresses?: Address[]
+
+  /**
    * If there is a reorg, this is a safe distance from which
    * to try to refetch and re-feed the blocks.
    */
