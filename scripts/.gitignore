@@ -1,0 +1,7 @@
+# Ignore generated fixture data directories (node data)
+fixtures/node-*/data/
+
+# Keep fixture configuration files
+!fixtures/accounts.json
+!fixtures/node-*/peer-id.json
+
