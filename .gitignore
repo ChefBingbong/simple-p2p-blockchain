@@ -1,6 +1,11 @@
 # dependencies (bun install)
 node_modules
 
+# Ignore generated fixture data directories (node data)
+scripts/fixtures/
+
+
+
 # output
 out
 dist
