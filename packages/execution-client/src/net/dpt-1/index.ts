@@ -3,12 +3,11 @@
 
 // Re-export Kademlia types for backward compatibility
 export {
-	BanList,
-	KademliaNode,
-	type Contact,
-	type KademliaConfig,
-	type KademliaEvent,
-	type PeerInfo
+  BanList,
+  type Contact,
+  type KademliaConfig,
+  type KademliaEvent,
+  KademliaNode,
+  type PeerInfo,
 } from '@ts-ethereum/kademlia'
 export * from './dpt'
-

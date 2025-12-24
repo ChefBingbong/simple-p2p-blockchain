@@ -1,16 +1,15 @@
-import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { equalsBytes } from '@ts-ethereum/utils'
+import { keccak256 } from 'ethereum-cryptography/keccak.js'
 
 import { createMPTFromProof } from '..'
 import { MerklePatriciaTrie } from '../mpt'
 import { BranchMPTNode, ExtensionMPTNode, LeafMPTNode } from '../node'
-import {
-	bytesToNibbles,
-	nibblesCompare,
-	nibblesTypeToPackedBytes,
-} from '../util/nibbles'
-
 import type { HashKeysFunction, MPTNode, Nibbles } from '../types'
+import {
+  bytesToNibbles,
+  nibblesCompare,
+  nibblesTypeToPackedBytes,
+} from '../util/nibbles'
 
 // reference: https://github.com/ethereum/go-ethereum/blob/20356e57b119b4e70ce47665a71964434e15200d/trie/proof.go
 

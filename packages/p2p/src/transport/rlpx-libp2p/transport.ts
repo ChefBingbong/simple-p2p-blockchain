@@ -6,6 +6,7 @@
  * its own protocol negotiation mechanism.
  */
 
+import os from 'node:os'
 import type { Listener, Logger, Transport } from '@libp2p/interface'
 import {
   AbortError,
@@ -23,10 +24,9 @@ import {
 } from '@ts-ethereum/utils'
 import debug from 'debug'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import { Components as Libp2pComponents } from 'libp2p/dist/src/components'
+import type { Components as Libp2pComponents } from 'libp2p/dist/src/components'
 import type { IpcSocketConnectOpts, Socket, TcpSocketConnectOpts } from 'net'
 import net from 'net'
-import os from 'os'
 import { CustomProgressEvent } from 'progress-events'
 import { RLPxConnection } from './connection'
 import { RLPxConnectionAdapter } from './connection-adapter'

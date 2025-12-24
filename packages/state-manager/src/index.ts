@@ -4,4 +4,3 @@ export * from './proof'
 export * from './rpcStateManager'
 export * from './simpleStateManager'
 export * from './types'
-

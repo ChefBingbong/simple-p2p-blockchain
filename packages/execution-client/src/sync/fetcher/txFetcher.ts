@@ -31,7 +31,6 @@ export class TxFetcher {
 
   // Batch fetch settings
   private readonly BATCH_SIZE = 256
-  private readonly FETCH_TIMEOUT = 5000 // 5 seconds
   private readonly ANNOUNCE_TIMEOUT = 60000 // 1 minute
 
   private fetchInterval: NodeJS.Timeout | undefined

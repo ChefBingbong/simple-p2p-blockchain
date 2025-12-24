@@ -1,6 +1,5 @@
 import type crypto from 'node:crypto'
-import { concatBytes } from '@ts-ethereum/utils'
-import { zfill } from '@ts-ethereum/utils'
+import { concatBytes, zfill } from '@ts-ethereum/utils'
 import type { MAC } from '../mac'
 import type { BodyResult } from './types'
 

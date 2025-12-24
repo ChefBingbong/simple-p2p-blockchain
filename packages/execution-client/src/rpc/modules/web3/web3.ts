@@ -1,5 +1,5 @@
 import type { ExecutionNode } from '../../../node/index'
-import { RpcMethods, Web3RpcMethods } from '../types'
+import type { RpcMethods, Web3RpcMethods } from '../types'
 import { clientVersion } from './client-version'
 import { sha3 } from './sha3'
 

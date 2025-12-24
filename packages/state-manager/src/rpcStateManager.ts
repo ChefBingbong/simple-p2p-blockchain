@@ -1,18 +1,21 @@
-import type { AccountFields, StateManagerInterface } from '@ts-ethereum/chain-config'
-import { Common } from '@ts-ethereum/chain-config'
+import type {
+  AccountFields,
+  Common,
+  StateManagerInterface,
+} from '@ts-ethereum/chain-config'
 import { RLP } from '@ts-ethereum/rlp'
 import type { Address } from '@ts-ethereum/utils'
 import {
-	Account,
-	bigIntToHex,
-	createAccount,
-	createAccountFromRLP,
-	equalsBytes,
-	EthereumJSErrorWithoutCode,
-	fetchFromProvider,
-	hexToBytes,
-	intToHex,
-	toBytes,
+  Account,
+  bigIntToHex,
+  createAccount,
+  createAccountFromRLP,
+  EthereumJSErrorWithoutCode,
+  equalsBytes,
+  fetchFromProvider,
+  hexToBytes,
+  intToHex,
+  toBytes,
 } from '@ts-ethereum/utils'
 import type { Debugger } from 'debug'
 import debugDefault from 'debug'

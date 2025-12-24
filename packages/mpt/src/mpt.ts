@@ -1,5 +1,4 @@
 // Some more secure presets when using e.g. JS `call`
-'use strict'
 
 import { RLP } from '@ts-ethereum/rlp'
 import type { BatchDBOp, DB } from '@ts-ethereum/utils'
@@ -234,7 +233,7 @@ export class MerklePatriciaTrie {
   async put(
     key: Uint8Array,
     value: Uint8Array | null,
-    skipKeyTransform: boolean = false,
+    skipKeyTransform = false,
   ): Promise<void> {
     this.DEBUG && this.debug(`Key: ${bytesToHex(key)}`, ['put'])
     this.DEBUG &&
@@ -304,7 +303,7 @@ export class MerklePatriciaTrie {
    * @param key
    * @returns A Promise that resolves once value is deleted.
    */
-  async del(key: Uint8Array, skipKeyTransform: boolean = false): Promise<void> {
+  async del(key: Uint8Array, skipKeyTransform = false): Promise<void> {
     this.DEBUG && this.debug(`Key: ${bytesToHex(key)}`, ['del'])
     await this._lock.acquire()
     const appliedKey = skipKeyTransform ? key : this.appliedKey(key)
@@ -412,7 +411,7 @@ export class MerklePatriciaTrie {
             }
           } else {
             progress++
-            walkController.onlyBranchIndex(node, keyProgress, branchIndex)
+            walkController.onlyBranchIndex(node, branchIndex, keyProgress)
           }
         }
       } else if (node instanceof LeafMPTNode) {
@@ -925,7 +924,7 @@ export class MerklePatriciaTrie {
     node: MPTNode,
     topLevel: boolean,
     opStack: BatchDBOp[],
-    remove: boolean = false,
+    remove = false,
   ): Uint8Array | NodeReferenceOrRawMPTNode | BranchMPTNodeBranchValue[] {
     const encoded = node.serialize()
 
@@ -1003,41 +1002,38 @@ export class MerklePatriciaTrie {
       // Track if key is found
       let found = false
       try {
-        await this.walkTrie(
-          this.root(),
-          async function (_, node, key, controller) {
-            if (found) {
-              // Abort all other children checks
-              return
-            }
-            if (node instanceof BranchMPTNode) {
-              for (const item of node._branches) {
-                // If one of the branches matches the key, then it is found
-                if (
-                  item !== null &&
-                  bytesToUnprefixedHex(
-                    isRawMPTNode(item)
-                      ? controller.trie.appliedKey(RLP.encode(item))
-                      : item,
-                  ) === dbkey
-                ) {
-                  found = true
-                  return
-                }
-              }
-              // Check all children of the branch
-              controller.allChildren(node, key)
-            }
-            if (node instanceof ExtensionMPTNode) {
-              // If the value of the ExtensionMPTNode points to the dbkey, then it is found
-              if (bytesToUnprefixedHex(node.value()) === dbkey) {
+        await this.walkTrie(this.root(), async (_, node, key, controller) => {
+          if (found) {
+            // Abort all other children checks
+            return
+          }
+          if (node instanceof BranchMPTNode) {
+            for (const item of node._branches) {
+              // If one of the branches matches the key, then it is found
+              if (
+                item !== null &&
+                bytesToUnprefixedHex(
+                  isRawMPTNode(item)
+                    ? controller.trie.appliedKey(RLP.encode(item))
+                    : item,
+                ) === dbkey
+              ) {
                 found = true
                 return
               }
-              controller.allChildren(node, key)
             }
-          },
-        )
+            // Check all children of the branch
+            controller.allChildren(node, key)
+          }
+          if (node instanceof ExtensionMPTNode) {
+            // If the value of the ExtensionMPTNode points to the dbkey, then it is found
+            if (bytesToUnprefixedHex(node.value()) === dbkey) {
+              found = true
+              return
+            }
+            controller.allChildren(node, key)
+          }
+        })
       } catch {
         return false
       }

@@ -243,4 +243,3 @@ export function getPeerKeys(obj: string | Uint8Array | PeerInfo): string[] {
   }
   return keys
 }
-

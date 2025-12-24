@@ -1,5 +1,3 @@
-import debugDefault from 'debug'
-import { runTx } from '.'
 import type { Block } from '@ts-ethereum/block'
 import { createBlock } from '@ts-ethereum/block'
 import type { Common } from '@ts-ethereum/chain-config'
@@ -7,30 +5,32 @@ import { ConsensusType } from '@ts-ethereum/chain-config'
 import type { EVMInterface } from '@ts-ethereum/evm'
 import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import { RLP } from '@ts-ethereum/rlp'
-import { TransactionType } from '@ts-ethereum/tx'
+import type { TransactionType } from '@ts-ethereum/tx'
 import type { PrefixedHexString } from '@ts-ethereum/utils'
 import {
-	Account,
-	Address,
-	BIGINT_0,
-	BIGINT_8,
-	bytesToHex,
-	equalsBytes,
-	EthereumJSErrorWithoutCode,
-	intToBytes,
-	KECCAK256_RLP,
-	short,
+  Account,
+  type Address,
+  BIGINT_0,
+  BIGINT_8,
+  bytesToHex,
+  EthereumJSErrorWithoutCode,
+  equalsBytes,
+  intToBytes,
+  KECCAK256_RLP,
+  short,
 } from '@ts-ethereum/utils'
+import debugDefault from 'debug'
+import { runTx } from '.'
 import { Bloom } from './bloom'
 import type {
-	AfterBlockEvent,
-	ApplyBlockResult,
-	PostByzantiumTxReceipt,
-	PreByzantiumTxReceipt,
-	RunBlockOpts,
-	RunBlockResult,
-	RunTxResult,
-	TxReceipt,
+  AfterBlockEvent,
+  ApplyBlockResult,
+  PostByzantiumTxReceipt,
+  PreByzantiumTxReceipt,
+  RunBlockOpts,
+  RunBlockResult,
+  RunTxResult,
+  TxReceipt,
 } from './types'
 import type { VM } from './vm'
 

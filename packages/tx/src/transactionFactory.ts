@@ -1,20 +1,18 @@
+import type { EthersProvider } from '@ts-ethereum/utils'
 import {
   EthereumJSErrorWithoutCode,
   fetchFromProvider,
   getProvider,
 } from '@ts-ethereum/utils'
-
 import {
   createLegacyTx,
   createLegacyTxFromBytesArray,
   createLegacyTxFromRLP,
 } from './legacy/constructors'
-import { TransactionType } from './types'
-import { normalizeTxParams } from './util/general'
-
-  import type { EthersProvider } from '@ts-ethereum/utils'
 import type { LegacyTx } from './legacy/tx'
 import type { LegacyTxData, TxOptions } from './types'
+import { TransactionType } from './types'
+import { normalizeTxParams } from './util/general'
 
 /**
  * Create a transaction from a `txData` object

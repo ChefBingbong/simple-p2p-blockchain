@@ -1,8 +1,6 @@
 import { PrioritizedTaskExecutor } from '@ts-ethereum/utils'
-
-import { BranchMPTNode, ExtensionMPTNode, LeafMPTNode } from '../node'
-
 import type { MerklePatriciaTrie } from '../mpt'
+import { BranchMPTNode, ExtensionMPTNode, LeafMPTNode } from '../node'
 import type { FoundNodeFunction, MPTNode, Nibbles } from '../types'
 
 /**
@@ -123,8 +121,8 @@ export class WalkController {
    */
   onlyBranchIndex(
     node: BranchMPTNode,
-    key: Nibbles = [],
     childIndex: number,
+    key: Nibbles = [],
     priority?: number,
   ) {
     if (!(node instanceof BranchMPTNode)) {

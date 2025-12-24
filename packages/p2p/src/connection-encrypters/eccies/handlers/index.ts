@@ -1,2 +1,2 @@
-export { sendAuthGetAck, type SendAuthGetAckResult } from './initiator'
-export { waitAuthSendAck, type WaitAuthSendAckResult } from './responder'
+export { type SendAuthGetAckResult, sendAuthGetAck } from './initiator'
+export { type WaitAuthSendAckResult, waitAuthSendAck } from './responder'

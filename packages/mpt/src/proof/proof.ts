@@ -1,13 +1,11 @@
-import { bytesToHex, concatBytes, equalsBytes } from '@ts-ethereum/utils'
-
-import {
-  type MPTOpts,
-  MerklePatriciaTrie,
-  type Proof,
-  createMPTFromProof,
-} from '..'
-
 import type { PutBatch } from '@ts-ethereum/utils'
+import { bytesToHex, concatBytes, equalsBytes } from '@ts-ethereum/utils'
+import {
+  createMPTFromProof,
+  MerklePatriciaTrie,
+  type MPTOpts,
+  type Proof,
+} from '..'
 
 /**
  * An (EIP-1186)[https://eips.ethereum.org/EIPS/eip-1186] proof contains the encoded trie nodes
@@ -70,7 +68,7 @@ export async function createMerkleProof(
 export async function updateMPTFromMerkleProof(
   trie: MerklePatriciaTrie,
   proof: Proof,
-  shouldVerifyRoot: boolean = false,
+  shouldVerifyRoot = false,
 ) {
   trie['DEBUG'] &&
     trie['debug'](`Saving (${proof.length}) proof nodes in DB`, ['from_proof'])

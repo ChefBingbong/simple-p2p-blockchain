@@ -1,7 +1,7 @@
 import type { Block } from '@ts-ethereum/block'
 import type { TransactionType, TypedTransaction } from '@ts-ethereum/tx'
 import { concatBytes } from '@ts-ethereum/utils'
-import { encodeReceipt, TxReceipt } from '@ts-ethereum/vm'
+import { encodeReceipt, type TxReceipt } from '@ts-ethereum/vm'
 import type { Chain } from '../../../blockchain/index'
 import type { VMExecution } from '../../../execution/index'
 import type { TxReceiptWithType } from '../../../execution/receipt'

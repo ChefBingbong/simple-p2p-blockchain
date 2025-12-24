@@ -1,4 +1,4 @@
-import { Counter, Registry } from 'prom-client'
+import { Counter, type Registry } from 'prom-client'
 
 // Lazy-load GCProfiler to handle cases where it's not available (e.g., Bun)
 let GCProfiler: any
@@ -8,7 +8,7 @@ function getGCProfiler() {
   if (GCProfiler !== undefined) {
     return GCProfiler
   }
-  
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const v8Module = require('node:v8')
@@ -19,7 +19,7 @@ function getGCProfiler() {
     GCProfiler = null
     GCProfilerResult = null
   }
-  
+
   return GCProfiler
 }
 

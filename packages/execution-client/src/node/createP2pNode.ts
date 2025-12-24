@@ -1,6 +1,6 @@
 import { defaultLogger } from '@libp2p/logger'
-import { P2PNode, P2PNode as P2PNodeType, rlpx } from '@ts-ethereum/p2p'
-import { ConfigOptions } from '../config/types'
+import { P2PNode, type P2PNode as P2PNodeType, rlpx } from '@ts-ethereum/p2p'
+import type { ConfigOptions } from '../config/types'
 import { dptDiscovery } from '../net/discovery/dpt-discovery'
 import { ETH } from '../net/protocol/eth/eth'
 

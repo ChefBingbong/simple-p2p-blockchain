@@ -1,10 +1,10 @@
 import {
-  KeyEncoding,
-  ValueEncoding,
   type BatchDBOp,
   type DB,
   type DBObject,
   type EncodingOpts,
+  KeyEncoding,
+  ValueEncoding,
 } from '@ts-ethereum/utils'
 import type { AbstractLevel } from 'abstract-level'
 import { MemoryLevel } from 'memory-level'

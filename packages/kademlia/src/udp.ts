@@ -9,8 +9,8 @@ import { EventEmitter } from 'eventemitter3'
 import { LRUCache } from 'lru-cache'
 
 import {
-  decode,
   type DecodedMessage,
+  decode,
   encode,
   type MessageTypeName,
 } from './message'

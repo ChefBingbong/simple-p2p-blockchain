@@ -83,7 +83,7 @@ export class EVM implements EVMInterface {
    * performance reasons to avoid string literal evaluation
    * @hidden
    */
-  readonly DEBUG: boolean = false
+  DEBUG = false
 
   protected readonly _emit: (
     topic: string,

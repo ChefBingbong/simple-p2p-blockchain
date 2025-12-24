@@ -1,5 +1,5 @@
 import type { Config } from '../config/index'
-import { NetworkCore } from './core/network-core'
+import type { NetworkCore } from './core/network-core'
 import type { Peer } from './peer/peer'
 
 /**

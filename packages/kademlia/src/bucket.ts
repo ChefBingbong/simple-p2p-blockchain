@@ -4,14 +4,13 @@
 // Based on k-bucket by Tristan Slominski (MIT License)
 // https://github.com/tristanls/k-bucket
 
-import { bytesToUnprefixedHex, equalsBytes, randomBytes } from '@ts-ethereum/utils'
+import {
+  bytesToUnprefixedHex,
+  equalsBytes,
+  randomBytes,
+} from '@ts-ethereum/utils'
 import { EventEmitter } from 'eventemitter3'
-import type {
-  Contact,
-  KBucketEvent,
-  KBucketOptions,
-  PeerInfo,
-} from './types'
+import type { Contact, KBucketEvent, KBucketOptions, PeerInfo } from './types'
 
 function createNode(): KBucketNode {
   return { contacts: [], noSplit: false, left: null, right: null }
@@ -147,12 +146,12 @@ export class KBucket {
   /**
    * Get the n closest contacts to the provided node id.
    */
-  closest(id: Uint8Array, n: number = Infinity): Contact[] {
+  closest(id: Uint8Array, n = Number.POSITIVE_INFINITY): Contact[] {
     if (!(id instanceof Uint8Array)) {
       throw new TypeError('id must be a Uint8Array')
     }
 
-    if ((!Number.isInteger(n) && n !== Infinity) || n <= 0) {
+    if ((!Number.isInteger(n) && n !== Number.POSITIVE_INFINITY) || n <= 0) {
       throw new TypeError('n is not positive number')
     }
 

@@ -1,8 +1,8 @@
 import { RLP } from '@ts-ethereum/rlp'
 
 import type {
-	BranchMPTNodeBranchValue,
-	NodeReferenceOrRawMPTNode,
+  BranchMPTNodeBranchValue,
+  NodeReferenceOrRawMPTNode,
 } from '../types'
 
 export class BranchMPTNode {

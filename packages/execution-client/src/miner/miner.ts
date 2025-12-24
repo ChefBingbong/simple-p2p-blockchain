@@ -6,11 +6,11 @@ import {
 } from '@ts-ethereum/consensus'
 import { BIGINT_0, BIGINT_1, bytesToHex } from '@ts-ethereum/utils'
 import { buildBlock, type TxReceipt } from '@ts-ethereum/vm'
-import { Chain } from '../blockchain/chain'
+import type { Chain } from '../blockchain/chain'
 import type { Config } from '../config/index'
 import type { VMExecution } from '../execution/index'
 import { IndexOperation, IndexType } from '../execution/txIndex'
-import { TxPool } from '../service/txpool'
+import type { TxPool } from '../service/txpool'
 import type { FullSynchronizer } from '../sync/index'
 import { Event } from '../types'
 

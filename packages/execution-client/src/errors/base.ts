@@ -103,10 +103,10 @@ export class ClientError extends Error {
   getBackoffMs(attemptCount: number): number {
     if (this.backoffMs) {
       // Exponential backoff: backoffMs * 2^attemptCount
-      return this.backoffMs * Math.pow(2, attemptCount)
+      return this.backoffMs * 2 ** attemptCount
     }
     // Default exponential backoff starting at 100ms
-    return 100 * Math.pow(2, attemptCount)
+    return 100 * 2 ** attemptCount
   }
 }
 

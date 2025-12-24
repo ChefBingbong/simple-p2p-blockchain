@@ -1,7 +1,7 @@
-import { bytesToHex, genPrivateKey, hexToBytes } from '@ts-ethereum/utils'
-import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { bytesToHex, genPrivateKey, hexToBytes } from '@ts-ethereum/utils'
+import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 
 export interface PrivateKeyInfo {
   privateKey: Uint8Array

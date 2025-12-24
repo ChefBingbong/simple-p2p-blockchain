@@ -1,4 +1,4 @@
-import { RpcMethodFn } from '../types'
+import type { RpcMethodFn } from '../types'
 
 export enum AdminRpcMethods {
   admin_addPeer = 'admin_addPeer',

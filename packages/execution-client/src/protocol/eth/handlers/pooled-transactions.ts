@@ -5,8 +5,8 @@
 
 import debug from 'debug'
 import {
-    ETH_MESSAGES,
-    EthMessageCode,
+  ETH_MESSAGES,
+  EthMessageCode,
 } from '../../../net/protocol/eth/definitions'
 import type { EthHandler } from '../handler'
 

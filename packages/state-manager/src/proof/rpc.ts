@@ -1,7 +1,6 @@
-import { bytesToHex, fetchFromProvider } from '@ts-ethereum/utils'
-
-import type { Proof, RPCStateManager } from '..'
 import type { Address } from '@ts-ethereum/utils'
+import { bytesToHex, fetchFromProvider } from '@ts-ethereum/utils'
+import type { Proof, RPCStateManager } from '..'
 
 /**
  * Get an EIP-1186 proof from the provider

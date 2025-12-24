@@ -3,12 +3,12 @@
  * https://github.com/hokaccha/node-jwt-simple -- MIT licensed
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto'
 /**
  * module dependencies
  */
-import { base64url, base64urlnopad } from '@scure/base'; // cspell:disable-line
-import { bytesToUtf8, utf8ToBytes } from '@ts-ethereum/utils';
+import { base64url, base64urlnopad } from '@scure/base' // cspell:disable-line
+import { bytesToUtf8, utf8ToBytes } from '@ts-ethereum/utils'
 
 /**
  * support algorithm mapping
@@ -41,7 +41,7 @@ const typeMap: Record<string, string> = {
 
 function assignProperties(dest: any, source: any) {
   for (const [attr] of Object.entries(source)) {
-    if (Object.prototype.hasOwnProperty.call(source, attr)) {
+    if (Object.hasOwn(source, attr)) {
       dest[attr] = source[attr]
     }
   }
@@ -107,8 +107,8 @@ function verify(
 const decode = function jwt_decode(
   token: string,
   key: string,
-  noVerify: boolean = false,
-  algorithm: string = '',
+  noVerify = false,
+  algorithm = '',
 ) {
   // check token
   if (!token) {
@@ -176,7 +176,7 @@ const decode = function jwt_decode(
 const encode = function jwt_encode(
   payload: any,
   key: string,
-  algorithm: string = '',
+  algorithm = '',
   options: any = undefined,
 ) {
   // Check key

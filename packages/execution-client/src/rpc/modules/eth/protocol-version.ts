@@ -1,5 +1,4 @@
-import { intToHex } from '@ts-ethereum/utils'
-import { safeResult } from '@ts-ethereum/utils'
+import { intToHex, safeResult } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
 import { createRpcMethod } from '../../validation'
 import { protocolVersionSchema } from './schema'

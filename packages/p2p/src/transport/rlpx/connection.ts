@@ -6,10 +6,6 @@
  */
 
 import type { Logger } from '@libp2p/interface'
-import debug from 'debug'
-import { EventEmitter } from 'eventemitter3'
-import type { Socket } from 'net'
-import * as snappy from 'snappyjs'
 // import type { Capabilities } from '../../../client/net/dpt-1/types'
 // import {
 //   DISCONNECT_REASON,
@@ -27,6 +23,10 @@ import {
   intToBytes,
   utf8ToBytes,
 } from '@ts-ethereum/utils'
+import debug from 'debug'
+import { EventEmitter } from 'eventemitter3'
+import type { Socket } from 'net'
+import * as snappy from 'snappyjs'
 // import type { Protocol } from '../../../client/net/protocol/protocol'
 import { ECIES } from '../../connection-encrypters/eccies/ecies'
 import type {
@@ -82,7 +82,6 @@ export const DisconnectReasonNames: { [key in DISCONNECT_REASON]: string } =
     },
     {} as { [key in DISCONNECT_REASON]: string },
   )
-
 
 /**
  * RLPx Connection - Manages ECIES encryption and Hello handshake
@@ -836,7 +835,9 @@ export class RLPxConnection extends EventEmitter<RLPxConnectionEvents> {
   /**
    * Disconnect from peer
    */
-  disconnect(reason: number = DISCONNECT_REASON.DISCONNECT_REQUESTED): void {
+  disconnect(
+    reason: DISCONNECT_REASON = DISCONNECT_REASON.DISCONNECT_REQUESTED,
+  ): void {
     this._sendDisconnect(reason)
   }
 

@@ -326,10 +326,7 @@ export const addHexPrefix = (str: string): PrefixedHexString => {
  * @param {number} maxLength
  * @return {string}
  */
-export const short = (
-  bytes: Uint8Array | string,
-  maxLength: number = 50,
-): string => {
+export const short = (bytes: Uint8Array | string, maxLength = 50): string => {
   const byteStr = bytes instanceof Uint8Array ? bytesToHex(bytes) : bytes
   const len = byteStr.slice(0, 2) === '0x' ? maxLength + 2 : maxLength
   if (byteStr.length <= len) {
@@ -398,7 +395,7 @@ export const bigIntToUnpaddedBytes = (value: bigint): Uint8Array => {
 
 export const bigIntToAddressBytes = (
   value: bigint,
-  strict: boolean = true,
+  strict = true,
 ): Uint8Array => {
   const addressBytes = bigIntToBytes(value)
   if (strict && addressBytes.length > 20) {
@@ -477,10 +474,7 @@ export const concatBytes = (
  * @param {boolean} littleEndian True for little-endian, undefined or false for big-endian.
  * @return {number} The 32-bit integer read from the input Uint8Array.
  */
-export function bytesToInt32(
-  bytes: Uint8Array,
-  littleEndian: boolean = false,
-): number {
+export function bytesToInt32(bytes: Uint8Array, littleEndian = false): number {
   if (bytes.length < 4) {
     bytes = setLength(bytes, 4, littleEndian)
   }
@@ -500,7 +494,7 @@ export function bytesToInt32(
  */
 export function bytesToBigInt64(
   bytes: Uint8Array,
-  littleEndian: boolean = false,
+  littleEndian = false,
 ): bigint {
   if (bytes.length < 8) {
     bytes = setLength(bytes, 8, littleEndian)
@@ -519,10 +513,7 @@ export function bytesToBigInt64(
  * @param {boolean} littleEndian True for little-endian, undefined or false for big-endian.
  * @return {Uint8Array} A Uint8Array of length 4 containing the integer.
  */
-export function int32ToBytes(
-  value: number,
-  littleEndian: boolean = false,
-): Uint8Array {
+export function int32ToBytes(value: number, littleEndian = false): Uint8Array {
   const buffer = new ArrayBuffer(4)
   const dataView = new DataView(buffer)
   dataView.setUint32(0, value, littleEndian)
@@ -537,7 +528,7 @@ export function int32ToBytes(
  */
 export function bigInt64ToBytes(
   value: bigint,
-  littleEndian: boolean = false,
+  littleEndian = false,
 ): Uint8Array {
   const buffer = new ArrayBuffer(8)
   const dataView = new DataView(buffer)

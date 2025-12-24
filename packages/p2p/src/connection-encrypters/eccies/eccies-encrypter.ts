@@ -1,11 +1,11 @@
+import type crypto from 'node:crypto'
+import type { Socket } from 'node:net'
 import { concatBytes, genPrivateKey, id2pk } from '@ts-ethereum/utils'
 import debug from 'debug'
 import { getRandomBytesSync } from 'ethereum-cryptography/random'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1'
-import crypto from 'node:crypto'
-import type { Socket } from 'node:net'
 import { sendAuthGetAck, waitAuthSendAck } from './handlers'
-import { MAC } from './mac'
+import type { MAC } from './mac'
 import type { ConnectionEncrypter } from './types'
 import { type HandlerContext, setupFrame } from './utils'
 
@@ -70,10 +70,7 @@ export class EcciesEncrypter implements ConnectionEncrypter {
     return this.createResult()
   }
 
-  async secureOutBound(
-    socket: Socket,
-    remotePeerId?: Uint8Array,
-  ) {
+  async secureOutBound(socket: Socket, remotePeerId?: Uint8Array) {
     this.remotePublicKey = id2pk(remotePeerId as Uint8Array)
     this.socket = socket
     const ctx = this.createContext()

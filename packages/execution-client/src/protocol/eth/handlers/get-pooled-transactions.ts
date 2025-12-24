@@ -6,8 +6,8 @@
 import type { TypedTransaction } from '@ts-ethereum/tx'
 import debug from 'debug'
 import {
-    ETH_MESSAGES,
-    EthMessageCode,
+  ETH_MESSAGES,
+  EthMessageCode,
 } from '../../../net/protocol/eth/definitions'
 import type { EthHandler } from '../handler'
 
@@ -23,14 +23,15 @@ export async function handleGetPooledTransactions(
 ): Promise<void> {
   try {
     // Payload is already decoded: [reqId, hashes]
-    const decoded =
-      ETH_MESSAGES[EthMessageCode.GET_POOLED_TRANSACTIONS].decode(payload as any)
+    const decoded = ETH_MESSAGES[EthMessageCode.GET_POOLED_TRANSACTIONS].decode(
+      payload as any,
+    )
     const { reqId, hashes } = decoded
 
     log('GET_POOLED_TRANSACTIONS: reqId=%d, hashes=%d', reqId, hashes.length)
 
     // Get transactions from tx pool via context
-    let txs: TypedTransaction[] = []
+    const txs: TypedTransaction[] = []
     if (handler.context?.txPool) {
       for (const hash of hashes) {
         const tx = handler.context.txPool.getByHash([hash])

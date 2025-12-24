@@ -1,12 +1,12 @@
 import { createBlock } from '@ts-ethereum/block'
 import { createTx } from '@ts-ethereum/tx'
 import {
-	BIGINT_1,
-	createAddressFromString,
-	createZeroAddress,
-	EthereumJSErrorWithoutCode,
+  BIGINT_1,
+  createAddressFromString,
+  createZeroAddress,
+  EthereumJSErrorWithoutCode,
+  safeResult,
 } from '@ts-ethereum/utils'
-import { safeResult } from '@ts-ethereum/utils'
 import type { VM } from '@ts-ethereum/vm'
 import { runTx } from '@ts-ethereum/vm'
 import type { ExecutionNode } from '../../../node/index'

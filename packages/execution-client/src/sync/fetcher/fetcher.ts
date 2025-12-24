@@ -4,7 +4,7 @@ import { Readable, Writable } from 'stream'
 import type { Config } from '../../config/index'
 import type { QHeap } from '../../ext/qheap'
 import { Heap } from '../../ext/qheap'
-import { NetworkCore } from '../../net/core/network-core'
+import type { NetworkCore } from '../../net/core/network-core'
 import type { Peer } from '../../net/peer/index'
 import type { PeerPoolLike } from '../../net/peerpool-types'
 import { Event } from '../../types'
@@ -309,7 +309,7 @@ export abstract class Fetcher<
     dequeued?: boolean,
     banPeer?: boolean,
   ) {
-    const jobItems = job instanceof Array ? job : [job]
+    const jobItems = Array.isArray(job) ? job : [job]
     if (irrecoverable === true || banPeer === true) {
       this.pool.banPeer(jobItems[0].peer!, this.banTime)
     }
@@ -474,7 +474,7 @@ export abstract class Fetcher<
       encoding: string | null,
       cb: Function,
     ) => {
-      const jobItems = job instanceof Array ? job : [job]
+      const jobItems = Array.isArray(job) ? job : [job]
       this.DEBUG && this.debug(`Starting write for ${jobItems.length} jobs...`)
       try {
         for (const jobItem of jobItems) {

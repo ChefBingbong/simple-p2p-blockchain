@@ -1,11 +1,12 @@
 import type {
   AccessEventFlags,
-  BinaryTreeAccessWitnessInterface,
   BinaryTreeAccessedState,
   BinaryTreeAccessedStateWithAddress,
+  BinaryTreeAccessWitnessInterface,
   RawBinaryTreeAccessedState,
 } from '@ts-ethereum/chain-config'
 import { BinaryTreeAccessedStateType } from '@ts-ethereum/chain-config'
+import type { Address, PrefixedHexString } from '@ts-ethereum/utils'
 import {
   BIGINT_0,
   BINARY_TREE_BASIC_DATA_LEAF_KEY,
@@ -19,15 +20,9 @@ import {
   getBinaryTreeIndicesForStorageSlot,
   getBinaryTreeKey,
   getBinaryTreeStem,
-  intToBytes
+  intToBytes,
 } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
-
-
-import type {
-  Address,
-  PrefixedHexString
-} from '@ts-ethereum/utils'
 import { ChunkCache } from './chunkCache'
 import { StemCache } from './stemCache'
 
@@ -276,10 +271,10 @@ export class BinaryTreeAccessWitness
     subIndex: number | Uint8Array,
     { isWrite }: { isWrite?: boolean } = {},
   ): AccessEventFlags {
-    let stemRead = false,
-      stemWrite = false,
-      chunkRead = false,
-      chunkWrite = false
+    let stemRead = false
+    let stemWrite = false
+    let chunkRead = false
+    let chunkWrite = false
     // currently there are no gas charges for setting the chunk for the first time
     // i.e. no fill cost is charged right now
     const chunkFill = false
@@ -379,10 +374,10 @@ export class BinaryTreeAccessWitness
 
   debugWitnessCost(): void {
     // Calculate the aggregate gas cost for binary access witness per type
-    let stemReads = 0,
-      stemWrites = 0,
-      chunkReads = 0,
-      chunkWrites = 0
+    let stemReads = 0
+    let stemWrites = 0
+    let chunkReads = 0
+    let chunkWrites = 0
 
     for (const [_, { write }] of this.stems.entries()) {
       stemReads++

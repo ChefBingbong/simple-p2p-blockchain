@@ -1,2 +1,1 @@
-export * from './checkpointDB';
-
+export * from './checkpointDB'

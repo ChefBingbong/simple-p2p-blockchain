@@ -1,7 +1,7 @@
 import type { HeaderData } from '@ts-ethereum/block'
 import { Block, BlockHeader, createBlock } from '@ts-ethereum/block'
 import type { GenesisState } from '@ts-ethereum/chain-config'
-import { Common, ConsensusAlgorithm } from '@ts-ethereum/chain-config'
+import { type Common, ConsensusAlgorithm } from '@ts-ethereum/chain-config'
 import { Ethash } from '@ts-ethereum/consensus'
 import type { BigIntLike, DB, DBObject } from '@ts-ethereum/utils'
 import {
@@ -58,7 +58,7 @@ export class Blockchain implements BlockchainInterface {
   events: EventEmitter<BlockchainEvent>
 
   private _genesisBlock?: Block /** The genesis block of this blockchain */
-  private _customGenesisState?: GenesisState /** Custom genesis state */
+  public _customGenesisState?: GenesisState /** Custom genesis state */
 
   /**
    * The following two heads and the heads stored within the `_heads` always point
@@ -219,10 +219,7 @@ export class Blockchain implements BlockchainInterface {
     })
   }
 
-  private async getHead(
-    name: string,
-    returnUndefinedIfNotSet: boolean = false,
-  ) {
+  private async getHead(name: string, returnUndefinedIfNotSet = false) {
     const headHash = this._heads[name]
     if (headHash === undefined && returnUndefinedIfNotSet) {
       return undefined
@@ -758,7 +755,7 @@ export class Blockchain implements BlockchainInterface {
    * Therefore, the array needs to be ordered upon number.
    * @param hashes - Ordered array of hashes (ordered on `number`).
    */
-  async selectNeededHashes(hashes: Array<Uint8Array>): Promise<Uint8Array[]> {
+  async selectNeededHashes(hashes: Uint8Array[]): Promise<Uint8Array[]> {
     return this.runWithLock<Uint8Array[]>(async () => {
       let max: number
       let mid: number
@@ -1185,7 +1182,7 @@ export class Blockchain implements BlockchainInterface {
         break
       }
 
-      DBSaveLookups(blockHash, blockNumber).map((op) => {
+      DBSaveLookups(blockHash, blockNumber).forEach((op) => {
         ops.push(op)
       })
 

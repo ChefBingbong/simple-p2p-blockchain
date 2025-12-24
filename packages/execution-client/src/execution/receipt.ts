@@ -5,8 +5,8 @@ import {
   bigIntToBytes,
   bytesToBigInt,
   bytesToInt,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   intToBytes,
   utf8ToBytes,
 } from '@ts-ethereum/utils'

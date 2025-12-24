@@ -15,8 +15,8 @@ import {
   BIGINT_0,
   BIGINT_1,
   bytesToHex,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   hexToBytes,
   Lock,
   type PrefixedHexString,
@@ -24,8 +24,8 @@ import {
 } from '@ts-ethereum/utils'
 import {
   createVM,
-  runBlock,
   type RunBlockOpts,
+  runBlock,
   runTx,
   type TxReceipt,
   type VM,
@@ -547,7 +547,7 @@ export class VMExecution extends Execution {
         // 1. await the run so as to switch this.running to false even in case of errors
         // 2. run inside a lock so as to not be entangle with runWithoutSetHead or setHead
         this.running = true
-        let numExecuted: number | null | undefined = undefined
+        let numExecuted: number | null | undefined
 
         let startHeadBlock = await this.chain.blockchain.getIteratorHead()
         await this.checkAndReset(startHeadBlock)
@@ -1001,8 +1001,7 @@ export class VMExecution extends Execution {
     if (this._statsVM instanceof MerkleStateManager) {
       const sm = this._statsVM.stateManager as MerkleStateManager
       const deactivatedStats = { size: 0, reads: 0, hits: 0, writes: 0 }
-      let stats
-      stats = sm['_caches']?.account?.stats() ?? deactivatedStats
+      const stats = sm['_caches']?.account?.stats() ?? deactivatedStats
       this.config.options.logger?.info(
         `Account cache stats size=${stats.size} reads=${stats.reads} hits=${stats.hits} writes=${stats.writes}`,
       )

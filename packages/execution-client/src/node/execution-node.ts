@@ -1,6 +1,6 @@
 import type { HealthCheckFn, HttpMetricsServer } from '@ts-ethereum/metrics'
 import { getHttpMetricsServer } from '@ts-ethereum/metrics'
-import { P2PNode as P2PNodeType } from '@ts-ethereum/p2p'
+import type { P2PNode as P2PNodeType } from '@ts-ethereum/p2p'
 import { Chain } from '../blockchain/index'
 import type { Config } from '../config/index'
 import { ExecutionService } from '../execution/execution-service'

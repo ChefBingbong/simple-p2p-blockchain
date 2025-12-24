@@ -29,28 +29,32 @@
  * ```
  */
 
-// Transport
-export { rlpxLibp2p, RLPxTransport } from './transport'
-
-// Listener
-export { RLPxListener } from './listener'
-export type { RLPxListenerEvents } from './listener'
-
 // Connection and Adapter
 export { RLPxConnection } from './connection'
 export { RLPxConnectionAdapter } from './connection-adapter'
+export type { RLPxListenerEvents } from './listener'
+// Listener
+export { RLPxListener } from './listener'
+// Transport
+export { RLPxTransport, rlpxLibp2p } from './transport'
 // Types
 export type {
-	CloseServerOnMaxConnectionsOpts, HelloMessage,
-	ProtocolDescriptor, RLPxComponents, RLPxConnectionEvents,
-	// Connection options and types
-	RLPxConnectionOptions, RLPxConnectionState,
-	// Listener options
-	RLPxCreateListenerOptions, RLPxDialEvents,
-	// Dial options
-	RLPxDialOptions, RLPxMetrics, RLPxPrefix, RLPxSocketOptions,
-	// Transport options
-	RLPxTransportOptions
+  CloseServerOnMaxConnectionsOpts,
+  HelloMessage,
+  ProtocolDescriptor,
+  RLPxComponents,
+  RLPxConnectionEvents,
+  // Connection options and types
+  RLPxConnectionOptions,
+  RLPxConnectionState,
+  // Listener options
+  RLPxCreateListenerOptions,
+  RLPxDialEvents,
+  // Dial options
+  RLPxDialOptions,
+  RLPxMetrics,
+  RLPxPrefix,
+  RLPxSocketOptions,
+  // Transport options
+  RLPxTransportOptions,
 } from './types'
-
-

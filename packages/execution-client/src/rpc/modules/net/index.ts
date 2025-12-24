@@ -1,2 +1,1 @@
-export * from './net';
-
+export * from './net'

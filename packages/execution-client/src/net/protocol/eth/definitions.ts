@@ -1,5 +1,5 @@
 import {
-  Block,
+  type Block,
   type BlockBodyBytes,
   type BlockBytes,
   type BlockHeader,

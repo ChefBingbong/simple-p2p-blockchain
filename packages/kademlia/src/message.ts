@@ -1,6 +1,7 @@
 // src/kademlia/message.ts
 // RLP-encoded, secp256k1-signed message encoding for Ethereum-compatible discovery protocol
 
+import type { Common } from '@ts-ethereum/chain-config'
 import { RLP } from '@ts-ethereum/rlp'
 import {
   bigIntToBytes,
@@ -16,8 +17,6 @@ import debugDefault from 'debug'
 import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1'
 import { ecdsaRecover } from 'ethereum-cryptography/secp256k1-compat.js'
-
-import type { Common } from '@ts-ethereum/chain-config'
 import type { PeerInfo } from './types'
 
 const debug = debugDefault('kad:message')
@@ -76,7 +75,7 @@ export function ipToString(
   length = length ?? bytes.length - offset
 
   const tempArray: Array<number | string> = []
-  let result: string = ''
+  let result = ''
   if (length === 4) {
     // IPv4
     for (let i = 0; i < length; i++) {
@@ -101,7 +100,7 @@ export function ipToString(
 export function ipToBytes(
   ip: string,
   bytes?: Uint8Array,
-  offset: number = 0,
+  offset = 0,
 ): Uint8Array {
   offset = ~~offset
 
@@ -109,8 +108,8 @@ export function ipToBytes(
 
   if (isV4Format(ip)) {
     result = bytes ?? new Uint8Array(offset + 4)
-    ip.split(/\./g).map((byte) => {
-      result[offset++] = parseInt(byte, 10) & 0xff
+    ip.split(/\./g).forEach((byte) => {
+      result[offset++] = Number.parseInt(byte, 10) & 0xff
     })
   } else if (isV6Format(ip)) {
     const sections = ip.split(':', 8)
@@ -145,7 +144,7 @@ export function ipToBytes(
 
     result = bytes ?? new Uint8Array(offset + 16)
     for (i = 0; i < sections.length; i++) {
-      const word = parseInt(sections[i], 16)
+      const word = Number.parseInt(sections[i], 16)
       result[offset++] = (word >> 8) & 0xff
       result[offset++] = word & 0xff
     }
@@ -413,6 +412,5 @@ export type {
   OutFindNeighbours as FindNeighboursData,
   InNeighbours as NeighboursData,
   OutPing as PingData,
-  OutPong as PongData
+  OutPong as PongData,
 }
-

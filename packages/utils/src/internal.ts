@@ -140,7 +140,7 @@ export function toAscii(hex: string): string {
   if (hex.substring(0, 2) === '0x') i = 2
 
   for (; i < l; i += 2) {
-    const code = parseInt(hex.substr(i, 2), 16)
+    const code = Number.parseInt(hex.substr(i, 2), 16)
     str += String.fromCharCode(code)
   }
 

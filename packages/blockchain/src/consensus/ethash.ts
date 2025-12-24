@@ -1,8 +1,8 @@
-import type { Debugger } from 'debug'
-import debugDefault from 'debug'
 import type { Block, BlockHeader } from '@ts-ethereum/block'
 import { ConsensusAlgorithm } from '@ts-ethereum/chain-config'
 import { bytesToHex } from '@ts-ethereum/utils'
+import type { Debugger } from 'debug'
+import debugDefault from 'debug'
 import type { Blockchain } from '../index'
 import type { Consensus, ConsensusOptions } from '../types'
 

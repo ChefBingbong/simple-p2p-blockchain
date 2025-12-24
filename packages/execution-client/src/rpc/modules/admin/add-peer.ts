@@ -1,6 +1,6 @@
 import { safeError, safeResult, safeTry } from '@ts-ethereum/utils'
 import z from 'zod'
-import { DPT } from '../../../net/dpt-1/index'
+import type { DPT } from '../../../net/dpt-1/index'
 import type { ExecutionNode } from '../../../node/index'
 // RPC admin addPeer - TODO: Update for P2P architecture
 // import { P2PPeer } from "../../../net/peer/p2p-peer.ts";

@@ -1,4 +1,4 @@
-import type { RegistryMetricCreator } from '../utils/registryMetricCreator';
+import type { RegistryMetricCreator } from '../utils/registryMetricCreator'
 
 export type RPCMetrics = ReturnType<typeof createRPCMetrics>
 

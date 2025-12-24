@@ -469,9 +469,10 @@ export class ETH extends Protocol {
       td: this._peerStatus[2] as Uint8Array,
       bestHash: this._peerStatus[3] as Uint8Array,
       genesisHash: this._peerStatus[4] as Uint8Array,
-      forkId: this._version >= 64 && this._peerStatus[5]
-        ? (this._peerStatus[5] as Uint8Array[])
-        : undefined,
+      forkId:
+        this._version >= 64 && this._peerStatus[5]
+          ? (this._peerStatus[5] as Uint8Array[])
+          : undefined,
     }
 
     return this.decodeStatus(status)

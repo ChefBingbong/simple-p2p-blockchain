@@ -4,8 +4,7 @@ export * from './header/index'
 export {
   genTransactionsTrieRoot,
   getDifficulty,
-  valuesArrayToHeaderData
+  valuesArrayToHeaderData,
 } from './helpers'
 export * from './params'
 export * from './types'
-

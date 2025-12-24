@@ -1,4 +1,4 @@
-import { Multiaddr, multiaddr } from '@multiformats/multiaddr'
+import { type Multiaddr, multiaddr } from '@multiformats/multiaddr'
 
 const isIPv4 = (ip: string): boolean => {
   return ipv4Regex.test(ip)
@@ -21,10 +21,10 @@ export function ipPortToMultiaddr(
   }
 
   if (typeof port === 'string') {
-    port = parseInt(port)
+    port = Number.parseInt(port)
   }
 
-  if (isNaN(port)) {
+  if (Number.isNaN(port)) {
     throw new Error(`invalid port provided: ${port}`)
   }
 

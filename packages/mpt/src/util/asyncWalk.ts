@@ -1,10 +1,8 @@
 import { RLP } from '@ts-ethereum/rlp'
 import { bytesToHex, equalsBytes } from '@ts-ethereum/utils'
-
+import type { MerklePatriciaTrie } from '../mpt'
 import { BranchMPTNode } from '../node/branch'
 import { ExtensionMPTNode } from '../node/extension'
-
-import type { MerklePatriciaTrie } from '../mpt'
 import type { MPTNode } from '../types'
 
 export type NodeFilter = (node: MPTNode, key: number[]) => Promise<boolean>

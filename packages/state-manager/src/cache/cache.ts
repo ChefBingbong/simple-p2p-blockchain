@@ -23,7 +23,7 @@ export class Cache {
 	 * performance reasons to avoid string literal evaluation
 	 * @hidden
 	 */
-	protected readonly DEBUG: boolean = false;
+	protected DEBUG = false;
 
 	constructor() {
 		// Skip DEBUG calls unless 'ethjs' included in environmental DEBUG variables

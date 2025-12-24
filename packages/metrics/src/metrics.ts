@@ -1,19 +1,19 @@
-import { Metric, Registry } from 'prom-client'
-import { ChainMetrics, createChainMetrics } from './metrics/chain'
-import { createErrorMetrics, ErrorMetrics } from './metrics/errors'
+import type { Metric, Registry } from 'prom-client'
+import { type ChainMetrics, createChainMetrics } from './metrics/chain'
+import { createErrorMetrics, type ErrorMetrics } from './metrics/errors'
 import {
   createExecutionMetrics,
-  ExecutionMetrics,
+  type ExecutionMetrics,
 } from './metrics/execution'
-import { createMinerMetrics, MinerMetrics } from './metrics/miner'
-import { createNetworkMetrics, NetworkMetrics } from './metrics/network'
+import { createMinerMetrics, type MinerMetrics } from './metrics/miner'
+import { createNetworkMetrics, type NetworkMetrics } from './metrics/network'
 import { createPrometheusMetrics } from './metrics/prometheus'
-import { createRPCMetrics, RPCMetrics } from './metrics/rpc'
-import { createSyncMetrics, SyncMetrics } from './metrics/sync'
-import { createSystemMetrics, SystemMetrics } from './metrics/system'
-import { createTxPoolMetrics, TxPoolMetrics } from './metrics/txPool'
+import { createRPCMetrics, type RPCMetrics } from './metrics/rpc'
+import { createSyncMetrics, type SyncMetrics } from './metrics/sync'
+import { createSystemMetrics, type SystemMetrics } from './metrics/system'
+import { createTxPoolMetrics, type TxPoolMetrics } from './metrics/txPool'
 import { collectNodeJSMetrics } from './nodeJsMetrics'
-import { MetricsOptions } from './options'
+import type { MetricsOptions } from './options'
 import { RegistryMetricCreator } from './utils/registryMetricCreator'
 
 export type Metrics = {

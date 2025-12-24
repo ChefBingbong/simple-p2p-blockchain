@@ -3,7 +3,7 @@
  * Processes incoming NEW_BLOCK announcements
  */
 
-import { Block } from '@ts-ethereum/block'
+import type { Block } from '@ts-ethereum/block'
 import debug from 'debug'
 import {
   ETH_MESSAGES,

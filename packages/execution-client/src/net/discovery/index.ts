@@ -1,7 +1,10 @@
-export { DPTDiscovery, dptDiscovery } from './dpt-discovery'
-export { DPTDiscoveryLibp2p, dptDiscoveryLibp2p, type DPTDiscoveryLibp2pComponents } from './dpt-discovery-libp2p'
 export type {
-	DPTDiscoveryComponents,
-	DPTDiscoveryInit
+  DPTDiscoveryComponents,
+  DPTDiscoveryInit,
 } from './dpt-discovery'
-
+export { DPTDiscovery, dptDiscovery } from './dpt-discovery'
+export {
+  DPTDiscoveryLibp2p,
+  type DPTDiscoveryLibp2pComponents,
+  dptDiscoveryLibp2p,
+} from './dpt-discovery-libp2p'

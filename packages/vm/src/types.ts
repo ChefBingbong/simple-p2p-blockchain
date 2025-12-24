@@ -1,5 +1,9 @@
 import type { Block, BlockOptions, HeaderData } from '@ts-ethereum/block'
-import type { Common, ParamsDict, StateManagerInterface } from '@ts-ethereum/chain-config'
+import type {
+  Common,
+  ParamsDict,
+  StateManagerInterface,
+} from '@ts-ethereum/chain-config'
 import type {
   EVMInterface,
   EVMMockBlockchainInterface,

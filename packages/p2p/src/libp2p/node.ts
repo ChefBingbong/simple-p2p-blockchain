@@ -11,30 +11,30 @@ import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { setMaxListeners, TypedEventEmitter } from 'main-event'
 import { type AddressManager, createAddressManager } from './address-manager'
 import {
-	type ConnectionManager,
-	createConnectionManager,
+  type ConnectionManager,
+  createConnectionManager,
 } from './connection-manager'
 import { createRegistrar, type Registrar } from './registrar'
 import {
-	createTransportManager,
-	type TransportManager,
+  createTransportManager,
+  type TransportManager,
 } from './transport-manager'
 import type {
-	AbortOptions,
-	ComponentLogger,
-	Connection,
-	P2PNodeComponents,
-	P2PNodeEvents,
-	P2PNodeInit,
-	P2PNode as P2PNodeInterface,
-	P2PNodeStatus,
-	PeerDiscovery,
-	PeerId,
-	PeerInfo,
-	StreamHandler,
-	StreamHandlerOptions,
-	Topology,
-	TransportManagerDialOptions,
+  AbortOptions,
+  ComponentLogger,
+  Connection,
+  P2PNodeComponents,
+  P2PNodeEvents,
+  P2PNodeInit,
+  P2PNode as P2PNodeInterface,
+  P2PNodeStatus,
+  PeerDiscovery,
+  PeerId,
+  PeerInfo,
+  StreamHandler,
+  StreamHandlerOptions,
+  Topology,
+  TransportManagerDialOptions,
 } from './types'
 import { peerIdEquals, peerIdToString } from './types'
 
@@ -111,7 +111,7 @@ export class P2PNode
       )
       return internalResult || externalResult
     }
-    setMaxListeners(Infinity, events)
+    setMaxListeners(Number.POSITIVE_INFINITY, events)
 
     // Create address manager first (needed by transport manager)
     // We'll set the transport manager reference after creating it

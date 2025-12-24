@@ -2,7 +2,7 @@ import type { BlockHeader } from '@ts-ethereum/block'
 import { BIGINT_0, BIGINT_1, short } from '@ts-ethereum/utils'
 import { EventEmitter } from 'eventemitter3'
 import type { Config } from '../../config/config'
-import { EthHandler } from '../../protocol/eth'
+import type { EthHandler } from '../../protocol/eth'
 
 export interface PeerOptions {
   /* Config */

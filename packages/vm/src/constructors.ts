@@ -1,5 +1,5 @@
-import { Common } from '@ts-ethereum/chain-config'
-import { EVMMockBlockchain, createEVM } from '@ts-ethereum/evm'
+import type { Common } from '@ts-ethereum/chain-config'
+import { createEVM, EVMMockBlockchain } from '@ts-ethereum/evm'
 import { MerkleStateManager } from '@ts-ethereum/state-manager'
 import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
 import type { VMOpts } from './types'

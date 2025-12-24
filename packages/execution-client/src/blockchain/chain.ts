@@ -1,15 +1,15 @@
 import {
-  Block,
-  BlockHeader,
+  type Block,
+  type BlockHeader,
   createBlockFromBytesArray,
   createBlockHeaderFromBytesArray,
 } from '@ts-ethereum/block'
 import {
-  Blockchain,
+  type Blockchain,
   type ConsensusDict,
   createBlockchain,
 } from '@ts-ethereum/blockchain'
-import { type GenesisState } from '@ts-ethereum/chain-config'
+import type { GenesisState } from '@ts-ethereum/chain-config'
 import {
   BIGINT_0,
   type DB,

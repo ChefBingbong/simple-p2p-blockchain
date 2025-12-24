@@ -3,11 +3,9 @@ import {
   EthereumJSErrorWithoutCode,
   validateNoLeadingZeroes,
 } from '@ts-ethereum/utils'
-
-import { LegacyTx } from './tx'
-
 import type { TxOptions } from '../types'
 import type { TxData, TxValuesArray } from './tx'
+import { LegacyTx } from './tx'
 
 /**
  * Instantiate a transaction from a data dictionary.

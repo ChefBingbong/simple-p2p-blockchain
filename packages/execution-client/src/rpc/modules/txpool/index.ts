@@ -1,2 +1,1 @@
-export * from './txpool';
-
+export * from './txpool'

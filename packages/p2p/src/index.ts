@@ -3,11 +3,9 @@
 
 // Stream abstractions
 
-// Transport layer
-export * from './transport'
-
 // Connection encryption
 export * from './connection-encrypters'
-
 // Connection management
 export * from './libp2p'
+// Transport layer
+export * from './transport'

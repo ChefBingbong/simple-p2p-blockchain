@@ -408,9 +408,9 @@ export function createPartialAccountFromRLP(serialized: Uint8Array) {
 /**
  * Checks if the address is a valid. Accepts checksummed addresses too.
  */
-export const isValidAddress = function (
+export const isValidAddress = (
   hexAddress: string,
-): hexAddress is PrefixedHexString {
+): hexAddress is PrefixedHexString => {
   try {
     assertIsString(hexAddress)
   } catch {
@@ -432,10 +432,10 @@ export const isValidAddress = function (
  * [EIP-55](https://eips.ethereum.org/EIPS/eip-55), so this will break in existing applications.
  * Usage of this EIP is therefore discouraged unless you have a very targeted use case.
  */
-export const toChecksumAddress = function (
+export const toChecksumAddress = (
   hexAddress: string,
   eip1191ChainId?: BigIntLike,
-): PrefixedHexString {
+): PrefixedHexString => {
   assertIsHexString(hexAddress)
   const address = stripHexPrefix(hexAddress).toLowerCase()
 
@@ -450,7 +450,7 @@ export const toChecksumAddress = function (
   let ret = ''
 
   for (let i = 0; i < address.length; i++) {
-    if (parseInt(hash[i], 16) >= 8) {
+    if (Number.parseInt(hash[i], 16) >= 8) {
       ret += address[i].toUpperCase()
     } else {
       ret += address[i]
@@ -465,25 +465,22 @@ export const toChecksumAddress = function (
  *
  * See toChecksumAddress' documentation for details about the eip1191ChainId parameter.
  */
-export const isValidChecksumAddress = function (
+export const isValidChecksumAddress = (
   hexAddress: string,
   eip1191ChainId?: BigIntLike,
-): boolean {
-  return (
-    isValidAddress(hexAddress) &&
-    toChecksumAddress(hexAddress, eip1191ChainId) === hexAddress
-  )
-}
+): boolean =>
+  isValidAddress(hexAddress) &&
+  toChecksumAddress(hexAddress, eip1191ChainId) === hexAddress
 
 /**
  * Generates an address of a newly created contract.
  * @param from The address which is creating this new address
  * @param nonce The nonce of the from account
  */
-export const generateAddress = function (
+export const generateAddress = (
   from: Uint8Array,
   nonce: Uint8Array,
-): Uint8Array {
+): Uint8Array => {
   assertIsBytes(from)
   assertIsBytes(nonce)
 
@@ -503,11 +500,11 @@ export const generateAddress = function (
  * @param salt A salt
  * @param initCode The init code of the contract being created
  */
-export const generateAddress2 = function (
+export const generateAddress2 = (
   from: Uint8Array,
   salt: Uint8Array,
   initCode: Uint8Array,
-): Uint8Array {
+): Uint8Array => {
   assertIsBytes(from)
   assertIsBytes(salt)
   assertIsBytes(initCode)
@@ -529,9 +526,8 @@ export const generateAddress2 = function (
 /**
  * Checks if the private key satisfies the rules of the curve secp256k1.
  */
-export const isValidPrivate = function (privateKey: Uint8Array): boolean {
-  return secp256k1.utils.isValidPrivateKey(privateKey)
-}
+export const isValidPrivate = (privateKey: Uint8Array): boolean =>
+  secp256k1.utils.isValidPrivateKey(privateKey)
 
 /**
  * Checks if the public key satisfies the rules of the curve secp256k1
@@ -539,10 +535,10 @@ export const isValidPrivate = function (privateKey: Uint8Array): boolean {
  * @param publicKey The two points of an uncompressed key, unless sanitize is enabled
  * @param sanitize Accept public keys in other formats
  */
-export const isValidPublic = function (
+export const isValidPublic = (
   publicKey: Uint8Array,
-  sanitize: boolean = false,
-): boolean {
+  sanitize = false,
+): boolean => {
   assertIsBytes(publicKey)
   if (publicKey.length === 64) {
     // Convert to SEC1 for secp256k1
@@ -575,10 +571,10 @@ export const isValidPublic = function (
  * @param pubKey The two points of an uncompressed key, unless sanitize is enabled
  * @param sanitize Accept public keys in other formats
  */
-export const pubToAddress = function (
+export const pubToAddress = (
   pubKey: Uint8Array,
-  sanitize: boolean = false,
-): Uint8Array {
+  sanitize = false,
+): Uint8Array => {
   assertIsBytes(pubKey)
   if (sanitize && pubKey.length !== 64) {
     pubKey = secp256k1.ProjectivePoint.fromHex(pubKey)
@@ -597,7 +593,7 @@ export const publicToAddress = pubToAddress
  * Returns the ethereum public key of a given private key.
  * @param privateKey A private key must be 256 bits wide
  */
-export const privateToPublic = function (privateKey: Uint8Array): Uint8Array {
+export const privateToPublic = (privateKey: Uint8Array): Uint8Array => {
   assertIsBytes(privateKey)
   // skip the type flag and use the X, Y points
   return secp256k1.ProjectivePoint.fromPrivateKey(privateKey)
@@ -609,14 +605,13 @@ export const privateToPublic = function (privateKey: Uint8Array): Uint8Array {
  * Returns the ethereum address of a given private key.
  * @param privateKey A private key must be 256 bits wide
  */
-export const privateToAddress = function (privateKey: Uint8Array): Uint8Array {
-  return publicToAddress(privateToPublic(privateKey))
-}
+export const privateToAddress = (privateKey: Uint8Array): Uint8Array =>
+  publicToAddress(privateToPublic(privateKey), false)
 
 /**
  * Converts a public key to the Ethereum format.
  */
-export const importPublic = function (publicKey: Uint8Array): Uint8Array {
+export const importPublic = (publicKey: Uint8Array): Uint8Array => {
   assertIsBytes(publicKey)
   if (publicKey.length !== 64) {
     publicKey = secp256k1.ProjectivePoint.fromHex(publicKey)
@@ -629,14 +624,13 @@ export const importPublic = function (publicKey: Uint8Array): Uint8Array {
 /**
  * Returns the zero address.
  */
-export const zeroAddress = function (): PrefixedHexString {
-  return bytesToHex(new Uint8Array(20))
-}
+export const zeroAddress = (): PrefixedHexString =>
+  bytesToHex(new Uint8Array(20))
 
 /**
  * Checks if a given address is the zero address.
  */
-export const isZeroAddress = function (hexAddress: string): boolean {
+export const isZeroAddress = (hexAddress: string): boolean => {
   try {
     assertIsString(hexAddress)
   } catch {

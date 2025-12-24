@@ -1,29 +1,23 @@
+import type { Block, HeaderData } from '@ts-ethereum/block'
 import { createBlock, genTransactionsTrieRoot } from '@ts-ethereum/block'
 import { ConsensusType } from '@ts-ethereum/chain-config'
 import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import { RLP } from '@ts-ethereum/rlp'
+import type { TypedTransaction } from '@ts-ethereum/tx'
 import {
   Address,
   BIGINT_0,
   BIGINT_1,
+  createZeroAddress,
   EthereumJSErrorWithoutCode,
   KECCAK256_RLP,
   TypeOutput,
-  createZeroAddress,
   toBytes,
   toType,
 } from '@ts-ethereum/utils'
-
 import { runTx } from '.'
 import { Bloom } from './bloom'
-import {
-  calculateMinerReward,
-  encodeReceipt,
-  rewardAccount,
-} from './runBlock'
-
-import type { Block, HeaderData } from '@ts-ethereum/block'
-import type { TypedTransaction } from '@ts-ethereum/tx'
+import { calculateMinerReward, encodeReceipt, rewardAccount } from './runBlock'
 import type {
   BuildBlockOpts,
   BuilderOpts,

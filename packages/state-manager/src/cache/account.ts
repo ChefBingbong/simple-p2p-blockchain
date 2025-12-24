@@ -1,7 +1,7 @@
 import { OrderedMap } from "@js-sdsl/ordered-map";
+import { bytesToUnprefixedHex } from "@ts-ethereum/utils";
 import debugDefault from "debug";
 import { LRUCache } from "lru-cache";
-import { bytesToUnprefixedHex } from "@ts-ethereum/utils";
 
 import { Cache } from "./cache";
 import { CacheType } from "./types";
@@ -68,7 +68,7 @@ export class AccountCache extends Cache {
 	put(
 		address: Address,
 		account: Account | undefined,
-		couldBePartialAccount: boolean = false,
+		couldBePartialAccount = false,
 	): void {
 		const addressHex = bytesToUnprefixedHex(address.bytes);
 		this._saveCachePreState(addressHex);

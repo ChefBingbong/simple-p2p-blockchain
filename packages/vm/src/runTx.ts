@@ -3,7 +3,7 @@ import type { Common } from '@ts-ethereum/chain-config'
 import type { LegacyTx, TypedTransaction } from '@ts-ethereum/tx'
 import {
   Account,
-  Address,
+  type Address,
   BIGINT_0,
   bytesToHex,
   EthereumJSErrorWithoutCode,
@@ -35,7 +35,8 @@ export async function runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   const gasLimit = opts.block?.header.gasLimit
   if (
     opts.skipBlockGasLimitValidation !== true &&
-    gasLimit && gasLimit < opts.tx.gasLimit
+    gasLimit &&
+    gasLimit < opts.tx.gasLimit
   ) {
     const msg = _errorMsg(
       'tx has a higher gas limit than the block',
@@ -323,7 +324,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
 
   // Generate the tx receipt
   const gasUsed = opts.blockGasUsed ?? block?.header.gasUsed
-  const cumulativeGasUsed = gasUsed ? gasUsed + results.totalGasSpent : results.totalGasSpent
+  const cumulativeGasUsed = gasUsed
+    ? gasUsed + results.totalGasSpent
+    : results.totalGasSpent
   results.receipt = await generateTxReceipt(vm, tx, results, cumulativeGasUsed)
 
   /**
@@ -408,7 +411,9 @@ function _errorMsg(
 ) {
   const blockOrHeader = block
   const blockErrorStr =
-    blockOrHeader && 'errorStr' in blockOrHeader ? blockOrHeader?.errorStr() || 'block' : 'block'
+    blockOrHeader && 'errorStr' in blockOrHeader
+      ? blockOrHeader?.errorStr() || 'block'
+      : 'block'
   const txErrorStr = 'errorStr' in tx ? tx.errorStr() : 'tx'
 
   const errorMsg = `${msg} (${vm.errorStr()} -> ${blockErrorStr} -> ${txErrorStr})`

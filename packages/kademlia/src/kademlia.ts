@@ -2,17 +2,21 @@
 // Ethereum-compatible Kademlia DHT node for peer discovery
 
 import type { Common } from '@ts-ethereum/chain-config'
-import { bytesToInt, bytesToUnprefixedHex, randomBytes } from '@ts-ethereum/utils'
+import {
+  bytesToInt,
+  bytesToUnprefixedHex,
+  randomBytes,
+} from '@ts-ethereum/utils'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { EventEmitter } from 'eventemitter3'
 
 import { BanList } from './ban-list'
 import { RoutingTable } from './routing-table'
-import {
-  type KademliaConfig,
-  type KademliaEvent,
-  type KademliaTransport,
-  type PeerInfo,
+import type {
+  KademliaConfig,
+  KademliaEvent,
+  KademliaTransport,
+  PeerInfo,
 } from './types'
 import { UdpTransport } from './udp'
 import { pk2id } from './xor'
@@ -43,14 +47,12 @@ export class KademliaNode {
   protected _kbucket: RoutingTable
   protected _transport: KademliaTransport
   protected _refreshIntervalId?: NodeJS.Timeout
-  protected _refreshIntervalSelectionCounter: number = 0
+  protected _refreshIntervalSelectionCounter = 0
   protected _shouldFindNeighbours: boolean
   protected _onlyConfirmed: boolean
   protected _confirmedPeers: Set<string> = new Set()
   protected _common?: Common
   protected _port: number
-
-  private DEBUG: boolean
 
   constructor(privateKey: Uint8Array, options: KademliaNodeConfig = {}) {
     this.events = new EventEmitter<KademliaEvent>()
@@ -138,8 +140,6 @@ export class KademliaNode {
       (options.refreshInterval ?? DEFAULT_REFRESH_INTERVAL) / 10,
     )
     this._refreshIntervalId = setInterval(() => this.refresh(), refreshInterval)
-
-    this.DEBUG = false
   }
 
   /**
@@ -197,7 +197,7 @@ export class KademliaNode {
   /**
    * Add peers with staggered timing to avoid flooding.
    */
-  private _addPeerBatch(peers: PeerInfo[]): void {
+  public _addPeerBatch(peers: PeerInfo[]): void {
     const DIFF_TIME_MS = 200
     let ms = 0
 

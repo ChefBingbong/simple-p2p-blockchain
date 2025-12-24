@@ -1,22 +1,20 @@
-import { keccak256 } from 'ethereum-cryptography/keccak'
-import { getRandomBytesSync } from 'ethereum-cryptography/random.js'
-import { ecdsaRecover } from 'ethereum-cryptography/secp256k1-compat'
-import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 import { RLP } from '@ts-ethereum/rlp'
 import {
-	bigIntToBytes,
-	bytesToInt,
-	concatBytes,
-	intToBytes,
-	setLengthLeft,
+  assertEq,
+  bigIntToBytes,
+  bytesToInt,
+  concatBytes,
+  id2pk,
+  intToBytes,
+  pk2id,
+  setLengthLeft,
+  unstrictDecode,
+  xor,
 } from '@ts-ethereum/utils'
-import {
-	assertEq,
-	id2pk,
-	pk2id,
-	unstrictDecode,
-	xor,
-} from '@ts-ethereum/utils'
+import { keccak256 } from 'ethereum-cryptography/keccak'
+import { getRandomBytesSync } from 'ethereum-cryptography/random.js'
+import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
+import { ecdsaRecover } from 'ethereum-cryptography/secp256k1-compat'
 import { decryptMessage, eccieEncryptMessage, ecdhX } from './crypto'
 import type { AuthResult } from './types'
 

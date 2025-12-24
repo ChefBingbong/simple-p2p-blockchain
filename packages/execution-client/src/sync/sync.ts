@@ -1,9 +1,9 @@
-import { BlockHeader } from '@ts-ethereum/block'
+import type { BlockHeader } from '@ts-ethereum/block'
 import { BIGINT_0, short } from '@ts-ethereum/utils'
 import type { Chain } from '../blockchain/index'
 import type { Config } from '../config/index'
 import { timestampToMilliseconds } from '../config/utils'
-import { NetworkCore } from '../net/index'
+import type { NetworkCore } from '../net/index'
 import type { Peer } from '../net/peer/peer'
 import { Event } from '../types'
 import { wait } from '../util/wait'
@@ -34,7 +34,7 @@ export abstract class Synchronizer {
   public startingBlock: bigint
 
   public lastSyncDate = 0
-  public syncTargetHeight: bigint = BIGINT_0
+  public syncTargetHeight = BIGINT_0
   public synchronized: boolean
   public lastSynchronized: boolean
   public isAbleToSync: boolean

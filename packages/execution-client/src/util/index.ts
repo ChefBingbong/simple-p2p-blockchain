@@ -1,10 +1,11 @@
 /**
  * @module util
  */
+
+import { existsSync, readFileSync } from 'node:fs'
+import { platform } from 'node:os'
+import { dirname, join as joinPath } from 'node:path'
 import { bytesToHex } from '@ts-ethereum/utils'
-import { existsSync, readFileSync } from 'fs'
-import { platform } from 'os'
-import { dirname, join as joinPath } from 'path'
 
 export * from './ip'
 export * from './parse'
@@ -85,7 +86,7 @@ export function timeDuration(time: number) {
  * @param timestamp the timestamp to diff (in seconds) from now
  */
 export function timeDiff(timestamp: number) {
-  const diff = new Date().getTime() / 1000 - timestamp
+  const diff = Date.now() / 1000 - timestamp
   return timeDuration(diff)
 }
 

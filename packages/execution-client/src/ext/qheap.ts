@@ -56,23 +56,12 @@ export class Heap {
         }
     opts = this.options
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-
     this._isBefore = opts.compar
-      ? function (a: any, b: any) {
-          return opts!.compar!(a, b) < 0
-        }
-      : (opts.comparBefore ??
-        function (a: any, b: any): boolean {
-          return a < b
-        })
+      ? (a: any, b: any) => opts!.compar!(a, b) < 0
+      : (opts.comparBefore ?? ((a: any, b: any): boolean => a < b))
 
     this._sortBefore =
-      opts.compar ??
-      function (a: any, b: any) {
-        return self._isBefore(a, b) ? -1 : 1
-      }
+      opts.compar ?? ((a: any, b: any) => (this._isBefore(a, b) ? -1 : 1))
     this._freeSpace = opts.freeSpace === undefined ? this._trimArraySize : false
 
     this._list = new Array(opts.size ?? 20)

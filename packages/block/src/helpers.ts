@@ -2,7 +2,7 @@ import { RLP } from '@ts-ethereum/rlp'
 
 import type { TypedTransaction } from '@ts-ethereum/tx'
 import type { PrefixedHexString } from '@ts-ethereum/utils'
-import { isHexString, toType, TypeOutput } from '@ts-ethereum/utils'
+import { isHexString, TypeOutput, toType } from '@ts-ethereum/utils'
 import type { BlockHeaderBytes, HeaderData } from './types'
 
 /**
@@ -17,7 +17,7 @@ export const numberToHex = (input?: string): PrefixedHexString | undefined => {
       const msg = `Cannot convert string to hex string. numberToHex only supports 0x-prefixed hex or integer strings but the given string was: ${input}`
       throw Error(msg)
     }
-    return `0x${parseInt(input, 10).toString(16)}`
+    return `0x${Number.parseInt(input, 10).toString(16)}`
   }
   return input
 }

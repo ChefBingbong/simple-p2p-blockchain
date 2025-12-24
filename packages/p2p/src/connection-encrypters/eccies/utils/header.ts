@@ -1,7 +1,6 @@
 import type crypto from 'node:crypto'
 import { RLP } from '@ts-ethereum/rlp'
-import { bytesToInt, concatBytes, intToBytes } from '@ts-ethereum/utils'
-import { zfill } from '@ts-ethereum/utils'
+import { bytesToInt, concatBytes, intToBytes, zfill } from '@ts-ethereum/utils'
 import type { MAC } from '../mac'
 import type { HeaderResult } from './types'
 

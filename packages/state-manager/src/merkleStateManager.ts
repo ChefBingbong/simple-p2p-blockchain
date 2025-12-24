@@ -1,13 +1,16 @@
-import type { AccountFields, StateManagerInterface } from '@ts-ethereum/chain-config'
-import { Common } from '@ts-ethereum/chain-config'
+import type {
+  AccountFields,
+  Common,
+  StateManagerInterface,
+} from '@ts-ethereum/chain-config'
 import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import type { Account, Address } from '@ts-ethereum/utils'
 import {
   createAccount,
   createAccountFromRLP,
   createAddressFromString,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   unprefixedHexToBytes,
 } from '@ts-ethereum/utils'
 import type { Debugger } from 'debug'
@@ -44,7 +47,7 @@ export class MerkleStateManager implements StateManagerInterface {
    * performance reasons to avoid string literal evaluation
    * @hidden
    */
-  protected readonly DEBUG: boolean = false
+  protected DEBUG = false
 
   /**
    * Instantiate the StateManager interface.
@@ -237,10 +240,7 @@ export class MerkleStateManager implements StateManagerInterface {
    * the state trie.
    * @param stateRoot - The state-root to reset the instance to
    */
-  async setStateRoot(
-    stateRoot: Uint8Array,
-    clearCache: boolean = true,
-  ): Promise<void> {
+  async setStateRoot(stateRoot: Uint8Array, clearCache = true): Promise<void> {
     await this.flush()
 
     if (!equalsBytes(stateRoot, this._trie.EMPTY_TRIE_ROOT)) {

@@ -1,8 +1,8 @@
 import chalk from 'chalk'
+import type { Logger as WinstonLogger } from 'winston'
 import * as winston from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 
-import type { Logger as WinstonLogger } from 'winston'
 const { createLogger, format, transports: wTransports } = winston
 
 export type Logger = WinstonLogger

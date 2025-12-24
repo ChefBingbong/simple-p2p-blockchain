@@ -11,17 +11,17 @@ import {
   BIGINT_1,
   bytesToHex,
   bytesToUnprefixedHex,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   hexToBytes,
 } from '@ts-ethereum/utils'
 import type { VM } from '@ts-ethereum/vm'
-import { Chain } from '../blockchain/chain'
+import type { Chain } from '../blockchain/chain'
 import type { Config } from '../config/index'
-import { VMExecution } from '../execution/vmexecution'
+import type { VMExecution } from '../execution/vmexecution'
 import type { QHeap } from '../ext/qheap'
 import { Heap } from '../ext/qheap'
-import { NetworkCore } from '../net/index'
+import type { NetworkCore } from '../net/index'
 import type { Peer } from '../net/peer/peer'
 import type { PeerPoolLike } from '../net/peerpool-types'
 

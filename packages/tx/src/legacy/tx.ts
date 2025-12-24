@@ -20,7 +20,7 @@ import type {
   TransactionInterface,
   TxOptions,
 } from '../types'
-import { Capability, TransactionType } from '../types'
+import { type Capability, TransactionType } from '../types'
 import {
   getBaseJSON,
   sharedConstructor,
@@ -299,7 +299,7 @@ export class LegacyTx
     v: bigint,
     r: Uint8Array | bigint,
     s: Uint8Array | bigint,
-    convertV: boolean = false,
+    convertV = false,
   ): LegacyTx {
     r = toBytes(r)
     s = toBytes(s)

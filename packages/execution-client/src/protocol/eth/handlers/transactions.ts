@@ -3,7 +3,7 @@
  * Processes incoming TRANSACTIONS announcements
  */
 
-import { TypedTransaction } from '@ts-ethereum/tx'
+import type { TypedTransaction } from '@ts-ethereum/tx'
 import debug from 'debug'
 import {
   ETH_MESSAGES,

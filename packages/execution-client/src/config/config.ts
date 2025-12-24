@@ -1,12 +1,12 @@
 import type { Common } from '@ts-ethereum/chain-config'
-import { createMetrics, Metrics } from '@ts-ethereum/metrics'
+import { createMetrics, type Metrics } from '@ts-ethereum/metrics'
 import { BIGINT_0, genPrivateKey, safeTry } from '@ts-ethereum/utils'
 import { EventEmitter } from 'eventemitter3'
 import { Level } from 'level'
 import { Logger } from 'winston'
-import { Chain } from '../blockchain/chain'
-import { classifyError, type ClientError } from '../errors/index'
-import { NetworkService } from '../net/network-service'
+import type { Chain } from '../blockchain/chain'
+import { type ClientError, classifyError } from '../errors/index'
+import type { NetworkService } from '../net/network-service'
 import { Event, type EventParams } from '../types'
 import type { ConfigOptions } from './types'
 import { DataDirectory } from './types'
@@ -78,7 +78,10 @@ export class Config {
       this.metrics.chain.totalDifficulty.set(Number(chain.blocks.td))
       this.metrics.chain.chainId.set(Number(chain.config.chainCommon.chainId()))
       this.metrics.chain.blocksImported.inc()
-      this.metrics.chain.blockHash.set({ hash: latest.hash.toString() }, Date.now())
+      this.metrics.chain.blockHash.set(
+        { hash: latest.hash.toString() },
+        Date.now(),
+      )
       this.metrics.chain.blockProcessingTime.observe(
         Date.now() - this.startTime,
       )

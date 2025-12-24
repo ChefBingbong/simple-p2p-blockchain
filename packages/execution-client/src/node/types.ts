@@ -1,6 +1,6 @@
 import type { Blockchain } from '@ts-ethereum/blockchain'
 import type { GenesisState } from '@ts-ethereum/chain-config'
-import { P2PNode } from '@ts-ethereum/p2p'
+import type { P2PNode } from '@ts-ethereum/p2p'
 import type { AbstractLevel } from 'abstract-level'
 import type { Chain } from '../blockchain/index'
 import type { Config } from '../config/index'

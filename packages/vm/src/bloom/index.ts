@@ -1,6 +1,6 @@
-import { keccak256 } from 'ethereum-cryptography/keccak.js'
 import type { Common } from '@ts-ethereum/chain-config'
 import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
+import { keccak256 } from 'ethereum-cryptography/keccak.js'
 
 const BYTE_SIZE = 256
 

@@ -1,10 +1,11 @@
 import type { PrefixedHexString } from '@ts-ethereum/utils'
 import {
-	bytesToHex,
-	EthereumJSErrorWithoutCode,
-	hexToBytes,
+  bytesToHex,
+  EthereumJSErrorWithoutCode,
+  hexToBytes,
+  safeError,
+  safeResult,
 } from '@ts-ethereum/utils'
-import { safeError, safeResult } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
 import { createRpcMethod } from '../../validation'
 import { getRawTransactionSchema } from './schema'

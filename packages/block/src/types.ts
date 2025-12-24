@@ -1,5 +1,10 @@
 import type { Common, ParamsDict } from '@ts-ethereum/chain-config'
-import type { JSONRPCTx, JSONTx, TransactionType, TxData } from '@ts-ethereum/tx'
+import type {
+  JSONRPCTx,
+  JSONTx,
+  TransactionType,
+  TxData,
+} from '@ts-ethereum/tx'
 import type {
   AddressLike,
   BigIntLike,

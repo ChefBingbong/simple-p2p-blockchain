@@ -1,15 +1,12 @@
-import type { Account } from '@ts-ethereum/utils'
-import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
-
-import { modifyAccountFields } from './util'
-
 import type {
   AccountFields,
   Common,
   StateManagerInterface,
 } from '@ts-ethereum/chain-config'
-import type { Address, PrefixedHexString } from '@ts-ethereum/utils'
+import type { Account, Address, PrefixedHexString } from '@ts-ethereum/utils'
+import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
 import type { SimpleStateManagerOpts } from '.'
+import { modifyAccountFields } from './util'
 
 /**
  * Simple and dependency-free state manager for basic state access use cases

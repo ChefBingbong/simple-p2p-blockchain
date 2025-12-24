@@ -87,7 +87,7 @@ export class Common {
   }
 
   consensusConfig(): {
-    [key: string]: EthashConfig | undefined 
+    [key: string]: EthashConfig | undefined
   } {
     return this._chainParams.consensus?.ethash ?? {}
   }

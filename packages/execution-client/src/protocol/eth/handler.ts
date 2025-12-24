@@ -17,7 +17,7 @@ import {
   ETH_MESSAGES,
   EthMessageCode,
 } from '../../net/protocol/eth/definitions'
-import { ETH } from '../../net/protocol/eth/eth'
+import type { ETH } from '../../net/protocol/eth/eth'
 import type { EthProtocolMethods } from '../../net/protocol/eth/eth-methods'
 import type { EthHandlerContext } from '../../net/protocol/eth/handlers'
 import { registerDefaultHandlers } from './handlers'
@@ -55,7 +55,7 @@ export class EthHandler extends EventEmitter implements EthProtocolMethods {
 
   // Request tracking for async request/response matching
   public readonly resolvers: Map<bigint, RequestResolver> = new Map()
-  private readonly timeout: number = 8000 // 8 second timeout
+  private readonly timeout = 8000 // 8 second timeout
   private nextReqId = BIGINT_0
 
   // Request deduplication: track in-flight requests to avoid duplicates
