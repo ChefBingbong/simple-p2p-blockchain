@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { defineConfig, TestUserConfig } from 'vitest/config'
+import { defineConfig, type TestUserConfig } from 'vitest/config'
 import { unitTestMinimalProject } from './configs/vitest.config.unit-minimal.js'
 
 export function getReporters(): TestUserConfig['reporters'] {
