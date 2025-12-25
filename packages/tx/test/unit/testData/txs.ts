@@ -1,6 +1,7 @@
 export const txsData = [
   {
-    privateKey: '164122e5d39e9814ca723a749253663bafb07f6af91704d9754c361eb315f0c1',
+    privateKey:
+      '164122e5d39e9814ca723a749253663bafb07f6af91704d9754c361eb315f0c1',
     sendersAddress: '1f36f546477cda21bf2296c50976f2740247906f',
     type: 'contract',
     cost: 680,
@@ -28,7 +29,8 @@ export const txsData = [
     },
   },
   {
-    privateKey: '4646464646464646464646464646464646464646464646464646464646464646',
+    privateKey:
+      '4646464646464646464646464646464646464646464646464646464646464646',
     sendersAddress: '9d8a62f656a8d1615c1294fd71e9cfb3e4855a4f',
     type: 'message',
     cost: 500,
@@ -56,7 +58,8 @@ export const txsData = [
     },
   },
   {
-    privateKey: 'e0a462586887362a18a318b128dbc1e3a0cae6d4b0739f5d0419ec25114bc722',
+    privateKey:
+      'e0a462586887362a18a318b128dbc1e3a0cae6d4b0739f5d0419ec25114bc722',
     sendersAddress: 'd13d825eb15c87b247c4c26331d66f225a5f632e',
     type: 'message',
     cost: 500,
@@ -84,7 +87,8 @@ export const txsData = [
     },
   },
   {
-    privateKey: '164122e5d39e9814ca723a749253663bafb07f6af91704d9754c361eb315f0c1',
+    privateKey:
+      '164122e5d39e9814ca723a749253663bafb07f6af91704d9754c361eb315f0c1',
     sendersAddress: '1f36f546477cda21bf2296c50976f2740247906f',
     type: 'message',
     cost: 2420,
