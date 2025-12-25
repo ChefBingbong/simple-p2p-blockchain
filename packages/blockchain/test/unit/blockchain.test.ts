@@ -5,4 +5,3 @@ describe('Blockchain', () => {
     console.log('passes')
   })
 })
-

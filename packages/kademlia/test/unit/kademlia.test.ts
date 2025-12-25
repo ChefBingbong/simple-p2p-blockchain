@@ -5,4 +5,3 @@ describe('Kademlia', () => {
     console.log('passes')
   })
 })
-

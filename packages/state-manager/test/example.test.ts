@@ -5,4 +5,3 @@ describe('example', () => {
     console.log('passes')
   })
 })
-

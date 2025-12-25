@@ -5,4 +5,3 @@ describe('StateManager', () => {
     console.log('passes')
   })
 })
-

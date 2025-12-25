@@ -5,4 +5,3 @@ describe('VM', () => {
     console.log('passes')
   })
 })
-

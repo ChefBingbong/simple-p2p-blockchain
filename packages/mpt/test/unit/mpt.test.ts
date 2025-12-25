@@ -5,4 +5,3 @@ describe('MPT', () => {
     console.log('passes')
   })
 })
-

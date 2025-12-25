@@ -5,4 +5,3 @@ describe('CLI', () => {
     console.log('passes')
   })
 })
-

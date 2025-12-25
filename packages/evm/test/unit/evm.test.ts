@@ -5,4 +5,3 @@ describe('EVM', () => {
     console.log('passes')
   })
 })
-

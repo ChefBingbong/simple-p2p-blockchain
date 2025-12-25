@@ -5,4 +5,3 @@ describe('ChainConfig', () => {
     console.log('passes')
   })
 })
-

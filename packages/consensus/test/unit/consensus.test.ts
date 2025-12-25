@@ -5,4 +5,3 @@ describe('Consensus', () => {
     console.log('passes')
   })
 })
-
