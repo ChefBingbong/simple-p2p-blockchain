@@ -1,5 +1,5 @@
+import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import { RLP } from '@ts-ethereum/rlp'
-
 import type { TypedTransaction } from '@ts-ethereum/tx'
 import type { PrefixedHexString } from '@ts-ethereum/utils'
 import { isHexString, TypeOutput, toType } from '@ts-ethereum/utils'
@@ -99,7 +99,7 @@ export async function genTransactionsTrieRoot(
   txs: TypedTransaction[],
   emptyTrie?: any,
 ) {
-  const trie = emptyTrie
+  const trie = emptyTrie ?? new MerklePatriciaTrie()
   for (const [i, tx] of txs.entries()) {
     await trie.put(RLP.encode(i), tx.serialize())
   }

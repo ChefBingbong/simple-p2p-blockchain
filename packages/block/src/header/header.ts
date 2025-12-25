@@ -2,6 +2,7 @@ import {
   Common,
   ConsensusAlgorithm,
   ConsensusType,
+  Mainnet,
 } from '@ts-ethereum/chain-config'
 import { RLP } from '@ts-ethereum/rlp'
 import {
@@ -19,7 +20,7 @@ import {
   toType,
 } from '@ts-ethereum/utils'
 import { keccak256 } from 'ethereum-cryptography/keccak'
-
+import { paramsBlock } from '../params'
 import type {
   BlockHeaderBytes,
   BlockOptions,
@@ -69,7 +70,9 @@ export class BlockHeader {
    *
    */
   constructor(headerData: HeaderData, opts: BlockOptions = {}) {
-    this.common = opts.common?.copy() ?? new Common({} as any)
+    this.common =
+      opts.common?.copy() ??
+      new Common({ chain: Mainnet, params: paramsBlock[1] })
 
     this.keccakFunction = keccak256
     const skipValidateConsensusFormat =
