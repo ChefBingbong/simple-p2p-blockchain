@@ -1,11 +1,10 @@
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@ts-ethereum/utils'
 
-import { OOGResult } from '../evm'
 import type { ExecResult } from '../types'
 import { getPrecompileName } from './index'
 import type { PrecompileInput } from './types'
-import { gasLimitCheck } from './util'
+import { gasLimitCheck, OOGResult } from './util'
 
 export function precompile02(opts: PrecompileInput): ExecResult {
   const pName = getPrecompileName('02')

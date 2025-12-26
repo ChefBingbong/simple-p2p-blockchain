@@ -9,11 +9,10 @@ import {
   setLengthRight,
 } from '@ts-ethereum/utils'
 
-import { OOGResult } from '../evm'
 import type { ExecResult } from '../types'
 import { getPrecompileName } from './index'
 import type { PrecompileInput } from './types'
-import { gasLimitCheck } from './util'
+import { gasLimitCheck, OOGResult } from './util'
 
 export function precompile01(opts: PrecompileInput): ExecResult {
   const pName = getPrecompileName('01')
@@ -23,7 +22,7 @@ export function precompile01(opts: PrecompileInput): ExecResult {
     return OOGResult(opts.gasLimit)
   }
 
-  const data = setLengthRight(opts.data, 128, { allowTruncate: true })
+  const data = setLengthRight(opts.data, 128)
 
   const msgHash = data.subarray(0, 32)
   const v = data.subarray(32, 64)
