@@ -1,24 +1,19 @@
 import { Common, Mainnet } from '@ts-ethereum/chain-config'
 import {
   Address,
+  EthereumJSErrorWithoutCode,
+  MAX_INTEGER,
+  MAX_UINT64,
   bigIntToHex,
   bytesToBigInt,
   bytesToHex,
-  EthereumJSErrorWithoutCode,
   hexToBytes,
-  MAX_INTEGER,
-  MAX_UINT64,
   toBytes,
 } from '@ts-ethereum/utils'
 
 import { paramsTx } from '../params'
 
-import type {
-  TransactionInterface,
-  TransactionType,
-  TxData,
-  TxOptions,
-} from '../types'
+import type { TransactionInterface, TransactionType, TxData, TxOptions } from '../types'
 
 /**
  * Gets a Common instance, creating a new one if none provided
@@ -26,12 +21,7 @@ import type {
  * @returns Common instance (copied if provided, new Mainnet instance if not)
  */
 export function getCommon(common?: Common): Common {
-  return (
-    common?.copy() ??
-    new Common({
-      chain: Mainnet,
-    })
-  )
+  return common?.copy() ?? new Common({ chain: Mainnet })
 }
 
 /**
@@ -155,8 +145,6 @@ export function sharedConstructor(
   tx.common = getCommon(opts.common)
   tx.common.updateParams(opts.params ?? paramsTx)
 
-  console.log('tx.common', txData)
-
   validateNotArray(txData) // is this necessary?
 
   const { nonce, gasLimit, to, value, data, v, r, s } = txData
@@ -192,6 +180,23 @@ export function sharedConstructor(
 
   // EIP-2681 limits nonce to 2^64-1 (cannot equal 2^64-1)
   valueOverflowCheck({ nonce: tx.nonce }, 64, true)
+
+  // EIP-7825: Transaction Gas Limit Cap
+  if (tx.common.isActivatedEIP(7825)) {
+    const maxGasLimit = tx.common.param('maxTransactionGasLimit')
+    if (tx.gasLimit > maxGasLimit) {
+      throw EthereumJSErrorWithoutCode(
+        `Transaction gas limit ${tx.gasLimit} exceeds the maximum allowed by EIP-7825 (${maxGasLimit})`,
+      )
+    }
+  }
+
+  const createContract = tx.to === undefined || tx.to === null
+  const allowUnlimitedInitCodeSize = opts.allowUnlimitedInitCodeSize ?? false
+
+  if (createContract && tx.common.isActivatedEIP(3860) && allowUnlimitedInitCodeSize === false) {
+    checkMaxInitCodeSize(tx.common, tx.data.length)
+  }
 }
 
 /**

@@ -1,32 +1,42 @@
+import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import { RLP } from '@ts-ethereum/rlp'
 import {
   createTx,
   createTxFromBlockBodyData,
+  createTxFromRLP,
   normalizeTxParams,
   type TxOptions,
   type TypedTransaction,
 } from '@ts-ethereum/tx'
-import type { EthersProvider } from '@ts-ethereum/utils'
+import type { EthersProvider, WithdrawalBytes } from '@ts-ethereum/utils'
 import {
   bigIntToHex,
+  bytesToHex,
+  createWithdrawal,
+  equalsBytes,
   EthereumJSErrorWithoutCode,
   fetchFromProvider,
   getProvider,
+  hexToBytes,
   intToHex,
   isHexString,
 } from '@ts-ethereum/utils'
+import { genWithdrawalsTrieRoot } from '../helpers'
 import {
   Block,
   createBlockHeader,
   createBlockHeaderFromBytesArray,
   createBlockHeaderFromRPC,
+  genTransactionsTrieRoot,
 } from '../index'
 import type {
   BlockBytes,
   BlockData,
   BlockOptions,
+  ExecutionPayload,
   HeaderData,
   JSONRPCBlock,
+  WithdrawalsBytes,
 } from '../types'
 
 /**
@@ -36,14 +46,12 @@ import type {
  * @param opts
  * @returns a new {@link Block} object
  */
-export function createBlock(
-  blockData: BlockData = {},
-  opts?: BlockOptions,
-): Block {
+export function createBlock(blockData: BlockData = {}, opts?: BlockOptions): Block {
   const {
     header: headerData,
     transactions: txsData,
     uncleHeaders: uhsData,
+    withdrawals: withdrawalsData,
   } = blockData
 
   const header = createBlockHeader(headerData, opts)
@@ -68,12 +76,18 @@ export function createBlock(
     // Disable this option here (all other options carried over), since this overwrites the provided Difficulty to an incorrect value
     calcDifficultyFromHeader: undefined,
   }
+  // Uncles are obsolete post-merge, any hardfork by option implies setHardfork
+  if (opts?.setHardfork !== undefined) {
+    uncleOpts.setHardfork = true
+  }
   for (const uhData of uhsData ?? []) {
     const uh = createBlockHeader(uhData, uncleOpts)
     uncleHeaders.push(uh)
   }
 
-  return new Block(header, transactions, uncleHeaders, opts)
+  const withdrawals = withdrawalsData?.map(createWithdrawal)
+
+  return new Block(header, transactions, uncleHeaders, withdrawals, opts)
 }
 
 /**
@@ -84,10 +98,7 @@ export function createBlock(
  * @param opts
  * @returns a new {@link Block} object
  */
-export function createEmptyBlock(
-  headerData: HeaderData,
-  opts?: BlockOptions,
-): Block {
+export function createEmptyBlock(headerData: HeaderData, opts?: BlockOptions): Block {
   const header = createBlockHeader(headerData, opts)
   return new Block(header)
 }
@@ -99,19 +110,31 @@ export function createEmptyBlock(
  * @param opts
  * @returns a new {@link Block} object
  */
-export function createBlockFromBytesArray(
-  values: BlockBytes,
-  opts?: BlockOptions,
-): Block {
-  if (values.length > 3) {
+export function createBlockFromBytesArray(values: BlockBytes, opts?: BlockOptions): Block {
+  if (values.length > 5) {
     throw EthereumJSErrorWithoutCode(
-      `invalid. More values=${values.length} than expected were received (at most 3 for Frontier)`,
+      `invalid  More values=${values.length} than expected were received (at most 5)`,
     )
   }
 
-  // First try to load header so that we can use its common
-  const [headerData, txsData, uhsData] = values
+  // First try to load header so that we can use its common (in case of setHardfork being activated)
+  // to correctly make checks on the hardforks
+  const [headerData, txsData, uhsData, ...valuesTail] = values
   const header = createBlockHeaderFromBytesArray(headerData, opts)
+
+  // conditional assignment of rest of values and splicing them out from the valuesTail
+  const withdrawalBytes = header.common.isActivatedEIP(4895)
+    ? (valuesTail.splice(0, 1)[0] as WithdrawalsBytes)
+    : undefined
+
+  if (
+    header.common.isActivatedEIP(4895) &&
+    (withdrawalBytes === undefined || !Array.isArray(withdrawalBytes))
+  ) {
+    throw EthereumJSErrorWithoutCode(
+      'Invalid serialized block input: EIP-4895 is active, and no withdrawals were provided as array',
+    )
+  }
 
   // parse transactions
   const transactions = []
@@ -119,7 +142,7 @@ export function createBlockFromBytesArray(
     transactions.push(
       createTxFromBlockBodyData(txData, {
         ...opts,
-        // Use header common
+        // Use header common in case of setHardfork being activated
         common: header.common,
       }),
     )
@@ -129,18 +152,29 @@ export function createBlockFromBytesArray(
   const uncleHeaders = []
   const uncleOpts: BlockOptions = {
     ...opts,
-    // Use header common
+    // Use header common in case of setHardfork being activated
     common: header.common,
     // Disable this option here (all other options carried over), since this overwrites the provided Difficulty to an incorrect value
     calcDifficultyFromHeader: undefined,
   }
+  // Uncles are obsolete post-merge, any hardfork by option implies setHardfork
+  if (opts?.setHardfork !== undefined) {
+    uncleOpts.setHardfork = true
+  }
   for (const uncleHeaderData of uhsData ?? []) {
-    uncleHeaders.push(
-      createBlockHeaderFromBytesArray(uncleHeaderData, uncleOpts),
-    )
+    uncleHeaders.push(createBlockHeaderFromBytesArray(uncleHeaderData, uncleOpts))
   }
 
-  return new Block(header, transactions, uncleHeaders, opts)
+  const withdrawals = (withdrawalBytes as WithdrawalBytes[])
+    ?.map(([index, validatorIndex, address, amount]) => ({
+      index,
+      validatorIndex,
+      address,
+      amount,
+    }))
+    ?.map(createWithdrawal)
+
+  return new Block(header, transactions, uncleHeaders, withdrawals, opts)
 }
 
 /**
@@ -150,16 +184,19 @@ export function createBlockFromBytesArray(
  * @param opts
  * @returns a new {@link Block} object
  */
-export function createBlockFromRLP(
-  serialized: Uint8Array,
-  opts?: BlockOptions,
-): Block {
+export function createBlockFromRLP(serialized: Uint8Array, opts?: BlockOptions): Block {
+  if (opts?.common?.isActivatedEIP(7934) === true) {
+    const maxRlpBlockSize = opts.common.param('maxRlpBlockSize')
+    if (serialized.length > maxRlpBlockSize) {
+      throw EthereumJSErrorWithoutCode(
+        `Block size exceeds limit: ${serialized.length} > ${maxRlpBlockSize}`,
+      )
+    }
+  }
   const values = RLP.decode(Uint8Array.from(serialized)) as BlockBytes
 
   if (!Array.isArray(values)) {
-    throw EthereumJSErrorWithoutCode(
-      'Invalid serialized block input. Must be array',
-    )
+    throw EthereumJSErrorWithoutCode('Invalid serialized block input. Must be array')
   }
 
   return createBlockFromBytesArray(values, opts)
@@ -190,7 +227,10 @@ export function createBlockFromRPC(
 
   const uncleHeaders = uncles.map((uh) => createBlockHeaderFromRPC(uh, options))
 
-  return createBlock({ header, transactions, uncleHeaders }, options)
+  return createBlock(
+    { header, transactions, uncleHeaders, withdrawals: blockParams.withdrawals },
+    options,
+  )
 }
 
 /**
@@ -252,4 +292,68 @@ export const createBlockFromJSONRPCProvider = async (
   }
 
   return createBlockFromRPC(blockData, uncleHeaders, opts)
+}
+
+/**
+ *  Method to retrieve a block from an execution payload
+ * @param payload Execution payload constructed from beacon payload data
+ * @param opts {@link BlockOptions}
+ * @returns The constructed {@link Block} object
+ */
+export async function createBlockFromExecutionPayload(
+  payload: ExecutionPayload,
+  opts?: BlockOptions,
+): Promise<Block> {
+  const {
+    blockNumber: number,
+    receiptsRoot: receiptTrie,
+    prevRandao: mixHash,
+    feeRecipient: coinbase,
+    transactions,
+    withdrawals: withdrawalsData,
+  } = payload
+
+  const txs = []
+  for (const [index, serializedTx] of transactions.entries()) {
+    try {
+      const tx = createTxFromRLP(hexToBytes(serializedTx), {
+        common: opts?.common,
+      })
+      txs.push(tx)
+    } catch (error) {
+      const validationError = `Invalid tx at index ${index}: ${error}`
+      throw validationError
+    }
+  }
+
+  const transactionsTrie = await genTransactionsTrieRoot(
+    txs,
+    new MerklePatriciaTrie({ common: opts?.common }),
+  )
+  const withdrawals = withdrawalsData?.map((wData) => createWithdrawal(wData))
+  const withdrawalsRoot = withdrawals
+    ? await genWithdrawalsTrieRoot(withdrawals, new MerklePatriciaTrie({ common: opts?.common }))
+    : undefined
+
+  const header: HeaderData = {
+    ...payload,
+    number,
+    receiptTrie,
+    transactionsTrie,
+    withdrawalsRoot,
+    mixHash,
+    coinbase,
+  }
+
+  // we are not setting setHardfork as common is already set to the correct hf
+  const block = createBlock({ header, transactions: txs, withdrawals }, opts)
+  // Verify blockHash matches payload
+  if (!equalsBytes(block.hash(), hexToBytes(payload.blockHash))) {
+    const validationError = `Invalid blockHash, expected: ${
+      payload.blockHash
+    }, received: ${bytesToHex(block.hash())}`
+    throw Error(validationError)
+  }
+
+  return block
 }
