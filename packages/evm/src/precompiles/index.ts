@@ -5,6 +5,7 @@ import { precompile01 } from './01-ecrecover'
 import { precompile02 } from './02-sha256'
 import { precompile03 } from './03-ripemd160'
 import { precompile04 } from './04-identity'
+import { NobleBN254 } from './bn254'
 import type { PrecompileFunc, PrecompileInput } from './types'
 
 interface PrecompileEntry {
@@ -145,6 +146,7 @@ function getPrecompileName(addressUnprefixedStr: string) {
 export {
   getActivePrecompiles,
   getPrecompileName,
+  NobleBN254,
   precompileEntries,
   precompiles,
   ripemdPrecompileAddress,

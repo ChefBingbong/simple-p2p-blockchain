@@ -1,12 +1,18 @@
-import type { StateManagerInterface } from '@ts-ethereum/chain-config'
-import type { Account, Address, PrefixedHexString } from '@ts-ethereum/utils'
+import type { Common, StateManagerInterface } from '@ts-ethereum/chain-config'
+import { Hardfork } from '@ts-ethereum/chain-config'
+import type { Account, PrefixedHexString } from '@ts-ethereum/utils'
 import {
+  Address,
   bytesToHex,
   bytesToUnprefixedHex,
   EthereumJSErrorWithoutCode,
+  hexToBytes,
   RIPEMD160_ADDRESS_STRING,
+  stripHexPrefix,
   unprefixedHexToBytes,
 } from '@ts-ethereum/utils'
+import type { Debugger } from 'debug'
+import debugDefault from 'debug'
 
 type AddressString = string
 type SlotString = string
@@ -20,6 +26,7 @@ type JournalType = Map<AddressString, WarmSlots>
  * Index 1: remove warm slots for this warm address
  * Index 2: remove touched
  */
+
 type JournalDiffItem = [
   Set<AddressString>,
   Map<AddressString, Set<SlotString>>,
@@ -28,12 +35,11 @@ type JournalDiffItem = [
 
 type JournalHeight = number
 
-/**
- * Journal for tracking state changes and warm addresses/slots.
- * Simplified for value-transfer-only blockchain (no access list reporting).
- */
 export class Journal {
   private stateManager: StateManagerInterface
+  private common: Common
+  private DEBUG: boolean
+  private _debug: Debugger
 
   private journal!: JournalType
   private alwaysWarmJournal!: Map<AddressString, Set<SlotString>>
@@ -42,12 +48,33 @@ export class Journal {
 
   private journalHeight: JournalHeight
 
+  public accessList?: Map<AddressString, Set<SlotString>>
   public preimages?: Map<PrefixedHexString, Uint8Array>
 
-  constructor(stateManager: StateManagerInterface) {
+  constructor(stateManager: StateManagerInterface, common: Common) {
+    // Skip DEBUG calls unless 'ethjs' included in environmental DEBUG variables
+    // Additional window check is to prevent vite browser bundling (and potentially other) to break
+    this.DEBUG =
+      typeof window === 'undefined'
+        ? (process?.env?.DEBUG?.includes('ethjs') ?? false)
+        : false
+
+    this._debug = debugDefault('evm:journal')
+
+    // TODO maybe call into this.clearJournal
     this.cleanJournal()
     this.journalHeight = 0
+
     this.stateManager = stateManager
+    this.common = common
+  }
+
+  /**
+   * Clears the internal `accessList` map, and mark this journal to start reporting
+   * which addresses and storages have been accessed
+   */
+  startReportingAccessList() {
+    this.accessList = new Map()
   }
 
   /**
@@ -92,7 +119,6 @@ export class Journal {
       diffArr[2].add(address)
     }
   }
-
   async commit() {
     this.journalHeight--
     this.journalDiff.push([
@@ -112,7 +138,11 @@ export class Journal {
   }
 
   async revert() {
-    let finalI = 0
+    // Loop backwards over the journal diff and stop if we are at a lower height than current journal height
+    // During this process, delete all items.
+    // TODO check this logic, if there is this array: height [4,3,4] and we revert height 4, then the final
+    // diff arr will be reverted, but it will stop at height 3, so [4,3] are both not reverted..?
+    let finalI: number
     for (let i = this.journalDiff.length - 1; i >= 0; i--) {
       finalI = i
       const [height, diff] = this.journalDiff[i]
@@ -125,12 +155,14 @@ export class Journal {
       const touchedSet = diff[2]
 
       for (const address of addressSet) {
+        // Sanity check, journal should have the item
         if (this.journal.has(address)) {
           this.journal.delete(address)
         }
       }
 
       for (const [address, delSlots] of slotsMap) {
+        // Sanity check, the address SHOULD be in the journal
         if (this.journal.has(address)) {
           const slots = this.journal.get(address)!
           for (const delSlot of delSlots) {
@@ -140,13 +172,18 @@ export class Journal {
       }
 
       for (const address of touchedSet) {
+        // Delete the address from the journal
         if (address !== RIPEMD160_ADDRESS_STRING) {
+          // If RIPEMD160 is touched, keep it touched.
+          // Default behavior for others.
           this.touched.delete(address)
         }
       }
     }
 
-    this.journalDiff = this.journalDiff.slice(0, finalI + 1)
+    // the final diffs are reverted and we can dispose those
+    this.journalDiff = this.journalDiff.slice(0, finalI! + 1)
+
     this.journalHeight--
 
     await this.stateManager.revert()
@@ -161,30 +198,55 @@ export class Journal {
   }
 
   /**
-   * Cleans up journal state
+   * Removes accounts from the state trie that have been touched,
+   * as defined in EIP-161 (https://eips.ethereum.org/EIPS/eip-161).
+   * Also cleanups any other internal fields
    */
   async cleanup(): Promise<void> {
+    if (this.common.gteHardfork(Hardfork.SpuriousDragon)) {
+      for (const addressHex of this.touched) {
+        const address = new Address(hexToBytes(`0x${addressHex}`))
+        const account = await this.stateManager.getAccount(address)
+        if (account === undefined || account.isEmpty()) {
+          await this.deleteAccount(address)
+          if (this.DEBUG) {
+            this._debug(
+              `Cleanup touched account address=${address} (>= SpuriousDragon)`,
+            )
+          }
+        }
+      }
+    }
     this.cleanJournal()
+    delete this.accessList
     delete this.preimages
   }
 
-  addAlwaysWarmAddress(addressStr: string) {
-    const address = addressStr.startsWith('0x')
-      ? addressStr.slice(2)
-      : addressStr
+  addAlwaysWarmAddress(addressStr: string, addToAccessList = false) {
+    const address = stripHexPrefix(addressStr)
     if (!this.alwaysWarmJournal.has(address)) {
       this.alwaysWarmJournal.set(address, new Set())
     }
+    if (addToAccessList && this.accessList !== undefined) {
+      if (!this.accessList.has(address)) {
+        this.accessList.set(address, new Set())
+      }
+    }
   }
 
-  addAlwaysWarmSlot(addressStr: string, slotStr: string) {
-    const address = addressStr.startsWith('0x')
-      ? addressStr.slice(2)
-      : addressStr
-    this.addAlwaysWarmAddress(address)
+  addAlwaysWarmSlot(
+    addressStr: string,
+    slotStr: string,
+    addToAccessList = false,
+  ) {
+    const address = stripHexPrefix(addressStr)
+    this.addAlwaysWarmAddress(address, addToAccessList)
     const slotsSet = this.alwaysWarmJournal.get(address)!
-    const slot = slotStr.startsWith('0x') ? slotStr.slice(2) : slotStr
+    const slot = stripHexPrefix(slotStr)
     slotsSet.add(slot)
+    if (addToAccessList && this.accessList !== undefined) {
+      this.accessList.get(address)!.add(slot)
+    }
   }
 
   /**
@@ -193,14 +255,14 @@ export class Journal {
    */
   isWarmedAddress(address: Uint8Array): boolean {
     const addressHex = bytesToUnprefixedHex(address)
-    return (
+    const warm =
       this.journal.has(addressHex) || this.alwaysWarmJournal.has(addressHex)
-    )
+    return warm
   }
 
   /**
    * Add a warm address in the current context
-   * @param addressArr - The address (as a Uint8Array) to add
+   * @param addressArr - The address (as a Uint8Array) to check
    */
   addWarmedAddress(addressArr: Uint8Array): void {
     const address = bytesToUnprefixedHex(addressArr)
@@ -208,6 +270,11 @@ export class Journal {
       this.journal.set(address, new Set())
       const diffArr = this.journalDiff[this.journalDiff.length - 1][1]
       diffArr[0].add(address)
+    }
+    if (this.accessList !== undefined) {
+      if (!this.accessList.has(address)) {
+        this.accessList.set(address, new Set())
+      }
     }
   }
 
@@ -259,6 +326,11 @@ export class Journal {
       }
       const slotsSet = addressSlotMap.get(addressHex)!
       slotsSet.add(slotStr)
+    }
+    if (this.accessList !== undefined) {
+      // Note: in `addWarmedAddress` the address is added to warm addresses
+      const addrSet = this.accessList.get(addressHex)!
+      addrSet.add(slotStr)
     }
   }
 }
