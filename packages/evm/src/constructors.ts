@@ -1,11 +1,15 @@
+import { Common, Mainnet } from '@ts-ethereum/chain-config'
 import { SimpleStateManager } from '@ts-ethereum/state-manager'
-import type { EVMOpts } from '.'
-import { EVM } from '.'
+
+import { EVM } from './index'
+import { NobleBN254 } from './precompiles/index'
 import { EVMMockBlockchain } from './types'
+
+import type { EVMOpts } from './index'
 
 /**
  * Use this async static constructor for the initialization
- * of an EVM object (simplified for value transfers only)
+ * of an EVM object
  *
  * @param createOpts The EVM options
  * @returns A new EVM
@@ -13,9 +17,11 @@ import { EVMMockBlockchain } from './types'
 export async function createEVM(createOpts?: EVMOpts) {
   const opts = createOpts ?? ({} as EVMOpts)
 
-  // if (opts.common === undefined) {
-  //   opts.common = new Common({ chain: Mainnet })
-  // }
+  opts.bn254 = new NobleBN254()
+
+  if (opts.common === undefined) {
+    opts.common = new Common({ chain: Mainnet })
+  }
 
   if (opts.blockchain === undefined) {
     opts.blockchain = new EVMMockBlockchain()

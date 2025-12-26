@@ -129,7 +129,7 @@ export interface BinaryTreeAccessWitnessInterface {
 }
 
 /*
- * Generic StateManager interface corresponding with the ../../statemanager package
+ * Generic StateManager interface corresponding with the @ethereumjs/statemanager package
  *
  */
 export interface StateManagerInterface {
@@ -144,6 +144,20 @@ export interface StateManagerInterface {
     address: Address,
     accountFields: AccountFields,
   ): Promise<void>
+
+  // Code methods
+  putCode(address: Address, value: Uint8Array): Promise<void>
+  getCode(address: Address): Promise<Uint8Array>
+  getCodeSize(address: Address): Promise<number>
+
+  // Storage methods
+  getStorage(address: Address, key: Uint8Array): Promise<Uint8Array>
+  putStorage(
+    address: Address,
+    key: Uint8Array,
+    value: Uint8Array,
+  ): Promise<void>
+  clearStorage(address: Address): Promise<void>
 
   /*
    * Checkpointing Functionality
@@ -165,6 +179,21 @@ export interface StateManagerInterface {
    * Optional non-essential methods, these methods should always be guarded
    * on usage (check for existence)
    */
+  // Client RPC
+  dumpStorage?(address: Address): Promise<StorageDump>
+  dumpStorageRange?(
+    address: Address,
+    startKey: bigint,
+    limit: number,
+  ): Promise<StorageRange>
+
+  /*
+   * EVM/VM Specific Functionality
+   */
+  originalStorageCache: {
+    get(address: Address, key: Uint8Array): Promise<Uint8Array>
+    clear(): void
+  }
   generateCanonicalGenesis?(initState: any): Promise<void> // TODO make input more typesafe
   initBinaryTreeExecutionWitness?(
     blockNum: bigint,
