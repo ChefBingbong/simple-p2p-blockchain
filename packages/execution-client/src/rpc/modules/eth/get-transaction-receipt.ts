@@ -58,7 +58,9 @@ export const getTransactionReceipt = (node: ExecutionNode) => {
         })
 
         const { createdAddress, totalGasSpent } = runBlockResult.results[txIdx]
-    const { blobGasPrice, blobGasUsed } = runBlockResult.receipts[txIdx] as EIP4844BlobTxReceipt
+        const { blobGasPrice, blobGasUsed } = runBlockResult.receipts[
+          txIdx
+        ] as EIP4844BlobTxReceipt
         const jsonRpcReceipt = await toJSONRPCReceipt(
           receipt,
           totalGasSpent,

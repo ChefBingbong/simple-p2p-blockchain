@@ -1,21 +1,22 @@
 import { Mainnet } from '@ts-ethereum/chain-config'
 import {
-    CLRequest,
-    CLRequestType,
-    EthereumJSErrorWithoutCode,
-    bigIntToAddressBytes,
-    bigIntToBytes,
-    bytesToBigInt,
-    bytesToHex,
-    concatBytes,
-    createAddressFromString,
-    setLengthLeft,
+  bigIntToAddressBytes,
+  bigIntToBytes,
+  bytesToBigInt,
+  bytesToHex,
+  CLRequest,
+  CLRequestType,
+  concatBytes,
+  createAddressFromString,
+  EthereumJSErrorWithoutCode,
+  setLengthLeft,
 } from '@ts-ethereum/utils'
 
 import type { RunTxResult } from './types'
 import type { VM } from './vm'
 
-const DEPOSIT_TOPIC = '0x649bbc62d0e31342afea4e5cd82d4049e7e1ee912fc0889aa790803be39038c5'
+const DEPOSIT_TOPIC =
+  '0x649bbc62d0e31342afea4e5cd82d4049e7e1ee912fc0889aa790803be39038c5'
 const PUBKEY_OFFSET = BigInt(160)
 const WITHDRAWAL_CREDENTIALS_OFFSET = BigInt(256)
 const AMOUNT_OFFSET = BigInt(320)
@@ -44,10 +45,16 @@ export const accumulateRequests = async (
 
   if (common.isActivatedEIP(6110)) {
     const depositContractAddress =
-      vm.common['_chainParams'].depositContractAddress ?? Mainnet.depositContractAddress
+      vm.common['_chainParams'].depositContractAddress ??
+      Mainnet.depositContractAddress
     if (depositContractAddress === undefined)
-      throw EthereumJSErrorWithoutCode('deposit contract address required with EIP 6110')
-    const depositsRequest = accumulateDepositsRequest(depositContractAddress, txResults)
+      throw EthereumJSErrorWithoutCode(
+        'deposit contract address required with EIP 6110',
+      )
+    const depositsRequest = accumulateDepositsRequest(
+      depositContractAddress,
+      txResults,
+    )
     requests.push(depositsRequest)
   }
 
@@ -75,7 +82,9 @@ const accumulateWithdrawalsRequest = async (
   )
   const withdrawalsAddress = createAddressFromString(bytesToHex(addressBytes))
 
-  const systemAddressBytes = bigIntToAddressBytes(vm.common.param('systemAddress'))
+  const systemAddressBytes = bigIntToAddressBytes(
+    vm.common.param('systemAddress'),
+  )
   const systemAddress = createAddressFromString(bytesToHex(systemAddressBytes))
   const systemAccount = await vm.stateManager.getAccount(systemAddress)
 
@@ -109,13 +118,19 @@ const accumulateConsolidationsRequest = async (
     bigIntToBytes(vm.common.param('consolidationRequestPredeployAddress')),
     20,
   )
-  const consolidationsAddress = createAddressFromString(bytesToHex(addressBytes))
+  const consolidationsAddress = createAddressFromString(
+    bytesToHex(addressBytes),
+  )
 
-  const systemAddressBytes = bigIntToAddressBytes(vm.common.param('systemAddress'))
+  const systemAddressBytes = bigIntToAddressBytes(
+    vm.common.param('systemAddress'),
+  )
   const systemAddress = createAddressFromString(bytesToHex(systemAddressBytes))
   const systemAccount = await vm.stateManager.getAccount(systemAddress)
 
-  const originalAccount = await vm.stateManager.getAccount(consolidationsAddress)
+  const originalAccount = await vm.stateManager.getAccount(
+    consolidationsAddress,
+  )
 
   if (originalAccount === undefined) {
     return new CLRequest(CLRequestType.Consolidation, new Uint8Array(0))
@@ -152,7 +167,8 @@ const accumulateDepositsRequest = (
         bytesToHex(topics[0]) === DEPOSIT_TOPIC &&
         depositContractAddressLowerCase === bytesToHex(address).toLowerCase()
       ) {
-        const { pubkey, withdrawalCredentials, amount, signature, index } = parseDepositLog(data)
+        const { pubkey, withdrawalCredentials, amount, signature, index } =
+          parseDepositLog(data)
         const depositRequestBytes = concatBytes(
           pubkey,
           withdrawalCredentials,
@@ -203,13 +219,19 @@ function parseDepositLog(requestData: Uint8Array) {
   const sigIdx = Number(sigIdxBigInt)
   const indexIdx = Number(indexIdxBigInt)
 
-  const pubKeySizeBigInt = bytesToBigInt(requestData.slice(pubKeyIdx, pubKeyIdx + 32))
+  const pubKeySizeBigInt = bytesToBigInt(
+    requestData.slice(pubKeyIdx, pubKeyIdx + 32),
+  )
   const withdrawalCreditsSizeBigInt = bytesToBigInt(
     requestData.slice(withdrawalCreditsIdx, withdrawalCreditsIdx + 32),
   )
-  const amountSizeBigInt = bytesToBigInt(requestData.slice(amountIdx, amountIdx + 32))
+  const amountSizeBigInt = bytesToBigInt(
+    requestData.slice(amountIdx, amountIdx + 32),
+  )
   const sigSizeBigInt = bytesToBigInt(requestData.slice(sigIdx, sigIdx + 32))
-  const indexSizeBigInt = bytesToBigInt(requestData.slice(indexIdx, indexIdx + 32))
+  const indexSizeBigInt = bytesToBigInt(
+    requestData.slice(indexIdx, indexIdx + 32),
+  )
 
   if (
     pubKeySizeBigInt !== PUBKEY_SIZE ||
@@ -244,4 +266,3 @@ function parseDepositLog(requestData: Uint8Array) {
     index,
   }
 }
-

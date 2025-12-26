@@ -1,6 +1,5 @@
 import type { Block } from '@ts-ethereum/block'
 import type { TypedTransaction } from '@ts-ethereum/tx'
-import type { Log } from '@ts-ethereum/vm'
 import {
   BIGINT_0,
   bigIntToHex,
@@ -11,10 +10,11 @@ import {
   safeError,
   safeResult,
 } from '@ts-ethereum/utils'
-import { INVALID_PARAMS } from '../../error-code'
-import { getBlockByOption } from '../../helpers'
+import type { Log } from '@ts-ethereum/vm'
 import type { ReceiptsManager } from '../../../execution/receipt'
 import type { ExecutionNode } from '../../../node/index'
+import { INVALID_PARAMS } from '../../error-code'
+import { getBlockByOption } from '../../helpers'
 import { createRpcMethod } from '../../validation'
 import { getLogsSchema } from './schema'
 
@@ -71,103 +71,109 @@ export const getLogs = (node: ExecutionNode) => {
   const receiptsManager: ReceiptsManager | undefined =
     node.execution.execution.receiptsManager
 
-  return createRpcMethod(
-    getLogsSchema,
-    async (params: [GetLogsParams], _c) => {
-      const { fromBlock, toBlock, blockHash, address, topics } = params[0]
+  return createRpcMethod(getLogsSchema, async (params: [GetLogsParams], _c) => {
+    const { fromBlock, toBlock, blockHash, address, topics } = params[0]
 
-      if (!receiptsManager) {
-        return safeError(EthereumJSErrorWithoutCode('missing receiptsManager'))
-      }
+    if (!receiptsManager) {
+      return safeError(EthereumJSErrorWithoutCode('missing receiptsManager'))
+    }
 
-      if (blockHash !== undefined && (fromBlock !== undefined || toBlock !== undefined)) {
+    if (
+      blockHash !== undefined &&
+      (fromBlock !== undefined || toBlock !== undefined)
+    ) {
+      return safeError({
+        code: INVALID_PARAMS,
+        message: `Can only specify a blockHash if fromBlock or toBlock are not provided`,
+      })
+    }
+
+    let from: Block, to: Block
+    if (blockHash !== undefined) {
+      try {
+        from = to = await chain.getBlock(hexToBytes(blockHash))
+      } catch {
         return safeError({
           code: INVALID_PARAMS,
-          message: `Can only specify a blockHash if fromBlock or toBlock are not provided`,
+          message: 'unknown blockHash',
         })
       }
-
-      let from: Block, to: Block
-      if (blockHash !== undefined) {
-        try {
-          from = to = await chain.getBlock(hexToBytes(blockHash))
-        } catch {
+    } else {
+      if (fromBlock === 'earliest') {
+        from = await chain.getBlock(BIGINT_0)
+      } else if (fromBlock === 'latest' || fromBlock === undefined) {
+        const latest =
+          chain.blocks.latest ?? (await chain.getCanonicalHeadBlock())
+        from = latest
+      } else {
+        const blockNum = BigInt(fromBlock)
+        if (blockNum > chain.headers.height) {
           return safeError({
             code: INVALID_PARAMS,
-            message: 'unknown blockHash',
+            message: 'specified `fromBlock` greater than current height',
           })
         }
+        from = await chain.getBlock(blockNum)
+      }
+      if (toBlock === fromBlock) {
+        to = from
+      } else if (toBlock === 'latest' || toBlock === undefined) {
+        const latest =
+          chain.blocks.latest ?? (await chain.getCanonicalHeadBlock())
+        to = latest
       } else {
-        if (fromBlock === 'earliest') {
-          from = await chain.getBlock(BIGINT_0)
-        } else if (fromBlock === 'latest' || fromBlock === undefined) {
-          const latest = chain.blocks.latest ?? (await chain.getCanonicalHeadBlock())
-          from = latest
-        } else {
-          const blockNum = BigInt(fromBlock)
-          if (blockNum > chain.headers.height) {
-            return safeError({
-              code: INVALID_PARAMS,
-              message: 'specified `fromBlock` greater than current height',
-            })
-          }
-          from = await chain.getBlock(blockNum)
+        const blockNum = BigInt(toBlock)
+        if (blockNum > chain.headers.height) {
+          return safeError({
+            code: INVALID_PARAMS,
+            message: 'specified `toBlock` greater than current height',
+          })
         }
-        if (toBlock === fromBlock) {
-          to = from
-        } else if (toBlock === 'latest' || toBlock === undefined) {
-          const latest = chain.blocks.latest ?? (await chain.getCanonicalHeadBlock())
-          to = latest
-        } else {
-          const blockNum = BigInt(toBlock)
-          if (blockNum > chain.headers.height) {
-            return safeError({
-              code: INVALID_PARAMS,
-              message: 'specified `toBlock` greater than current height',
-            })
-          }
-          to = await chain.getBlock(blockNum)
-        }
+        to = await chain.getBlock(blockNum)
       }
+    }
 
-      if (
-        to.header.number - from.header.number >
-        BigInt(receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT)
-      ) {
-        return safeError({
-          code: INVALID_PARAMS,
-          message: `block range limit is ${receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT} blocks`,
-        })
-      }
-
-      const formattedTopics = topics?.map((t) => {
-        if (t === null) {
-          return null
-        } else if (Array.isArray(t)) {
-          return t.map((x) => hexToBytes(x))
-        } else {
-          return hexToBytes(t)
-        }
+    if (
+      to.header.number - from.header.number >
+      BigInt(receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT)
+    ) {
+      return safeError({
+        code: INVALID_PARAMS,
+        message: `block range limit is ${receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT} blocks`,
       })
+    }
 
-      let addressBytes: Uint8Array[] | undefined
-      if (address !== undefined && address !== null) {
-        if (Array.isArray(address)) {
-          addressBytes = address.map((a) => hexToBytes(a))
-        } else {
-          addressBytes = [hexToBytes(address)]
-        }
+    const formattedTopics = topics?.map((t) => {
+      if (t === null) {
+        return null
+      } else if (Array.isArray(t)) {
+        return t.map((x) => hexToBytes(x))
+      } else {
+        return hexToBytes(t)
       }
+    })
 
-      const logs = await receiptsManager.getLogs(from, to, addressBytes, formattedTopics)
-      const formattedLogs = await Promise.all(
-        logs.map(({ log, block, tx, txIndex, logIndex }) =>
-          toJSONRPCLog(log, block, tx, txIndex, logIndex),
-        ),
-      )
+    let addressBytes: Uint8Array[] | undefined
+    if (address !== undefined && address !== null) {
+      if (Array.isArray(address)) {
+        addressBytes = address.map((a) => hexToBytes(a))
+      } else {
+        addressBytes = [hexToBytes(address)]
+      }
+    }
 
-      return safeResult(formattedLogs)
-    },
-  )
+    const logs = await receiptsManager.getLogs(
+      from,
+      to,
+      addressBytes,
+      formattedTopics,
+    )
+    const formattedLogs = await Promise.all(
+      logs.map(({ log, block, tx, txIndex, logIndex }) =>
+        toJSONRPCLog(log, block, tx, txIndex, logIndex),
+      ),
+    )
+
+    return safeResult(formattedLogs)
+  })
 }
-

@@ -1,24 +1,34 @@
+import type { HeaderData } from '@ts-ethereum/block'
 import { Block, BlockHeader, createBlock } from '@ts-ethereum/block'
-import { Common, ConsensusAlgorithm, ConsensusType, Hardfork, Mainnet } from '@ts-ethereum/chain-config'
+import type { CliqueConfig, GenesisState } from '@ts-ethereum/chain-config'
+import {
+  Common,
+  ConsensusAlgorithm,
+  ConsensusType,
+  Hardfork,
+  Mainnet,
+} from '@ts-ethereum/chain-config'
 import { Ethash } from '@ts-ethereum/consensus'
+import type { BigIntLike, DB, DBObject } from '@ts-ethereum/utils'
 import {
   BIGINT_0,
   BIGINT_1,
   BIGINT_8,
-  EthereumJSErrorWithoutCode,
-  KECCAK256_RLP,
-  Lock,
-  MapDB,
-  SHA256_NULL,
   bigIntToHex,
   bytesToHex,
   bytesToUnprefixedHex,
   concatBytes,
+  EthereumJSErrorWithoutCode,
   equalsBytes,
+  KECCAK256_RLP,
+  Lock,
+  MapDB,
+  SHA256_NULL,
 } from '@ts-ethereum/utils'
+import type { Debugger } from 'debug'
 import debugDefault from 'debug'
 import { EventEmitter } from 'eventemitter3'
-
+import { EthashConsensus } from './consensus/ethash'
 import {
   DBOp,
   DBSaveLookups,
@@ -28,12 +38,6 @@ import {
 } from './db/helpers'
 import { DBManager } from './db/manager'
 import { DBTarget } from './db/operation'
-
-import type { HeaderData } from '@ts-ethereum/block'
-import type { CliqueConfig, GenesisState } from '@ts-ethereum/chain-config'
-import type { BigIntLike, DB, DBObject } from '@ts-ethereum/utils'
-import type { Debugger } from 'debug'
-import { EthashConsensus } from './consensus/ethash'
 import type {
   BlockchainEvent,
   BlockchainInterface,
@@ -113,7 +117,9 @@ export class Blockchain implements BlockchainInterface {
    */
   constructor(opts: BlockchainOptions = {}) {
     this.DEBUG =
-      typeof window === 'undefined' ? (process?.env?.DEBUG?.includes('ethjs') ?? false) : false
+      typeof window === 'undefined'
+        ? (process?.env?.DEBUG?.includes('ethjs') ?? false)
+        : false
     this._debug = debugDefault('blockchain:#')
 
     if (opts.common) {
@@ -249,7 +255,8 @@ export class Blockchain implements BlockchainInterface {
    */
   async getCanonicalHeadHeader(): Promise<BlockHeader> {
     return this.runWithLock<BlockHeader>(async () => {
-      if (!this._headHeaderHash) throw EthereumJSErrorWithoutCode('No head header set')
+      if (!this._headHeaderHash)
+        throw EthereumJSErrorWithoutCode('No head header set')
       const header = await this._getHeader(this._headHeaderHash)
       return header
     })
@@ -260,7 +267,8 @@ export class Blockchain implements BlockchainInterface {
    */
   async getCanonicalHeadBlock(): Promise<Block> {
     return this.runWithLock<Block>(async () => {
-      if (!this._headBlockHash) throw EthereumJSErrorWithoutCode('No head block set')
+      if (!this._headBlockHash)
+        throw EthereumJSErrorWithoutCode('No head block set')
       return this.getBlock(this._headBlockHash)
     })
   }
@@ -340,7 +348,9 @@ export class Blockchain implements BlockchainInterface {
     await this.runWithLock<void>(async () => {
       hash = await this.dbManager.numberToHash(canonicalHead)
       if (hash === undefined) {
-        throw EthereumJSErrorWithoutCode(`no block for ${canonicalHead} found in DB`)
+        throw EthereumJSErrorWithoutCode(
+          `no block for ${canonicalHead} found in DB`,
+        )
       }
       const header = await this._getHeader(hash, canonicalHead)
 
@@ -558,7 +568,8 @@ export class Blockchain implements BlockchainInterface {
       throw EthereumJSErrorWithoutCode(`invalid timestamp ${header.errorStr()}`)
     }
 
-    if (!(header.common.consensusType() === 'pos')) await this.consensus?.validateDifficulty(header)
+    if (!(header.common.consensusType() === 'pos'))
+      await this.consensus?.validateDifficulty(header)
 
     if (this.common.consensusAlgorithm() === ConsensusAlgorithm.Clique) {
       const period = (this.common.consensusConfig() as CliqueConfig).period
@@ -595,12 +606,16 @@ export class Blockchain implements BlockchainInterface {
       }
 
       if (header.baseFeePerGas! !== expectedBaseFee) {
-        throw EthereumJSErrorWithoutCode(`Invalid block: base fee not correct ${header.errorStr()}`)
+        throw EthereumJSErrorWithoutCode(
+          `Invalid block: base fee not correct ${header.errorStr()}`,
+        )
       }
     }
 
     if (header.common.isActivatedEIP(4844)) {
-      const expectedExcessBlobGas = parentHeader.calcNextExcessBlobGas(header.common)
+      const expectedExcessBlobGas = parentHeader.calcNextExcessBlobGas(
+        header.common,
+      )
       if (header.excessBlobGas !== expectedExcessBlobGas) {
         throw EthereumJSErrorWithoutCode(
           `expected blob gas: ${expectedExcessBlobGas}, got: ${header.excessBlobGas}`,
@@ -610,7 +625,9 @@ export class Blockchain implements BlockchainInterface {
 
     if (header.common.isActivatedEIP(7685)) {
       if (header.requestsHash === undefined) {
-        throw EthereumJSErrorWithoutCode(`requestsHash must be provided when EIP-7685 is active`)
+        throw EthereumJSErrorWithoutCode(
+          `requestsHash must be provided when EIP-7685 is active`,
+        )
       }
     }
   }
@@ -708,7 +725,9 @@ export class Blockchain implements BlockchainInterface {
       }
 
       if (canonicalChainHashes[uncleHash]) {
-        throw EthereumJSErrorWithoutCode(`The uncle is a canonical block ${block.errorStr()}`)
+        throw EthereumJSErrorWithoutCode(
+          `The uncle is a canonical block ${block.errorStr()}`,
+        )
       }
     })
   }
@@ -731,9 +750,13 @@ export class Blockchain implements BlockchainInterface {
 
     if (block === undefined) {
       if (typeof blockId === 'object') {
-        throw EthereumJSErrorWithoutCode(`Block with hash ${bytesToHex(blockId)} not found in DB`)
+        throw EthereumJSErrorWithoutCode(
+          `Block with hash ${bytesToHex(blockId)} not found in DB`,
+        )
       } else {
-        throw EthereumJSErrorWithoutCode(`Block number ${blockId} not found in DB`)
+        throw EthereumJSErrorWithoutCode(
+          `Block number ${blockId} not found in DB`,
+        )
       }
     }
     return block
@@ -749,7 +772,9 @@ export class Blockchain implements BlockchainInterface {
     if (number === undefined) {
       number = await this.dbManager.hashToNumber(hash)
       if (number === undefined) {
-        throw EthereumJSErrorWithoutCode(`Block with hash ${bytesToHex(hash)} not found in DB`)
+        throw EthereumJSErrorWithoutCode(
+          `Block with hash ${bytesToHex(hash)} not found in DB`,
+        )
       }
     }
     return this.dbManager.getTotalDifficulty(hash, number)
@@ -1080,7 +1105,8 @@ export class Blockchain implements BlockchainInterface {
    * @param newHeader - the new block header
    */
   private async findCommonAncestor(newHeader: BlockHeader) {
-    if (!this._headHeaderHash) throw EthereumJSErrorWithoutCode('No head header set')
+    if (!this._headHeaderHash)
+      throw EthereumJSErrorWithoutCode('No head header set')
     const ancestorHeaders = new Set<BlockHeader>()
 
     let header = await this._getHeader(this._headHeaderHash)
@@ -1102,10 +1128,16 @@ export class Blockchain implements BlockchainInterface {
     if (header.number !== newHeader.number) {
       throw EthereumJSErrorWithoutCode('Failed to find ancient header')
     }
-    while (!equalsBytes(header.hash(), newHeader.hash()) && header.number > BIGINT_0) {
+    while (
+      !equalsBytes(header.hash(), newHeader.hash()) &&
+      header.number > BIGINT_0
+    ) {
       header = await this.getCanonicalHeader(header.number - BIGINT_1)
       ancestorHeaders.add(header)
-      newHeader = await this._getHeader(newHeader.parentHash, newHeader.number - BIGINT_1)
+      newHeader = await this._getHeader(
+        newHeader.parentHash,
+        newHeader.number - BIGINT_1,
+      )
       ancestorHeaders.add(newHeader)
     }
     if (!equalsBytes(header.hash(), newHeader.hash())) {
@@ -1320,7 +1352,9 @@ export class Blockchain implements BlockchainInterface {
     if (number === undefined) {
       number = await this.dbManager.hashToNumber(hash)
       if (number === undefined)
-        throw EthereumJSErrorWithoutCode(`no header for ${bytesToHex(hash)} found in DB`)
+        throw EthereumJSErrorWithoutCode(
+          `no header for ${bytesToHex(hash)} found in DB`,
+        )
     }
     return this.dbManager.getHeader(hash, number)
   }
@@ -1345,7 +1379,9 @@ export class Blockchain implements BlockchainInterface {
   async getCanonicalHeader(number: bigint) {
     const hash = await this.dbManager.numberToHash(number)
     if (hash === undefined) {
-      throw EthereumJSErrorWithoutCode(`header with number ${number} not found in canonical chain`)
+      throw EthereumJSErrorWithoutCode(
+        `header with number ${number} not found in canonical chain`,
+      )
     }
     return this._getHeader(hash, number)
   }
@@ -1366,7 +1402,9 @@ export class Blockchain implements BlockchainInterface {
    */
   get genesisBlock(): Block {
     if (!this._genesisBlock)
-      throw EthereumJSErrorWithoutCode('genesis block not set (init may not be finished)')
+      throw EthereumJSErrorWithoutCode(
+        'genesis block not set (init may not be finished)',
+      )
     return this._genesisBlock
   }
 

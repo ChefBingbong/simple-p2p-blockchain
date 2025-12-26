@@ -6,7 +6,10 @@ import type { EVMPerformanceLogOutput } from '@ts-ethereum/evm/src/logger'
  * @param profileTitle
  * @hidden
  */
-export function emitEVMProfile(logs: EVMPerformanceLogOutput[], profileTitle: string) {
+export function emitEVMProfile(
+  logs: EVMPerformanceLogOutput[],
+  profileTitle: string,
+) {
   if (logs.length === 0) {
     return
   }
@@ -91,7 +94,8 @@ export function emitEVMProfile(logs: EVMPerformanceLogOutput[], profileTitle: st
   // Calculate the total header length
   // This is done by summing all columns together, plus adding three extra chars per column (two whitespace, one pipe)
   // Remove the final pipe character since this is included in the header string (so subtract one)
-  const headerLength = colLength.reduce((pv, cv) => pv + cv, 0) + colLength.length * 3 - 1
+  const headerLength =
+    colLength.reduce((pv, cv) => pv + cv, 0) + colLength.length * 3 - 1
 
   const blockGasLimit = 30_000_000 // Block gas limit
   const slotTime = 12000 // Time in milliseconds (!) per slot
@@ -149,4 +153,3 @@ export function emitEVMProfile(logs: EVMPerformanceLogOutput[], profileTitle: st
   // eslint-disable-next-line no-console
   console.log(footer)
 }
-

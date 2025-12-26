@@ -1,16 +1,19 @@
-import { CliqueConfig, ConsensusAlgorithm } from '@ts-ethereum/chain-config'
+import {
+  type CliqueConfig,
+  ConsensusAlgorithm,
+} from '@ts-ethereum/chain-config'
 import { RLP } from '@ts-ethereum/rlp'
 import {
   Address,
   BIGINT_0,
   BIGINT_27,
-  EthereumJSErrorWithoutCode,
   bytesToBigInt,
   concatBytes,
   createAddressFromPublicKey,
   createZeroAddress,
+  EthereumJSErrorWithoutCode,
   ecrecover,
-  equalsBytes
+  equalsBytes,
 } from '@ts-ethereum/utils'
 import { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
 
@@ -37,7 +40,10 @@ export function requireClique(header: BlockHeader, name: string) {
 export function cliqueSigHash(header: BlockHeader) {
   requireClique(header, 'cliqueSigHash')
   const raw = header.raw()
-  raw[12] = header.extraData.subarray(0, header.extraData.length - CLIQUE_EXTRA_SEAL)
+  raw[12] = header.extraData.subarray(
+    0,
+    header.extraData.length - CLIQUE_EXTRA_SEAL,
+  )
   return header['keccakFunction'](RLP.encode(raw))
 }
 
@@ -82,7 +88,9 @@ export function cliqueExtraSeal(header: BlockHeader): Uint8Array {
 export function cliqueEpochTransitionSigners(header: BlockHeader): Address[] {
   requireClique(header, 'cliqueEpochTransitionSigners')
   if (!cliqueIsEpochTransition(header)) {
-    const msg = header['_errorMsg']('Signers are only included in epoch transition blocks (clique)')
+    const msg = header['_errorMsg'](
+      'Signers are only included in epoch transition blocks (clique)',
+    )
     throw EthereumJSErrorWithoutCode(msg)
   }
 
@@ -92,7 +100,11 @@ export function cliqueEpochTransitionSigners(header: BlockHeader): Address[] {
 
   const signerList: Uint8Array[] = []
   const signerLength = 20
-  for (let start = 0; start <= signerBytes.length - signerLength; start += signerLength) {
+  for (
+    let start = 0;
+    start <= signerBytes.length - signerLength;
+    start += signerLength
+  ) {
     signerList.push(signerBytes.subarray(start, start + signerLength))
   }
   return signerList.map((buf) => new Address(buf))
@@ -121,7 +133,10 @@ export function cliqueSigner(header: BlockHeader): Address {
  *
  *  Method throws if signature is invalid
  */
-export function cliqueVerifySignature(header: BlockHeader, signerList: Address[]): boolean {
+export function cliqueVerifySignature(
+  header: BlockHeader,
+  signerList: Address[],
+): boolean {
   requireClique(header, 'cliqueVerifySignature')
   const signerAddress = cliqueSigner(header)
   const signerFound = signerList.find((signer) => {
@@ -144,7 +159,10 @@ export function generateCliqueBlockExtraData(
   const minExtraDataLength = CLIQUE_EXTRA_VANITY + CLIQUE_EXTRA_SEAL
   if (header.extraData.length < minExtraDataLength) {
     const remainingLength = minExtraDataLength - header.extraData.length
-    ;(header.extraData as any) = concatBytes(header.extraData, new Uint8Array(remainingLength))
+    ;(header.extraData as any) = concatBytes(
+      header.extraData,
+      new Uint8Array(remainingLength),
+    )
   }
 
   requireClique(header, 'generateCliqueBlockExtraData')
@@ -156,10 +174,16 @@ export function generateCliqueBlockExtraData(
 
   // Use noble/curves secp256k1.sign with recovered format (returns 65-byte Uint8Array)
   // sigBytes format: [recovery (1 byte) | r (32 bytes) | s (32 bytes)]
-  const sigBytes = ecSignFunction(msgHash, cliqueSigner, { prehash: false, format: 'recovered' })
+  const sigBytes = ecSignFunction(msgHash, cliqueSigner, {
+    prehash: false,
+    format: 'recovered',
+  })
 
   // clique format: [r (32 bytes) | s (32 bytes) | recovery (1 byte)]
-  const cliqueSignature = concatBytes(sigBytes.subarray(1), sigBytes.subarray(0, 1))
+  const cliqueSignature = concatBytes(
+    sigBytes.subarray(1),
+    sigBytes.subarray(0, 1),
+  )
 
   const extraDataWithoutSeal = header.extraData.subarray(
     0,

@@ -8,24 +8,28 @@ import type { EVM } from '@ts-ethereum/evm/src/evm'
 import { MerklePatriciaTrie } from '@ts-ethereum/mpt'
 import { RLP } from '@ts-ethereum/rlp'
 import { TransactionType } from '@ts-ethereum/tx'
-import type { CLRequest, CLRequestType, PrefixedHexString } from '@ts-ethereum/utils'
+import type {
+  CLRequest,
+  CLRequestType,
+  PrefixedHexString,
+} from '@ts-ethereum/utils'
 import {
   Account,
   Address,
   BIGINT_0,
   BIGINT_1,
   BIGINT_8,
-  EthereumJSErrorWithoutCode,
-  GWEI_TO_WEI,
-  KECCAK256_RLP,
   bigIntToAddressBytes,
   bigIntToBytes,
   bytesToHex,
   concatBytes,
   createAddressFromString,
+  EthereumJSErrorWithoutCode,
   equalsBytes,
+  GWEI_TO_WEI,
   hexToBytes,
   intToBytes,
+  KECCAK256_RLP,
   setLengthLeft,
   short,
   unprefixedHexToBytes,
@@ -70,7 +74,10 @@ const entireBlockLabel = 'Entire block'
  * @param {RunBlockOpts} opts - Default values for options:
  *  - `generate`: false
  */
-export async function runBlock(vm: VM, opts: RunBlockOpts): Promise<RunBlockResult> {
+export async function runBlock(
+  vm: VM,
+  opts: RunBlockOpts,
+): Promise<RunBlockResult> {
   if (vm['_opts'].profilerOpts?.reportAfterBlock === true) {
     enableProfiler = true
     // eslint-disable-next-line no-console
@@ -126,7 +133,9 @@ export async function runBlock(vm: VM, opts: RunBlockOpts): Promise<RunBlockResu
   // Set state root if provided
   if (root) {
     if (vm.DEBUG) {
-      debug(`Set provided state root ${bytesToHex(root)} clearCache=${clearCache}`)
+      debug(
+        `Set provided state root ${bytesToHex(root)} clearCache=${clearCache}`,
+      )
     }
     await stateManager.setStateRoot(root, clearCache)
   }
@@ -250,7 +259,9 @@ export async function runBlock(vm: VM, opts: RunBlockOpts): Promise<RunBlockResu
       const msg = _errorMsg('invalid receiptTrie', vm, block)
       throw EthereumJSErrorWithoutCode(msg)
     }
-    if (!(equalsBytes(result.bloom.bitvector, block.header.logsBloom) === true)) {
+    if (
+      !(equalsBytes(result.bloom.bitvector, block.header.logsBloom) === true)
+    ) {
       if (vm.DEBUG) {
         debug(
           `Invalid bloom received=${bytesToHex(result.bloom.bitvector)} expected=${bytesToHex(
@@ -263,7 +274,9 @@ export async function runBlock(vm: VM, opts: RunBlockOpts): Promise<RunBlockResu
     }
     if (result.gasUsed !== block.header.gasUsed) {
       if (vm.DEBUG) {
-        debug(`Invalid gasUsed received=${result.gasUsed} expected=${block.header.gasUsed}`)
+        debug(
+          `Invalid gasUsed received=${result.gasUsed} expected=${block.header.gasUsed}`,
+        )
       }
       const msg = _errorMsg('invalid gasUsed', vm, block)
       throw EthereumJSErrorWithoutCode(msg)
@@ -288,7 +301,9 @@ export async function runBlock(vm: VM, opts: RunBlockOpts): Promise<RunBlockResu
 
     if (vm.common.isActivatedEIP(7864)) {
       if (vm.evm.binaryTreeAccessWitness === undefined) {
-        throw Error(`binaryTreeAccessWitness required if binary tree (EIP-7864) is activated`)
+        throw Error(
+          `binaryTreeAccessWitness required if binary tree (EIP-7864) is activated`,
+        )
       }
       // If binary tree is activated and executing statelessly, only validate the post-state
       if (
@@ -364,11 +379,19 @@ export async function runBlock(vm: VM, opts: RunBlockOpts): Promise<RunBlockResu
  * @param {Block} block
  * @param {RunBlockOpts} opts
  */
-async function applyBlock(vm: VM, block: Block, opts: RunBlockOpts): Promise<ApplyBlockResult> {
+async function applyBlock(
+  vm: VM,
+  block: Block,
+  opts: RunBlockOpts,
+): Promise<ApplyBlockResult> {
   // Validate block
   if (opts.skipBlockValidation !== true) {
     if (block.header.gasLimit >= BigInt('0x8000000000000000')) {
-      const msg = _errorMsg('Invalid block with gas limit greater than (2^63 - 1)', vm, block)
+      const msg = _errorMsg(
+        'Invalid block with gas limit greater than (2^63 - 1)',
+        vm,
+        block,
+      )
       throw EthereumJSErrorWithoutCode(msg)
     } else {
       if (vm.DEBUG) {
@@ -402,7 +425,11 @@ async function applyBlock(vm: VM, block: Block, opts: RunBlockOpts): Promise<App
       debug(`accumulate parentBlockHash `)
     }
 
-    await accumulateParentBlockHash(vm, block.header.number, block.header.parentHash)
+    await accumulateParentBlockHash(
+      vm,
+      block.header.number,
+      block.header.parentHash,
+    )
   }
 
   if (enableProfiler) {
@@ -432,7 +459,9 @@ async function applyBlock(vm: VM, block: Block, opts: RunBlockOpts): Promise<App
       )
     }
     blockResults.preimages.set(
-      bytesToHex(vm.evm.stateManager.getAppliedKey(block.header.coinbase.toBytes())),
+      bytesToHex(
+        vm.evm.stateManager.getAppliedKey(block.header.coinbase.toBytes()),
+      ),
       block.header.coinbase.toBytes(),
     )
     for (const txResult of blockResults.results) {
@@ -447,7 +476,10 @@ async function applyBlock(vm: VM, block: Block, opts: RunBlockOpts): Promise<App
   if (vm.common.isActivatedEIP(4895)) {
     if (opts.reportPreimages === true) vm.evm.journal.startReportingPreimages!()
     await assignWithdrawals(vm, block)
-    if (opts.reportPreimages === true && vm.evm.journal.preimages !== undefined) {
+    if (
+      opts.reportPreimages === true &&
+      vm.evm.journal.preimages !== undefined
+    ) {
       for (const [key, preimage] of vm.evm.journal.preimages) {
         blockResults.preimages.set(key, preimage)
       }
@@ -459,7 +491,10 @@ async function applyBlock(vm: VM, block: Block, opts: RunBlockOpts): Promise<App
     await assignBlockRewards(vm, block)
   }
 
-  if (vm.common.isActivatedEIP(7864) && vm.evm.systemBinaryTreeAccessWitness !== undefined) {
+  if (
+    vm.common.isActivatedEIP(7864) &&
+    vm.evm.systemBinaryTreeAccessWitness !== undefined
+  ) {
     vm.evm.systemBinaryTreeAccessWitness?.commit()
     if (vm.DEBUG) {
       debug('Binary tree access witness aggregate costs:')
@@ -491,7 +526,9 @@ export async function accumulateParentBlockHash(
       'Cannot call `accumulateParentBlockHash`: EIP 2935 is not active',
     )
   }
-  const historyAddress = new Address(bigIntToAddressBytes(vm.common.param('historyStorageAddress')))
+  const historyAddress = new Address(
+    bigIntToAddressBytes(vm.common.param('historyStorageAddress')),
+  )
   const historyServeWindow = vm.common.param('historyServeWindow')
 
   // getAccount with historyAddress will throw error as witnesses are not bundled
@@ -509,10 +546,15 @@ export async function accumulateParentBlockHash(
 
     if (vm.common.isActivatedEIP(7864)) {
       if (vm.evm.systemBinaryTreeAccessWitness === undefined) {
-        throw Error(`systemBinaryTreeAccessWitness required if binary tree (EIP-7864) is activated`)
+        throw Error(
+          `systemBinaryTreeAccessWitness required if binary tree (EIP-7864) is activated`,
+        )
       }
       // Add to system binary tree access witness so that it doesn't warm up tx accesses
-      vm.evm.systemBinaryTreeAccessWitness.writeAccountStorage(historyAddress, ringKey)
+      vm.evm.systemBinaryTreeAccessWitness.writeAccountStorage(
+        historyAddress,
+        ringKey,
+      )
     }
     const key = setLengthLeft(bigIntToBytes(ringKey), 32)
     await vm.stateManager.putStorage(historyAddress, key, hash)
@@ -523,7 +565,11 @@ export async function accumulateParentBlockHash(
   await vm.evm.journal.cleanup()
 }
 
-export async function accumulateParentBeaconBlockRoot(vm: VM, root: Uint8Array, timestamp: bigint) {
+export async function accumulateParentBeaconBlockRoot(
+  vm: VM,
+  root: Uint8Array,
+  timestamp: bigint,
+) {
   if (!vm.common.isActivatedEIP(4788)) {
     throw EthereumJSErrorWithoutCode(
       'Cannot call `accumulateParentBeaconBlockRoot`: EIP 4788 is not active',
@@ -579,7 +625,7 @@ async function applyTransactions(vm: VM, block: Block, opts: RunBlockOpts) {
   // the total amount of gas used processing these transactions
   let gasUsed = BIGINT_0
 
-  let receiptTrie: MerklePatriciaTrie | undefined = undefined
+  let receiptTrie: MerklePatriciaTrie | undefined
   if (block.transactions.length !== 0) {
     receiptTrie = new MerklePatriciaTrie({ common: vm.common })
   }
@@ -595,18 +641,24 @@ async function applyTransactions(vm: VM, block: Block, opts: RunBlockOpts) {
 
     let maxGasLimit
     if (vm.common.isActivatedEIP(1559)) {
-      maxGasLimit = block.header.gasLimit * vm.common.param('elasticityMultiplier')
+      maxGasLimit =
+        block.header.gasLimit * vm.common.param('elasticityMultiplier')
     } else {
       maxGasLimit = block.header.gasLimit
     }
     const gasLimitIsHigherThanBlock = maxGasLimit < tx.gasLimit + gasUsed
     if (gasLimitIsHigherThanBlock) {
-      const msg = _errorMsg('tx has a higher gas limit than the block', vm, block)
+      const msg = _errorMsg(
+        'tx has a higher gas limit than the block',
+        vm,
+        block,
+      )
       throw EthereumJSErrorWithoutCode(msg)
     }
 
     // Run the tx through the VM
-    const { skipBalance, skipNonce, skipHardForkValidation, reportPreimages } = opts
+    const { skipBalance, skipNonce, skipHardForkValidation, reportPreimages } =
+      opts
 
     const txRes = await runTx(vm, {
       tx,
@@ -625,7 +677,9 @@ async function applyTransactions(vm: VM, block: Block, opts: RunBlockOpts) {
     // Add to total block gas usage
     gasUsed += txRes.totalGasSpent
     if (vm.DEBUG) {
-      debug(`Add tx gas used (${txRes.totalGasSpent}) to total block gas usage (-> ${gasUsed})`)
+      debug(
+        `Add tx gas used (${txRes.totalGasSpent}) to total block gas usage (-> ${gasUsed})`,
+      )
     }
 
     // Combine blooms via bitwise OR
@@ -642,7 +696,8 @@ async function applyTransactions(vm: VM, block: Block, opts: RunBlockOpts) {
     console.timeEnd(processTxsLabel)
   }
 
-  const receiptsRoot = receiptTrie !== undefined ? receiptTrie.root() : KECCAK256_RLP
+  const receiptsRoot =
+    receiptTrie !== undefined ? receiptTrie.root() : KECCAK256_RLP
 
   return {
     bloom,
@@ -678,17 +733,35 @@ async function assignBlockRewards(vm: VM, block: Block): Promise<void> {
   const ommers = block.uncleHeaders
   // Reward ommers
   for (const ommer of ommers) {
-    const reward = calculateOmmerReward(ommer.number, block.header.number, minerReward)
-    const account = await rewardAccount(vm.evm, ommer.coinbase, reward, vm.common)
+    const reward = calculateOmmerReward(
+      ommer.number,
+      block.header.number,
+      minerReward,
+    )
+    const account = await rewardAccount(
+      vm.evm,
+      ommer.coinbase,
+      reward,
+      vm.common,
+    )
     if (vm.DEBUG) {
-      debug(`Add uncle reward ${reward} to account ${ommer.coinbase} (-> ${account.balance})`)
+      debug(
+        `Add uncle reward ${reward} to account ${ommer.coinbase} (-> ${account.balance})`,
+      )
     }
   }
   // Reward miner
   const reward = calculateMinerReward(minerReward, ommers.length)
-  const account = await rewardAccount(vm.evm, block.header.coinbase, reward, vm.common)
+  const account = await rewardAccount(
+    vm.evm,
+    block.header.coinbase,
+    reward,
+    vm.common,
+  )
   if (vm.DEBUG) {
-    debug(`Add miner reward ${reward} to account ${block.header.coinbase} (-> ${account.balance})`)
+    debug(
+      `Add miner reward ${reward} to account ${block.header.coinbase} (-> ${account.balance})`,
+    )
   }
 }
 
@@ -705,7 +778,10 @@ function calculateOmmerReward(
   return reward
 }
 
-export function calculateMinerReward(minerReward: bigint, ommersNum: number): bigint {
+export function calculateMinerReward(
+  minerReward: bigint,
+  ommersNum: number,
+): bigint {
   // calculate nibling reward
   const niblingReward = minerReward / BigInt(32)
   const totalNiblingReward = niblingReward * BigInt(ommersNum)
@@ -723,7 +799,9 @@ export async function rewardAccount(
   if (account === undefined) {
     if (common.isActivatedEIP(7864) === true && reward !== BIGINT_0) {
       if (evm.systemBinaryTreeAccessWitness === undefined) {
-        throw Error(`systemBinaryTreeAccessWitness required if binary tree (EIP-7864) is activated`)
+        throw Error(
+          `systemBinaryTreeAccessWitness required if binary tree (EIP-7864) is activated`,
+        )
       }
       evm.systemBinaryTreeAccessWitness.writeAccountHeader(address)
     }
@@ -734,7 +812,9 @@ export async function rewardAccount(
 
   if (common.isActivatedEIP(7864) === true && reward !== BIGINT_0) {
     if (evm.systemBinaryTreeAccessWitness === undefined) {
-      throw Error(`systemBinaryTreeAccessWitness required if binary tree (EIP-7864) is activated`)
+      throw Error(
+        `systemBinaryTreeAccessWitness required if binary tree (EIP-7864) is activated`,
+      )
     }
     evm.systemBinaryTreeAccessWitness.writeAccountBasicData(address)
     evm.systemBinaryTreeAccessWitness.readAccountCodeHash(address)
@@ -751,7 +831,9 @@ export function encodeReceipt(
 ) {
   const encoded = RLP.encode([
     (receipt as PreByzantiumTxReceipt).stateRoot ??
-      ((receipt as PostByzantiumTxReceipt).status === 0 ? Uint8Array.from([]) : hexToBytes('0x01')),
+      ((receipt as PostByzantiumTxReceipt).status === 0
+        ? Uint8Array.from([])
+        : hexToBytes('0x01')),
     bigIntToBytes(receipt.cumulativeBlockGasUsed),
     receipt.bitvector,
     receipt.logs,
@@ -776,7 +858,9 @@ async function _applyDAOHardfork(evm: EVMInterface) {
   const DAOAccountList = DAOConfig.DAOAccounts
   const DAORefundContract = DAOConfig.DAORefundContract
 
-  const DAORefundContractAddress = new Address(unprefixedHexToBytes(DAORefundContract))
+  const DAORefundContractAddress = new Address(
+    unprefixedHexToBytes(DAORefundContract),
+  )
   if ((await state.getAccount(DAORefundContractAddress)) === undefined) {
     await evm.journal.putAccount(DAORefundContractAddress, new Account())
   }

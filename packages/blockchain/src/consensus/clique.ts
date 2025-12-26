@@ -1,9 +1,11 @@
+import type { Block, BlockHeader } from '@ts-ethereum/block'
 import {
   cliqueEpochTransitionSigners,
   cliqueIsEpochTransition,
   cliqueSigner,
   cliqueVerifySignature,
 } from '@ts-ethereum/block'
+import type { CliqueConfig } from '@ts-ethereum/chain-config'
 import { ConsensusAlgorithm } from '@ts-ethereum/chain-config'
 import { RLP } from '@ts-ethereum/rlp'
 import {
@@ -11,18 +13,15 @@ import {
   BIGINT_0,
   BIGINT_1,
   BIGINT_2,
-  type NestedUint8Array,
-  TypeOutput,
   bigIntToBytes,
   bytesToBigInt,
   equalsBytes,
   hexToBytes,
+  type NestedUint8Array,
+  TypeOutput,
   toType,
 } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
-
-import type { Block, BlockHeader } from '@ts-ethereum/block'
-import type { CliqueConfig } from '@ts-ethereum/chain-config'
 import type { Blockchain } from '../index'
 import type { Consensus, ConsensusOptions } from '../types'
 
@@ -122,7 +121,9 @@ export class CliqueConsensus implements Consensus {
     // Skip DEBUG calls unless 'ethjs' included in environmental DEBUG variables
     // Additional window check is to prevent vite browser bundling (and potentially other) to break
     this.DEBUG =
-      typeof window === 'undefined' ? (process?.env?.DEBUG?.includes('ethjs') ?? false) : false
+      typeof window === 'undefined'
+        ? (process?.env?.DEBUG?.includes('ethjs') ?? false)
+        : false
 
     this.algorithm = ConsensusAlgorithm.Clique
   }
@@ -151,7 +152,10 @@ export class CliqueConsensus implements Consensus {
     }
 
     const { header } = block
-    const valid = cliqueVerifySignature(header, this.cliqueActiveSigners(header.number))
+    const valid = cliqueVerifySignature(
+      header,
+      this.cliqueActiveSigners(header.number),
+    )
     if (!valid) {
       throw Error('invalid PoA block signature (clique)')
     }
@@ -181,7 +185,10 @@ export class CliqueConsensus implements Consensus {
       throw Error('blockchain not provided')
     }
 
-    if (header.difficulty !== CLIQUE_DIFF_INTURN && header.difficulty !== CLIQUE_DIFF_NOTURN) {
+    if (
+      header.difficulty !== CLIQUE_DIFF_INTURN &&
+      header.difficulty !== CLIQUE_DIFF_NOTURN
+    ) {
       const msg = `difficulty for clique block must be INTURN (2) or NOTURN (1), received: ${header.difficulty}`
       throw Error(`${msg} ${header.errorStr()}`)
     }
@@ -195,7 +202,8 @@ export class CliqueConsensus implements Consensus {
     const signerIndex = signers.findIndex((address: Address) =>
       address.equals(cliqueSigner(header)),
     )
-    const inTurn = header.number % BigInt(signers.length) === BigInt(signerIndex)
+    const inTurn =
+      header.number % BigInt(signers.length) === BigInt(signerIndex)
     if (
       (inTurn && header.difficulty === CLIQUE_DIFF_INTURN) ||
       (!inTurn && header.difficulty === CLIQUE_DIFF_NOTURN)
@@ -205,14 +213,22 @@ export class CliqueConsensus implements Consensus {
     throw Error(`'invalid clique difficulty ${header.errorStr()}`)
   }
 
-  async newBlock(block: Block, commonAncestor: BlockHeader | undefined): Promise<void> {
+  async newBlock(
+    block: Block,
+    commonAncestor: BlockHeader | undefined,
+  ): Promise<void> {
     // Clique: update signer votes and state
     const { header } = block
     const commonAncestorNumber = commonAncestor?.number
     if (commonAncestorNumber !== undefined) {
       await this._cliqueDeleteSnapshots(commonAncestorNumber + BIGINT_1)
-      for (let number = commonAncestorNumber + BigInt(1); number <= header.number; number++) {
-        const canonicalHeader = await this.blockchain!.getCanonicalHeader(number)
+      for (
+        let number = commonAncestorNumber + BigInt(1);
+        number <= header.number;
+        number++
+      ) {
+        const canonicalHeader =
+          await this.blockchain!.getCanonicalHeader(number)
         await this._cliqueBuildSnapshots(canonicalHeader)
       }
     }
@@ -261,7 +277,9 @@ export class CliqueConsensus implements Consensus {
       const blockLimit = lastBlockNumber - BigInt(limit)
       const states = this._cliqueLatestSignerStates
       const lastItem = states[states.length - 1]
-      this._cliqueLatestSignerStates = states.filter((state) => state[0] >= blockLimit)
+      this._cliqueLatestSignerStates = states.filter(
+        (state) => state[0] >= blockLimit,
+      )
       if (this._cliqueLatestSignerStates.length === 0) {
         // always keep at least one item on the stack
         this._cliqueLatestSignerStates.push(lastItem)
@@ -279,7 +297,8 @@ export class CliqueConsensus implements Consensus {
       let i = 0
       try {
         for (const signer of this.cliqueActiveSigners(signerState[0])) {
-          this.DEBUG && debug(`Clique signer [${i}]: ${signer} (block: ${signerState[0]})`)
+          this.DEBUG &&
+            debug(`Clique signer [${i}]: ${signer} (block: ${signerState[0]})`)
           i++
         }
         // eslint-disable-next-line no-empty
@@ -298,7 +317,10 @@ export class CliqueConsensus implements Consensus {
       const signer = cliqueSigner(header)
       const beneficiary = header.coinbase
       const nonce = header.nonce
-      const latestVote: CliqueVote = [header.number, [signer, beneficiary, nonce]]
+      const latestVote: CliqueVote = [
+        header.number,
+        [signer, beneficiary, nonce],
+      ]
 
       // Do two rounds here, one to execute on a potential previously reached consensus
       // on the newly touched beneficiary, one with the added new vote
@@ -307,7 +329,9 @@ export class CliqueConsensus implements Consensus {
         const lastEpochBlockNumber =
           header.number -
           (header.number %
-            BigInt((this.blockchain!.common.consensusConfig() as CliqueConfig).epoch))
+            BigInt(
+              (this.blockchain!.common.consensusConfig() as CliqueConfig).epoch,
+            ))
         const limit = this.cliqueSignerLimit(header.number)
         let activeSigners = [...this.cliqueActiveSigners(header.number)]
         let consensus = false
@@ -342,7 +366,8 @@ export class CliqueConsensus implements Consensus {
           activeSigners.sort((a, b) => {
             // Sort by array size
             const result =
-              toType(a.toString(), TypeOutput.BigInt) < toType(b.toString(), TypeOutput.BigInt)
+              toType(a.toString(), TypeOutput.BigInt) <
+              toType(b.toString(), TypeOutput.BigInt)
             if (result) {
               return -1
             } else {
@@ -354,7 +379,9 @@ export class CliqueConsensus implements Consensus {
             (vote) => !vote[1][1].equals(beneficiary),
           )
           this.DEBUG &&
-            debug(`[Block ${header.number}] Clique majority consensus (AUTH ${beneficiary})`)
+            debug(
+              `[Block ${header.number}] Clique majority consensus (AUTH ${beneficiary})`,
+            )
         }
         // DROP vote
         votes = this._cliqueLatestVotes.filter((vote) => {
@@ -383,13 +410,19 @@ export class CliqueConsensus implements Consensus {
         if (numBeneficiaryVotesDROP >= limit) {
           consensus = true
           // Drop signer
-          activeSigners = activeSigners.filter((signer) => !signer.equals(beneficiary))
+          activeSigners = activeSigners.filter(
+            (signer) => !signer.equals(beneficiary),
+          )
           this._cliqueLatestVotes = this._cliqueLatestVotes.filter(
             // Discard votes from removed signer and for removed signer
-            (vote) => !vote[1][0].equals(beneficiary) && !vote[1][1].equals(beneficiary),
+            (vote) =>
+              !vote[1][0].equals(beneficiary) &&
+              !vote[1][1].equals(beneficiary),
           )
           this.DEBUG &&
-            debug(`[Block ${header.number}] Clique majority consensus (DROP ${beneficiary})`)
+            debug(
+              `[Block ${header.number}] Clique majority consensus (DROP ${beneficiary})`,
+            )
         }
         if (round === 1) {
           // Always add the latest vote to the history no matter if already voted
@@ -414,7 +447,10 @@ export class CliqueConsensus implements Consensus {
                 `[Block ${header.number}] Clique majority consensus on new vote -> update signer states`,
               )
           }
-          const newSignerState: CliqueSignerState = [header.number, activeSigners]
+          const newSignerState: CliqueSignerState = [
+            header.number,
+            activeSigners,
+          ]
           await this.cliqueUpdateSignerStates(newSignerState)
           return
         }
@@ -429,9 +465,13 @@ export class CliqueConsensus implements Consensus {
       const lastEpochBlockNumber =
         lastBlockNumber -
         (lastBlockNumber %
-          BigInt((this.blockchain!.common.consensusConfig() as CliqueConfig).epoch))
+          BigInt(
+            (this.blockchain!.common.consensusConfig() as CliqueConfig).epoch,
+          ))
       const blockLimit = lastEpochBlockNumber - BigInt(limit)
-      this._cliqueLatestVotes = this._cliqueLatestVotes.filter((state) => state[0] >= blockLimit)
+      this._cliqueLatestVotes = this._cliqueLatestVotes.filter(
+        (state) => state[0] >= blockLimit,
+      )
     }
 
     // save votes to db
@@ -484,7 +524,10 @@ export class CliqueConsensus implements Consensus {
     // construct recent block signers list with this block
     let signers = this._cliqueLatestBlockSigners
     signers = signers.slice(signers.length < limit ? 0 : 1)
-    if (signers.length > 0 && signers[signers.length - 1][0] !== header.number - BigInt(1)) {
+    if (
+      signers.length > 0 &&
+      signers[signers.length - 1][0] !== header.number - BigInt(1)
+    ) {
       // if the last signed block is not one minus the head we are trying to compare
       // we do not have a complete picture of the state to verify if too recently signed
       return false
@@ -507,7 +550,9 @@ export class CliqueConsensus implements Consensus {
     )
     await this.cliqueUpdateSignerStates()
 
-    this._cliqueLatestVotes = this._cliqueLatestVotes.filter((v) => v[0] <= blockNumber)
+    this._cliqueLatestVotes = this._cliqueLatestVotes.filter(
+      (v) => v[0] <= blockNumber,
+    )
     await this.cliqueUpdateVotes()
 
     this._cliqueLatestBlockSigners = this._cliqueLatestBlockSigners.filter(
@@ -548,7 +593,10 @@ export class CliqueConsensus implements Consensus {
       bigIntToBytes(b[0]),
       b[1].toBytes(),
     ])
-    await this.blockchain!.db.put(CLIQUE_BLOCK_SIGNERS_SNAPSHOT_KEY, RLP.encode(formatted))
+    await this.blockchain!.db.put(
+      CLIQUE_BLOCK_SIGNERS_SNAPSHOT_KEY,
+      RLP.encode(formatted),
+    )
   }
 
   /**
@@ -561,10 +609,12 @@ export class CliqueConsensus implements Consensus {
     const states = RLP.decode(signerStates as Uint8Array) as NestedUint8Array
     return states.map((state) => {
       const blockNum = bytesToBigInt(state[0] as Uint8Array)
-      const addresses: Address[] = (state[1] as Uint8Array[]).map((bytes: Uint8Array): Address => {
-        const address = new Address(bytes)
-        return address
-      })
+      const addresses: Address[] = (state[1] as Uint8Array[]).map(
+        (bytes: Uint8Array): Address => {
+          const address = new Address(bytes)
+          return address
+        },
+      )
       return [blockNum, addresses]
     }) as CliqueLatestSignerStates
   }
@@ -594,9 +644,14 @@ export class CliqueConsensus implements Consensus {
    * @hidden
    */
   private async getCliqueLatestBlockSigners(): Promise<CliqueLatestBlockSigners> {
-    const blockSigners = await this.blockchain!.db.get(CLIQUE_BLOCK_SIGNERS_SNAPSHOT_KEY)
+    const blockSigners = await this.blockchain!.db.get(
+      CLIQUE_BLOCK_SIGNERS_SNAPSHOT_KEY,
+    )
     if (blockSigners === undefined) return []
-    const signers = RLP.decode(blockSigners as Uint8Array) as [Uint8Array, Uint8Array][]
+    const signers = RLP.decode(blockSigners as Uint8Array) as [
+      Uint8Array,
+      Uint8Array,
+    ][]
     return signers.map((s) => {
       const blockNum = bytesToBigInt(s[0] as Uint8Array)
       const signer = new Address(s[1])
@@ -620,7 +675,10 @@ export class CliqueConsensus implements Consensus {
    * Helper to determine if a signer is in or out of turn for the next block.
    * @param signer The signer address
    */
-  async cliqueSignerInTurn(signer: Address, blockNum: bigint): Promise<boolean> {
+  async cliqueSignerInTurn(
+    signer: Address,
+    blockNum: bigint,
+  ): Promise<boolean> {
     const signers = this.cliqueActiveSigners(blockNum)
     const signerIndex = signers.findIndex((address) => address.equals(signer))
     if (signerIndex === -1) {
@@ -631,4 +689,3 @@ export class CliqueConsensus implements Consensus {
     return (number + BigInt(1)) % BigInt(signers.length) === BigInt(signerIndex)
   }
 }
-

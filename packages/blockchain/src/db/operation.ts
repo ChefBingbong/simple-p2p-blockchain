@@ -1,4 +1,8 @@
-import { EthereumJSErrorWithoutCode, KeyEncoding, ValueEncoding } from '@ts-ethereum/utils'
+import {
+  EthereumJSErrorWithoutCode,
+  KeyEncoding,
+  ValueEncoding,
+} from '@ts-ethereum/utils'
 
 import {
   bodyKey,

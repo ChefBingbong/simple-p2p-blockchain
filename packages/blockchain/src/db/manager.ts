@@ -1,30 +1,30 @@
 import type {
-    Block,
-    BlockBodyBytes,
-    BlockBytes,
-    BlockOptions,
+  Block,
+  BlockBodyBytes,
+  BlockBytes,
+  BlockOptions,
 } from '@ts-ethereum/block'
 import {
-    createBlockFromBytesArray,
-    createBlockHeaderFromBytesArray,
+  createBlockFromBytesArray,
+  createBlockHeaderFromBytesArray,
 } from '@ts-ethereum/block'
 import type { Common } from '@ts-ethereum/chain-config'
 import { RLP } from '@ts-ethereum/rlp'
 import type {
-    BatchDBOp,
-    DB,
-    DBObject,
-    DelBatch,
-    PutBatch,
+  BatchDBOp,
+  DB,
+  DBObject,
+  DelBatch,
+  PutBatch,
 } from '@ts-ethereum/utils'
 import {
-    bytesToBigInt,
-    bytesToHex,
-    equalsBytes,
-    EthereumJSErrorWithoutCode,
-    KECCAK256_RLP,
-    KECCAK256_RLP_ARRAY,
-    unprefixedHexToBytes,
+  bytesToBigInt,
+  bytesToHex,
+  EthereumJSErrorWithoutCode,
+  equalsBytes,
+  KECCAK256_RLP,
+  KECCAK256_RLP_ARRAY,
+  unprefixedHexToBytes,
 } from '@ts-ethereum/utils'
 import { Cache } from './cache'
 import type { DatabaseKey } from './operation'
@@ -116,39 +116,43 @@ export class DBManager {
     } else if (typeof blockId === 'bigint') {
       number = blockId
       hash = await this.numberToHash(blockId)
-      } else {
-        throw EthereumJSErrorWithoutCode('Unknown blockId type')
-      }
+    } else {
+      throw EthereumJSErrorWithoutCode('Unknown blockId type')
+    }
 
     if (hash === undefined || number === undefined) return undefined
     const header = await this.getHeader(hash, number)
     let body = await this.getBody(hash, number)
 
-      // be backward compatible where we didn't use to store a body with no txs, uncles, withdrawals
-      // otherwise the body is never partially stored and if we have some body, its in entirety
-      if (body === undefined) {
-        body = [[], []] as BlockBodyBytes
-        // Do extra validations on the header since we are assuming empty transactions and uncles
-        if (!equalsBytes(header.transactionsTrie, KECCAK256_RLP)) {
-          throw EthereumJSErrorWithoutCode('transactionsTrie root should be equal to hash of null')
-        }
+    // be backward compatible where we didn't use to store a body with no txs, uncles, withdrawals
+    // otherwise the body is never partially stored and if we have some body, its in entirety
+    if (body === undefined) {
+      body = [[], []] as BlockBodyBytes
+      // Do extra validations on the header since we are assuming empty transactions and uncles
+      if (!equalsBytes(header.transactionsTrie, KECCAK256_RLP)) {
+        throw EthereumJSErrorWithoutCode(
+          'transactionsTrie root should be equal to hash of null',
+        )
+      }
 
-        if (!equalsBytes(header.uncleHash, KECCAK256_RLP_ARRAY)) {
-          throw EthereumJSErrorWithoutCode('uncle hash should be equal to hash of empty array')
-        }
+      if (!equalsBytes(header.uncleHash, KECCAK256_RLP_ARRAY)) {
+        throw EthereumJSErrorWithoutCode(
+          'uncle hash should be equal to hash of empty array',
+        )
+      }
 
-        // If this block had empty withdrawals push an empty array in body
-        if (header.withdrawalsRoot !== undefined) {
-          // Do extra validations for withdrawal before assuming empty withdrawals
-          if (!equalsBytes(header.withdrawalsRoot, KECCAK256_RLP)) {
-            throw EthereumJSErrorWithoutCode(
-              'withdrawals root shoot be equal to hash of null when no withdrawals',
-            )
-          } else {
-            body.push([])
-          }
+      // If this block had empty withdrawals push an empty array in body
+      if (header.withdrawalsRoot !== undefined) {
+        // Do extra validations for withdrawal before assuming empty withdrawals
+        if (!equalsBytes(header.withdrawalsRoot, KECCAK256_RLP)) {
+          throw EthereumJSErrorWithoutCode(
+            'withdrawals root shoot be equal to hash of null when no withdrawals',
+          )
+        } else {
+          body.push([])
         }
       }
+    }
 
     const blockData = [header.raw(), ...body] as BlockBytes
     const opts: BlockOptions = { common: this.common, setHardfork: true }
@@ -170,7 +174,10 @@ export class DBManager {
    * Fetches header of a block given its hash and number.
    */
   async getHeader(blockHash: Uint8Array, blockNumber: bigint) {
-    const encodedHeader = await this.get(DBTarget.Header, { blockHash, blockNumber })
+    const encodedHeader = await this.get(DBTarget.Header, {
+      blockHash,
+      blockNumber,
+    })
     const headerValues = RLP.decode(encodedHeader)
 
     const opts: BlockOptions = { common: this.common, setHardfork: true }
@@ -197,7 +204,9 @@ export class DBManager {
   async hashToNumber(blockHash: Uint8Array): Promise<bigint | undefined> {
     const value = await this.get(DBTarget.HashToNumber, { blockHash })
     if (value === undefined) {
-      throw EthereumJSErrorWithoutCode(`value for ${bytesToHex(blockHash)} not found in DB`)
+      throw EthereumJSErrorWithoutCode(
+        `value for ${bytesToHex(blockHash)} not found in DB`,
+      )
     }
     return value !== undefined ? bytesToBigInt(value) : undefined
   }

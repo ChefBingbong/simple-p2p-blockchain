@@ -19,18 +19,18 @@ import {
   Address,
   BIGINT_0,
   BIGINT_1,
-  EthereumJSErrorWithoutCode,
-  KECCAK256_NULL,
-  MAX_UINT64,
-  SECP256K1_ORDER_DIV_2,
   bigIntMax,
   bytesToBigInt,
   bytesToHex,
   bytesToUnprefixedHex,
   concatBytes,
+  EthereumJSErrorWithoutCode,
   eoaCode7702RecoverAuthority,
   equalsBytes,
   hexToBytes,
+  KECCAK256_NULL,
+  MAX_UINT64,
+  SECP256K1_ORDER_DIV_2,
   short,
 } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
@@ -92,14 +92,27 @@ export async function runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
     }
     if (opts.block.common.hardfork() !== vm.common.hardfork()) {
       // Block and VM's hardfork should match as well
-      const msg = _errorMsg('block has a different hardfork than the vm', vm, opts.block, opts.tx)
+      const msg = _errorMsg(
+        'block has a different hardfork than the vm',
+        vm,
+        opts.block,
+        opts.tx,
+      )
       throw EthereumJSErrorWithoutCode(msg)
     }
   }
 
   const gasLimit = opts.block?.header.gasLimit ?? DEFAULT_HEADER.gasLimit
-  if (opts.skipBlockGasLimitValidation !== true && gasLimit < opts.tx.gasLimit) {
-    const msg = _errorMsg('tx has a higher gas limit than the block', vm, opts.block, opts.tx)
+  if (
+    opts.skipBlockGasLimitValidation !== true &&
+    gasLimit < opts.tx.gasLimit
+  ) {
+    const msg = _errorMsg(
+      'tx has a higher gas limit than the block',
+      vm,
+      opts.block,
+      opts.tx,
+    )
     throw EthereumJSErrorWithoutCode(msg)
   }
 
@@ -121,7 +134,10 @@ export async function runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
 
   // Typed transaction specific setup tasks
-  if (opts.tx.supports(Capability.EIP2718TypedTransaction) && vm.common.isActivatedEIP(2718)) {
+  if (
+    opts.tx.supports(Capability.EIP2718TypedTransaction) &&
+    vm.common.isActivatedEIP(2718)
+  ) {
     // Is it an Access List transaction?
     if (!vm.common.isActivatedEIP(2930)) {
       await vm.evm.journal.revert()
@@ -133,7 +149,10 @@ export async function runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
       )
       throw EthereumJSErrorWithoutCode(msg)
     }
-    if (opts.tx.supports(Capability.EIP1559FeeMarket) && !vm.common.isActivatedEIP(1559)) {
+    if (
+      opts.tx.supports(Capability.EIP1559FeeMarket) &&
+      !vm.common.isActivatedEIP(1559)
+    ) {
       await vm.evm.journal.revert()
       const msg = _errorMsg(
         'Cannot run transaction: EIP 1559 is not activated.',
@@ -152,7 +171,11 @@ export async function runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
       // Note: in here, the 0x is stripped, so immediately do this here
       vm.evm.journal.addAlwaysWarmAddress(address, true)
       for (const storageKey of slotBytesList) {
-        vm.evm.journal.addAlwaysWarmSlot(address, bytesToUnprefixedHex(storageKey), true)
+        vm.evm.journal.addAlwaysWarmSlot(
+          address,
+          bytesToUnprefixedHex(storageKey),
+          true,
+        )
       }
     }
   }
@@ -198,7 +221,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
 
   if (vm.common.isActivatedEIP(7864)) {
     if (vm.evm.binaryTreeAccessWitness === undefined) {
-      throw Error(`Binary tree access witness needed for execution of binary tree blocks`)
+      throw Error(
+        `Binary tree access witness needed for execution of binary tree blocks`,
+      )
     }
 
     // Check if statemanager is a BinaryTreeStateManager by checking for a method only on BinaryTreeStateManager API
@@ -245,7 +270,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
       vm.evm.journal.addAlwaysWarmAddress(bytesToUnprefixedHex(tx.to.bytes))
     }
     if (vm.common.isActivatedEIP(3651)) {
-      const coinbase = block?.header.coinbase.bytes ?? DEFAULT_HEADER.coinbase.bytes
+      const coinbase =
+        block?.header.coinbase.bytes ?? DEFAULT_HEADER.coinbase.bytes
       vm.evm.journal.addAlwaysWarmAddress(bytesToUnprefixedHex(coinbase))
     }
   }
@@ -261,7 +287,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
       tokens += tx.data[i] === 0 ? 1 : 4
     }
     floorCost =
-      tx.common.param('txGas') + tx.common.param('totalCostFloorPerToken') * BigInt(tokens)
+      tx.common.param('txGas') +
+      tx.common.param('totalCostFloorPerToken') * BigInt(tokens)
   }
 
   let gasLimit = tx.gasLimit
@@ -279,7 +306,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
   gasLimit -= intrinsicGas
   if (vm.DEBUG) {
-    debugGas(`Subtracting base fee (${intrinsicGas}) from gasLimit (-> ${gasLimit})`)
+    debugGas(
+      `Subtracting base fee (${intrinsicGas}) from gasLimit (-> ${gasLimit})`,
+    )
   }
 
   if (vm.common.isActivatedEIP(1559)) {
@@ -287,7 +316,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
     // Ensure that the user was willing to at least pay the base fee
     // assert transaction.max_fee_per_gas >= block.base_fee_per_gas
     const maxFeePerGas = 'maxFeePerGas' in tx ? tx.maxFeePerGas : tx.gasPrice
-    const baseFeePerGas = block?.header.baseFeePerGas ?? DEFAULT_HEADER.baseFeePerGas!
+    const baseFeePerGas =
+      block?.header.baseFeePerGas ?? DEFAULT_HEADER.baseFeePerGas!
     if (maxFeePerGas < baseFeePerGas) {
       const msg = _errorMsg(
         `Transaction's ${
@@ -339,7 +369,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
 
   // Check balance against upfront tx cost
-  const baseFeePerGas = block?.header.baseFeePerGas ?? DEFAULT_HEADER.baseFeePerGas
+  const baseFeePerGas =
+    block?.header.baseFeePerGas ?? DEFAULT_HEADER.baseFeePerGas
   const upFrontCost = tx.getUpfrontCost(baseFeePerGas)
   if (balance < upFrontCost) {
     if (opts.skipBalance === true && fromAccount.balance < upFrontCost) {
@@ -372,7 +403,12 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
 
   if (isBlob4844Tx(tx)) {
     if (!vm.common.isActivatedEIP(4844)) {
-      const msg = _errorMsg('blob transactions are only valid with EIP4844 active', vm, block, tx)
+      const msg = _errorMsg(
+        'blob transactions are only valid with EIP4844 active',
+        vm,
+        block,
+        tx,
+      )
       throw EthereumJSErrorWithoutCode(msg)
     }
     // EIP-4844 spec
@@ -382,7 +418,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
     maxCost += totalblobGas * tx.maxFeePerBlobGas
 
     // 4844 minimum blobGas price check
-    blobGasPrice = opts.block?.header.getBlobGasPrice() ?? DEFAULT_HEADER.getBlobGasPrice()
+    blobGasPrice =
+      opts.block?.header.getBlobGasPrice() ?? DEFAULT_HEADER.getBlobGasPrice()
     if (tx.maxFeePerBlobGas < blobGasPrice) {
       const msg = _errorMsg(
         `Transaction's maxFeePerBlobGas ${tx.maxFeePerBlobGas}) is less than block blobGasPrice (${blobGasPrice}).`,
@@ -435,7 +472,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
     // Have to cast as legacy tx since EIP1559 tx does not have gas price
     gasPrice = (tx as LegacyTx).gasPrice
     if (vm.common.isActivatedEIP(1559)) {
-      const baseFee = block?.header.baseFeePerGas ?? DEFAULT_HEADER.baseFeePerGas!
+      const baseFee =
+        block?.header.baseFeePerGas ?? DEFAULT_HEADER.baseFeePerGas!
       inclusionFeePerGas = (tx as LegacyTx).gasPrice - baseFee
     }
   }
@@ -527,7 +565,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
       }
 
       if (accountExists) {
-        const refund = tx.common.param('perEmptyAccountCost') - tx.common.param('perAuthBaseGas')
+        const refund =
+          tx.common.param('perEmptyAccountCost') -
+          tx.common.param('perAuthBaseGas')
         gasRefund += refund
       }
 
@@ -583,12 +623,16 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   })) as RunTxResult
 
   if (vm.common.isActivatedEIP(7864)) {
-    ;(stateAccesses as BinaryTreeAccessWitness)?.merge(txAccesses! as BinaryTreeAccessWitness)
+    ;(stateAccesses as BinaryTreeAccessWitness)?.merge(
+      txAccesses! as BinaryTreeAccessWitness,
+    )
   }
 
   if (enableProfiler) {
     // eslint-disable-next-line no-console
-    console.log(`${executionLabel}: ${performance.now() - executionTimerPrecise!}ms`)
+    console.log(
+      `${executionLabel}: ${performance.now() - executionTimerPrecise!}ms`,
+    )
     // eslint-disable-next-line no-console
     console.log('[ For execution details see table output ]')
     // eslint-disable-next-line no-console
@@ -621,7 +665,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   // Calculate the total gas used
   results.totalGasSpent = results.execResult.executionGasUsed + intrinsicGas
   if (vm.DEBUG) {
-    debugGas(`tx add baseFee ${intrinsicGas} to totalGasSpent (-> ${results.totalGasSpent})`)
+    debugGas(
+      `tx add baseFee ${intrinsicGas} to totalGasSpent (-> ${results.totalGasSpent})`,
+    )
   }
 
   // Add blob gas used to result
@@ -638,7 +684,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
     gasRefund = gasRefund < maxRefund ? gasRefund : maxRefund
     results.totalGasSpent -= gasRefund
     if (vm.DEBUG) {
-      debug(`Subtract tx gasRefund (${gasRefund}) from totalGasSpent (-> ${results.totalGasSpent})`)
+      debug(
+        `Subtract tx gasRefund (${gasRefund}) from totalGasSpent (-> ${results.totalGasSpent})`,
+      )
     }
   } else {
     if (vm.DEBUG) {
@@ -698,7 +746,9 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   // we clean the touched accounts below in case we are in a fork >= SpuriousDragon
   await vm.evm.journal.putAccount(miner, minerAccount)
   if (vm.DEBUG) {
-    debug(`tx update miner account (${miner}) balance (-> ${minerAccount.balance})`)
+    debug(
+      `tx update miner account (${miner}) balance (-> ${minerAccount.balance})`,
+    )
   }
 
   if (enableProfiler) {
@@ -773,7 +823,8 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
 
   // Generate the tx receipt
-  const gasUsed = opts.blockGasUsed ?? block?.header.gasUsed ?? DEFAULT_HEADER.gasUsed
+  const gasUsed =
+    opts.blockGasUsed ?? block?.header.gasUsed ?? DEFAULT_HEADER.gasUsed
   const cumulativeGasUsed = gasUsed + results.totalGasSpent
   results.receipt = await generateTxReceipt(
     vm,
@@ -905,9 +956,15 @@ export async function generateTxReceipt(
  * @param msg Base error message
  * @hidden
  */
-function _errorMsg(msg: string, vm: VM, block: Block | undefined, tx: TypedTransaction) {
+function _errorMsg(
+  msg: string,
+  vm: VM,
+  block: Block | undefined,
+  tx: TypedTransaction,
+) {
   const blockOrHeader = block ?? DEFAULT_HEADER
-  const blockErrorStr = 'errorStr' in blockOrHeader ? blockOrHeader.errorStr() : 'block'
+  const blockErrorStr =
+    'errorStr' in blockOrHeader ? blockOrHeader.errorStr() : 'block'
   const txErrorStr = 'errorStr' in tx ? tx.errorStr() : 'tx'
 
   const errorMsg = `${msg} (${vm.errorStr()} -> ${blockErrorStr} -> ${txErrorStr})`

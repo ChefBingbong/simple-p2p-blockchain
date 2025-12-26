@@ -140,7 +140,9 @@ async function waitForRPC(rpcUrl: string, maxRetries = 30): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 1000))
     process.stdout.write('.')
   }
-  throw new Error(`RPC at ${rpcUrl} did not become ready after ${maxRetries} seconds`)
+  throw new Error(
+    `RPC at ${rpcUrl} did not become ready after ${maxRetries} seconds`,
+  )
 }
 
 async function main() {
@@ -215,7 +217,9 @@ async function main() {
   console.log('-'.repeat(60))
   console.log('CHECKING BALANCE')
   console.log('-'.repeat(60))
-  const balance = await publicClient.getBalance({ address: account.address as Hex })
+  const balance = await publicClient.getBalance({
+    address: account.address as Hex,
+  })
   console.log(`Balance: ${formatEther(balance)} ETH`)
   console.log('')
 
@@ -231,7 +235,9 @@ async function main() {
 
   try {
     // Get current nonce for deployment transaction
-    const nonce = await publicClient.getTransactionCount({ address: account.address as Hex })
+    const nonce = await publicClient.getTransactionCount({
+      address: account.address as Hex,
+    })
 
     // Deploy contract by sending a transaction with contract bytecode
     const hash = await walletClient.sendTransaction({
@@ -261,7 +267,6 @@ async function main() {
     console.log('-'.repeat(60))
     console.log('INTERACTING WITH CONTRACT')
     console.log('-'.repeat(60))
-
 
     const code = await publicClient.getCode({
       address: contractAddress as Hex,
@@ -349,4 +354,3 @@ main().catch((error) => {
   console.error('Fatal error:', error)
   process.exit(1)
 })
-

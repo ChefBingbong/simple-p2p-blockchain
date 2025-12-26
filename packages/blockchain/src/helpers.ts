@@ -1,7 +1,6 @@
+import type { Chain, Common, GenesisState } from '@ts-ethereum/chain-config'
 import { ChainGenesis } from '@ts-ethereum/chain-config'
 import { genesisMPTStateRoot } from '@ts-ethereum/mpt'
-
-import type { Chain, Common, GenesisState } from '@ts-ethereum/chain-config'
 
 /**
  * Safe creation of a new Blockchain object awaiting the initialization function,
@@ -31,7 +30,12 @@ export async function genGenesisStateRoot(
 /**
  * Returns the genesis state root if chain is well known or an empty state's root otherwise
  */
-export async function getGenesisStateRoot(chainId: Chain, common: Common): Promise<Uint8Array> {
+export async function getGenesisStateRoot(
+  chainId: Chain,
+  common: Common,
+): Promise<Uint8Array> {
   const chainGenesis = ChainGenesis[chainId]
-  return chainGenesis !== undefined ? chainGenesis.stateRoot : genGenesisStateRoot({}, common)
+  return chainGenesis !== undefined
+    ? chainGenesis.stateRoot
+    : genGenesisStateRoot({}, common)
 }

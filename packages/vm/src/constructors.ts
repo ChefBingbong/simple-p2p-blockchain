@@ -1,5 +1,9 @@
 import { Common, Mainnet } from '@ts-ethereum/chain-config'
-import { createEVM, EVMMockBlockchain, getActivePrecompiles } from '@ts-ethereum/evm'
+import {
+  createEVM,
+  EVMMockBlockchain,
+  getActivePrecompiles,
+} from '@ts-ethereum/evm'
 import { MerkleStateManager } from '@ts-ethereum/state-manager'
 import {
   Account,

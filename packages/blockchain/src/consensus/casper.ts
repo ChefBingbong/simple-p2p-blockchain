@@ -1,7 +1,6 @@
+import type { BlockHeader } from '@ts-ethereum/block'
 import { ConsensusAlgorithm } from '@ts-ethereum/chain-config'
 import { BIGINT_0 } from '@ts-ethereum/utils'
-
-import type { BlockHeader } from '@ts-ethereum/block'
 import type { Consensus } from '../types'
 
 /**
@@ -31,4 +30,3 @@ export class CasperConsensus implements Consensus {
   }
   public async newBlock(): Promise<void> {}
 }
-

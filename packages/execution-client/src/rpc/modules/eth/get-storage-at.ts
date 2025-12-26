@@ -3,14 +3,14 @@ import {
   createAddressFromString,
   EthereumJSErrorWithoutCode,
   hexToBytes,
+  type PrefixedHexString,
   safeError,
   safeResult,
   setLengthLeft,
-  type PrefixedHexString,
 } from '@ts-ethereum/utils'
+import type { ExecutionNode } from '../../../node/index'
 import { INVALID_HEX_STRING, INVALID_PARAMS } from '../../error-code'
 import { getBlockByOption } from '../../helpers'
-import type { ExecutionNode } from '../../../node/index'
 import { createRpcMethod } from '../../validation'
 import { getStorageAtSchema } from './schema'
 
@@ -63,10 +63,11 @@ export const getStorageAt = (node: ExecutionNode) => {
       const storage = await vmCopy.stateManager.getStorage(address, key)
       return safeResult(
         storage !== null && storage !== undefined
-          ? bytesToHex(setLengthLeft(Uint8Array.from(storage) as Uint8Array, 32))
+          ? bytesToHex(
+              setLengthLeft(Uint8Array.from(storage) as Uint8Array, 32),
+            )
           : EMPTY_SLOT,
       )
     },
   )
 }
-

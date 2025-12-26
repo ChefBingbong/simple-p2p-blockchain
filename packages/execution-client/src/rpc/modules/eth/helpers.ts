@@ -105,8 +105,9 @@ export const toJSONRPCReceipt = async (
     (receipt as PostByzantiumTxReceipt).status !== undefined
       ? intToHex((receipt as PostByzantiumTxReceipt).status)
       : undefined,
-      
+
   type: intToHex(tx.type),
   blobGasUsed: blobGasUsed !== undefined ? bigIntToHex(blobGasUsed) : undefined,
-  blobGasPrice: blobGasPrice !== undefined ? bigIntToHex(blobGasPrice) : undefined,
+  blobGasPrice:
+    blobGasPrice !== undefined ? bigIntToHex(blobGasPrice) : undefined,
 })

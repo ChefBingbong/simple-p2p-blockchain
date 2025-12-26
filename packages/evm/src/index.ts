@@ -17,7 +17,7 @@ export type {
   EVMOpts,
   EVMResult,
   EVMRunCallOpts,
-  ExecResult
+  ExecResult,
 }
 
 export { EVM, EVMError, EVMMockBlockchain, Message }

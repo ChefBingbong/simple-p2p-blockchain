@@ -22,23 +22,26 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import {
-    createPublicClient,
-    createWalletClient,
-    decodeAbiParameters,
-    defineChain,
-    encodeAbiParameters,
-    encodeFunctionData,
-    formatEther,
-    http,
-    publicActions,
-    type Hex,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
 // @ts-expect-error - solc types may not be available
 import solc from 'solc'
+import {
+  createPublicClient,
+  createWalletClient,
+  decodeAbiParameters,
+  defineChain,
+  encodeAbiParameters,
+  encodeFunctionData,
+  formatEther,
+  type Hex,
+  http,
+  publicActions,
+} from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 
-const scriptDir = path.resolve(process.cwd(), 'packages/execution-client/src/bin')
+const scriptDir = path.resolve(
+  process.cwd(),
+  'packages/execution-client/src/bin',
+)
 const __filename = './test-network-data/accounts.json'
 const __dirname = path.dirname(__filename)
 
@@ -115,7 +118,9 @@ async function waitForRPC(rpcUrl: string, maxRetries = 30): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 1000))
     process.stdout.write('.')
   }
-  throw new Error(`RPC at ${rpcUrl} did not become ready after ${maxRetries} seconds`)
+  throw new Error(
+    `RPC at ${rpcUrl} did not become ready after ${maxRetries} seconds`,
+  )
 }
 
 /**
@@ -211,16 +216,20 @@ async function deployContract(
     gasPrice: 1_000_000_000n, // 1 gwei
     nonce,
     type: 'legacy',
-    
   })
 
   console.log(`Transaction hash: ${hash}`)
   console.log('Waiting for deployment...')
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 3 })
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash,
+    confirmations: 3,
+  })
 
   if (!receipt.contractAddress) {
-    throw new Error('Contract deployment failed - no contract address in receipt')
+    throw new Error(
+      'Contract deployment failed - no contract address in receipt',
+    )
   }
 
   console.log(`✅ Contract deployed at: ${receipt.contractAddress}`)
@@ -294,10 +303,7 @@ async function getGreeting(
     throw new Error('Contract call returned no data')
   }
 
-  const decoded = decodeAbiParameters(
-    [{ type: 'string' }],
-    result.data as Hex,
-  )
+  const decoded = decodeAbiParameters([{ type: 'string' }], result.data as Hex)
 
   return decoded[0] as string
 }
@@ -374,7 +380,9 @@ async function main() {
   console.log('-'.repeat(60))
   console.log('CHECKING BALANCE')
   console.log('-'.repeat(60))
-  const balance = await publicClient.getBalance({ address: account.address as Hex })
+  const balance = await publicClient.getBalance({
+    address: account.address as Hex,
+  })
   console.log(`Balance: ${formatEther(balance)} ETH`)
   console.log('')
 
@@ -486,4 +494,3 @@ main().catch((error) => {
   }
   process.exit(1)
 })
-
