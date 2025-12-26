@@ -1,6 +1,7 @@
 import { EthereumJSErrorWithoutCode } from '@ethereumjs/util'
 
-export type EOFErrorMessage = (typeof EOFErrorMessage)[keyof typeof EOFErrorMessage]
+export type EOFErrorMessage =
+  (typeof EOFErrorMessage)[keyof typeof EOFErrorMessage]
 
 export const EOFErrorMessage = {
   OUT_OF_BOUNDS: 'Trying to read out of bounds',
@@ -28,7 +29,8 @@ export const EOFErrorMessage = {
   MAX_INPUTS: 'inputs exceeds 127, the maximum, got: ',
   MAX_OUTPUTS: 'outputs exceeds 127, the maximum, got: ',
   CODE0_INPUTS: 'first code section should have 0 inputs',
-  CODE0_OUTPUTS: 'first code section should have 0x80 (terminating section) outputs',
+  CODE0_OUTPUTS:
+    'first code section should have 0x80 (terminating section) outputs',
   MAX_STACK_HEIGHT: 'expected maxStackHeight',
   MAX_STACK_HEIGHT_LIMIT: 'stack height limit of 1024 exceeded: ',
   MIN_CODE_SECTIONS: 'should have at least 1 code section',
@@ -37,9 +39,12 @@ export const EOFErrorMessage = {
   CONTAINER_SECTION: 'expected a container section',
   CONTAINER_SECTION_MIN: 'container section should be at least 1 byte',
   INVALID_EOF_CREATE_TARGET: 'EOFCREATE targets an undefined container',
-  INVALID_RETURN_CONTRACT_TARGET: 'RETURNCONTRACT targets an undefined container',
-  CONTAINER_DOUBLE_TYPE: 'Container is targeted by both EOFCREATE and RETURNCONTRACT',
-  UNREACHABLE_CONTAINER_SECTIONS: 'Unreachable containers (by both EOFCREATE and RETURNCONTRACT)',
+  INVALID_RETURN_CONTRACT_TARGET:
+    'RETURNCONTRACT targets an undefined container',
+  CONTAINER_DOUBLE_TYPE:
+    'Container is targeted by both EOFCREATE and RETURNCONTRACT',
+  UNREACHABLE_CONTAINER_SECTIONS:
+    'Unreachable containers (by both EOFCREATE and RETURNCONTRACT)',
   CONTAINER_TYPE_ERROR:
     'Container contains opcodes which this mode (deployment mode / init code / runtime mode) cannot have',
   DANGLING_BYTES: 'got dangling bytes in body',
@@ -51,20 +56,24 @@ export const EOFErrorMessage = {
   INVALID_CALLF_RETURNING: 'invalid callf: calls to non-returning function',
   INVALID_STACK_HEIGHT: 'invalid stack height',
   INVALID_JUMPF: 'invalid jumpf target (output count)',
-  INVALID_RETURNING_SECTION: 'invalid returning code section: section is not returning',
-  RETURNING_NO_RETURN: 'invalid section: section should return but has no RETF/JUMP to return',
+  INVALID_RETURNING_SECTION:
+    'invalid returning code section: section is not returning',
+  RETURNING_NO_RETURN:
+    'invalid section: section should return but has no RETF/JUMP to return',
   RJUMPV_TABLE_SIZE0: 'invalid RJUMPV: table size 0',
   UNREACHABLE_CODE_SECTIONS: 'unreachable code sections',
   UNREACHABLE_CODE: 'unreachable code (by forward jumps)',
   DATALOADN_OOB: 'DATALOADN reading out of bounds',
-  MAX_STACK_HEIGHT_VIOLATION: 'Max stack height does not match the reported max stack height',
+  MAX_STACK_HEIGHT_VIOLATION:
+    'Max stack height does not match the reported max stack height',
   STACK_UNDERFLOW: 'Stack underflow',
   STACK_OVERFLOW: 'Stack overflow',
   UNSTABLE_STACK: 'Unstable stack (can reach stack under/overflow by jumps)',
   RETF_NO_RETURN: 'Trying to return to undefined function',
   RETURN_STACK_OVERFLOW: 'Return stack overflow',
   INVALID_EXTCALL_TARGET: 'invalid extcall target: address > 20 bytes',
-  INVALID_RETURN_CONTRACT_DATA_SIZE: 'invalid RETURNCONTRACT: data size lower than expected',
+  INVALID_RETURN_CONTRACT_DATA_SIZE:
+    'invalid RETURNCONTRACT: data size lower than expected',
 } as const
 
 export function validationErrorMsg(type: EOFErrorMessage, ...args: any) {
@@ -103,7 +112,9 @@ export function validationErrorMsg(type: EOFErrorMessage, ...args: any) {
       return EOFErrorMessage.MAX_INPUTS + `${args[1]} - code section ${args[0]}`
     }
     case EOFErrorMessage.MAX_OUTPUTS: {
-      return EOFErrorMessage.MAX_OUTPUTS + `${args[1]} - code section ${args[0]}`
+      return (
+        EOFErrorMessage.MAX_OUTPUTS + `${args[1]} - code section ${args[0]}`
+      )
     }
     case EOFErrorMessage.CODE_SECTION: {
       return `expected code: codeSection ${args[0]}: `
@@ -164,19 +175,29 @@ export function validationError(type: EOFErrorMessage, ...args: any): never {
       throw EthereumJSErrorWithoutCode(EOFErrorMessage.INVALID_TYPE_SIZE)
     }
     case EOFErrorMessage.INVALID_CODE_SIZE: {
-      throw EthereumJSErrorWithoutCode(EOFErrorMessage.INVALID_CODE_SIZE + args[0])
+      throw EthereumJSErrorWithoutCode(
+        EOFErrorMessage.INVALID_CODE_SIZE + args[0],
+      )
     }
     case EOFErrorMessage.INPUTS: {
-      throw EthereumJSErrorWithoutCode(`${EOFErrorMessage.INPUTS} - typeSection ${args[0]}`)
+      throw EthereumJSErrorWithoutCode(
+        `${EOFErrorMessage.INPUTS} - typeSection ${args[0]}`,
+      )
     }
     case EOFErrorMessage.OUTPUTS: {
-      throw EthereumJSErrorWithoutCode(`${EOFErrorMessage.OUTPUTS} - typeSection ${args[0]}`)
+      throw EthereumJSErrorWithoutCode(
+        `${EOFErrorMessage.OUTPUTS} - typeSection ${args[0]}`,
+      )
     }
     case EOFErrorMessage.CODE0_INPUTS: {
-      throw EthereumJSErrorWithoutCode(`first code section should have 0 inputs`)
+      throw EthereumJSErrorWithoutCode(
+        `first code section should have 0 inputs`,
+      )
     }
     case EOFErrorMessage.CODE0_OUTPUTS: {
-      throw EthereumJSErrorWithoutCode(`first code section should have 0 outputs`)
+      throw EthereumJSErrorWithoutCode(
+        `first code section should have 0 outputs`,
+      )
     }
     case EOFErrorMessage.MAX_INPUTS: {
       throw EthereumJSErrorWithoutCode(
@@ -189,7 +210,9 @@ export function validationError(type: EOFErrorMessage, ...args: any): never {
       )
     }
     case EOFErrorMessage.CODE_SECTION: {
-      throw EthereumJSErrorWithoutCode(`expected code: codeSection ${args[0]}: `)
+      throw EthereumJSErrorWithoutCode(
+        `expected code: codeSection ${args[0]}: `,
+      )
     }
     case EOFErrorMessage.DATA_SECTION: {
       throw EthereumJSErrorWithoutCode(EOFErrorMessage.DATA_SECTION)

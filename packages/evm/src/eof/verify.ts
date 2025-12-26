@@ -1,8 +1,7 @@
-import { EOFErrorMessage, validationError } from './errors.ts'
-import { stackDelta } from './stackDelta.ts'
-
 import type { EVM } from '../evm.ts'
 import type { EOFContainer } from './container.ts'
+import { EOFErrorMessage, validationError } from './errors.ts'
+import { stackDelta } from './stackDelta.ts'
 
 /**
  * Note for reviewers regarding these flags: these only reside inside `verify.ts` (this file)
@@ -20,7 +19,8 @@ import type { EOFContainer } from './container.ts'
  * This flag is thus to distinguish between subcontainers, and also thus also allows for data section sizes
  * lower than the size in the header in case of `InitCode`
  */
-export type ContainerSectionType = (typeof ContainerSectionType)[keyof typeof ContainerSectionType]
+export type ContainerSectionType =
+  (typeof ContainerSectionType)[keyof typeof ContainerSectionType]
 
 export const ContainerSectionType = {
   InitCode: 'initCode', // Targeted by EOFCreate
@@ -162,7 +162,8 @@ function validateOpcodes(
 
     // Section is marked as "non-returning": it does never "return" to another code section
     // it rather exits the current EVM call frame
-    const nonReturningFunction = container.body.typeSections[codeSection].outputs === 0x80
+    const nonReturningFunction =
+      container.body.typeSections[codeSection].outputs === 0x80
 
     // Boolean flag to mark if this section has a returning opcode:
     // RETF
@@ -176,7 +177,7 @@ function validateOpcodes(
 
     // Validate that each opcode is defined
     let ptr = 0
-    let lastOpcode: number = 0 // Note: code sections cannot be empty, so this number will always be set
+    let lastOpcode = 0 // Note: code sections cannot be empty, so this number will always be set
 
     // Implement the EIP 5450 stack validation algorithm
     const inputs = container.body.typeSections[codeSection].inputs
@@ -197,7 +198,10 @@ function validateOpcodes(
         validationError(EOFErrorMessage.UNREACHABLE_CODE)
       }
 
-      if (stackHeightMin[ptr] === undefined || stackHeightMax[ptr] === undefined) {
+      if (
+        stackHeightMin[ptr] === undefined ||
+        stackHeightMax[ptr] === undefined
+      ) {
         // Code is either unreachable or only reachable via a backwards jump
         validationError(EOFErrorMessage.UNREACHABLE_CODE)
       }
@@ -314,7 +318,9 @@ function validateOpcodes(
           }
 
           if (
-            maxStackCurrent + container.body.typeSections[target].maxStackHeight - targetInputs >
+            maxStackCurrent +
+              container.body.typeSections[target].maxStackHeight -
+              targetInputs >
             1024
           ) {
             validationError(EOFErrorMessage.STACK_OVERFLOW)
@@ -324,7 +330,8 @@ function validateOpcodes(
           maxStackNext += targetOutputs - targetInputs
         } else {
           // JUMPF
-          const currentOutputs = container.body.typeSections[codeSection].outputs
+          const currentOutputs =
+            container.body.typeSections[codeSection].outputs
           const targetOutputs = container.body.typeSections[target].outputs
           const targetInputs = container.body.typeSections[target].inputs
           const targetNonReturning = targetOutputs === 0x80
@@ -349,13 +356,20 @@ function validateOpcodes(
           } else {
             // Target is returning
             const expectedStack = currentOutputs + targetInputs - targetOutputs
-            if (!(minStackCurrent === maxStackCurrent && maxStackCurrent === expectedStack)) {
+            if (
+              !(
+                minStackCurrent === maxStackCurrent &&
+                maxStackCurrent === expectedStack
+              )
+            ) {
               validationError(EOFErrorMessage.INVALID_STACK_HEIGHT)
             }
             sectionHasReturningOpcode = true
           }
           if (
-            maxStackCurrent + container.body.typeSections[target].maxStackHeight - targetInputs >
+            maxStackCurrent +
+              container.body.typeSections[target].maxStackHeight -
+              targetInputs >
             1024
           ) {
             validationError(EOFErrorMessage.STACK_OVERFLOW)
@@ -365,7 +379,9 @@ function validateOpcodes(
         // RETF
         // Stack height must match the outputs of current code section
         const outputs = container.body.typeSections[codeSection].outputs
-        if (!(minStackCurrent === maxStackCurrent && maxStackCurrent === outputs)) {
+        if (
+          !(minStackCurrent === maxStackCurrent && maxStackCurrent === outputs)
+        ) {
           validationError(EOFErrorMessage.INVALID_STACK_HEIGHT)
         }
         sectionHasReturningOpcode = true
@@ -413,7 +429,9 @@ function validateOpcodes(
           validationError(EOFErrorMessage.INVALID_RETURN_CONTRACT_TARGET)
         }
         if (containerTypeMap.has(target)) {
-          if (containerTypeMap.get(target) !== ContainerSectionType.DeploymentCode) {
+          if (
+            containerTypeMap.get(target) !== ContainerSectionType.DeploymentCode
+          ) {
             validationError(EOFErrorMessage.CONTAINER_DOUBLE_TYPE)
           }
         }
@@ -476,8 +494,14 @@ function validateOpcodes(
           stackHeightMin[successor] = minStackNext
           stackHeightMax[successor] = maxStackNext
         } else {
-          stackHeightMin[successor] = Math.min(stackHeightMin[successor], minStackNext)
-          stackHeightMax[successor] = Math.max(stackHeightMax[successor], maxStackNext)
+          stackHeightMin[successor] = Math.min(
+            stackHeightMin[successor],
+            minStackNext,
+          )
+          stackHeightMax[successor] = Math.max(
+            stackHeightMax[successor],
+            maxStackNext,
+          )
         }
       }
 
@@ -489,7 +513,9 @@ function validateOpcodes(
       validationError(EOFErrorMessage.INVALID_TERMINATOR)
     }
 
-    if (container.body.typeSections[codeSection].maxStackHeight !== maxStackHeight) {
+    if (
+      container.body.typeSections[codeSection].maxStackHeight !== maxStackHeight
+    ) {
       validationError(EOFErrorMessage.MAX_STACK_HEIGHT_VIOLATION)
     }
     if (maxStackHeight > 1024) {

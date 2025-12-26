@@ -1,13 +1,15 @@
-import { EOFContainer, EOFContainerMode } from './container.ts'
-
 import type { RunState } from '../interpreter.ts'
+import { EOFContainer, EOFContainerMode } from './container.ts'
 
 /**
  * Setup EOF by preparing the `RunState` to run EVM in EOF mode
  * @param runState Current run state
  * @param eofMode EOF mode to run in (only changes in case of EOFCREATE)
  */
-export function setupEOF(runState: RunState, eofMode: EOFContainerMode = EOFContainerMode.Default) {
+export function setupEOF(
+  runState: RunState,
+  eofMode: EOFContainerMode = EOFContainerMode.Default,
+) {
   runState.env.eof = {
     container: new EOFContainer(runState.code, eofMode),
     eofRunState: {
