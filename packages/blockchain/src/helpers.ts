@@ -1,16 +1,32 @@
-import type { Common, GenesisState } from '@ts-ethereum/chain-config'
+import {
+  type Chain,
+  ChainGenesis,
+  type Common,
+  type GenesisState,
+} from '@ts-ethereum/chain-config'
 import { genesisMPTStateRoot } from '@ts-ethereum/mpt'
 
 export async function genGenesisStateRoot(
   genesisState: GenesisState,
+  common: Common,
 ): Promise<Uint8Array> {
+  const genCommon = common.copy()
+  genCommon.setHardforkBy({
+    blockNumber: 0,
+    timestamp: genCommon.genesis().timestamp,
+  })
   return genesisMPTStateRoot(genesisState)
 }
 
-export async function getGenesisStateRoot(common: Common): Promise<Uint8Array> {
-  return genGenesisStateRoot({
-    name: common.chainName(),
-    blockNumber: 0n,
-    stateRoot: new Uint8Array(32),
-  })
+/**
+ * Returns the genesis state root if chain is well known or an empty state's root otherwise
+ */
+export async function getGenesisStateRoot(
+  chainId: Chain,
+  common: Common,
+): Promise<Uint8Array> {
+  const chainGenesis = ChainGenesis[chainId]
+  return chainGenesis !== undefined
+    ? chainGenesis.stateRoot
+    : genGenesisStateRoot({}, common)
 }

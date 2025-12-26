@@ -111,7 +111,6 @@ describe('[Transaction Input Values]', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: {},
     })
     const options = { ...baseTxValues, ...legacyTxValues, type: '0' }
     const legacyTxData = generateCombinations({

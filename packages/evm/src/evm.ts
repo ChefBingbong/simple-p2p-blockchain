@@ -54,7 +54,7 @@ export function defaultBlock(): Block {
  * - {@link createEVM}
  */
 export class EVM implements EVMInterface {
-  protected static supportedHardforks = [Hardfork.Chainstart]
+  protected static supportedHardforks: Hardfork[] = [Hardfork.Chainstart]
   protected _tx?: {
     gasPrice: bigint
     origin: Address

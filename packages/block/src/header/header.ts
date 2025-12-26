@@ -70,9 +70,9 @@ export class BlockHeader {
    *
    */
   constructor(headerData: HeaderData, opts: BlockOptions = {}) {
-    this.common =
-      opts.common?.copy() ??
-      new Common({ chain: Mainnet, params: paramsBlock[1] })
+    this.common = opts.common?.copy() ?? new Common({ chain: Mainnet })
+
+    this.common.updateParams(opts.params ?? paramsBlock)
 
     this.keccakFunction = keccak256
     const skipValidateConsensusFormat =

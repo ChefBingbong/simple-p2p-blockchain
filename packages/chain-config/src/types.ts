@@ -1,5 +1,6 @@
 import type { BigIntLike, KZG, PrefixedHexString } from '@ts-ethereum/utils'
 import type { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
+import type { ConsensusAlgorithm, ConsensusType, Hardfork } from './enums'
 
 export interface ChainName {
   [chainId: string]: string
@@ -35,10 +36,15 @@ export interface ChainConfig {
   name: string
   chainId: number | string
   defaultHardfork?: string
+  comment?: string
+  url?: string
   genesis: GenesisBlockConfig
   hardforks: HardforkTransitionConfig[]
+  customHardforks?: HardforksDict
   bootstrapNodes: BootstrapNodeConfig[]
+  dnsNetworks?: string[]
   consensus: ConsensusConfig
+  depositContractAddress?: PrefixedHexString
 }
 
 export interface GenesisBlockConfig {
@@ -47,6 +53,9 @@ export interface GenesisBlockConfig {
   difficulty: number | PrefixedHexString
   nonce: PrefixedHexString
   extraData: PrefixedHexString
+  baseFeePerGas?: PrefixedHexString
+  excessBlobGas?: PrefixedHexString
+  requestsHash?: PrefixedHexString
 }
 
 export interface HardforkTransitionConfig {
@@ -91,17 +100,66 @@ export interface CustomCrypto {
 
 export interface BaseOpts {
   /**
-   * String identifier ('chainstart') for hardfork or {@link Hardfork} enum.
-   * Only Chainstart is supported.
+   * String identifier ('byzantium') for hardfork or {@link Hardfork} enum.
+   *
+   * Default: Hardfork.London
    */
   hardfork?: string | Hardfork
-  params: ParamsConfig
+  /**
+   * Selected EIPs which can be activated, please use an array for instantiation
+   * (e.g. `eips: [ 2537, ]`)
+   *
+   * Currently supported:
+   *
+   * - [EIP-2537](https://eips.ethereum.org/EIPS/eip-2537) - BLS12-381 precompiles
+   */
+  eips?: number[]
+  /**
+   * Optionally pass in an EIP params dictionary, see one of the
+   * EthereumJS library `params.ts` files for an example (e.g. tx, evm).
+   * By default parameters are set by the respective library, so this
+   * is only relevant if you want to use EthereumJS libraries with a
+   * custom parameter set.
+   *
+   * Example Format:
+   *
+   * ```ts
+   * {
+   *   1559: {
+   *     initialBaseFee: 1000000000,
+   *   }
+   * }
+   * ```
+   */
+  params?: ParamsDict
+  /**
+   * This option can be used to replace the most common crypto primitives
+   * (keccak256 hashing e.g.) within the EthereumJS ecosystem libraries
+   * with alternative implementations (e.g. more performant WASM libraries).
+   *
+   * Note: please be aware that this is adding new dependencies for your
+   * system setup to be used for sensitive/core parts of the functionality
+   * and a choice on the libraries to add should be handled with care
+   * and be made with eventual security implications considered.
+   */
+  customCrypto?: CustomCrypto
 }
 
 /**
  * Options for instantiating a {@link Common} instance.
  */
 export interface CommonOpts extends BaseOpts {
+  chain: ChainConfig
+}
+
+/**
+ * Options for instantiating a {@link Common} instance.
+ */
+export interface CommonOpts extends BaseOpts {
+  /**
+   * The chain configuration to be used. There are available configuration object for mainnet
+   * (`Mainnet`) and the currently active testnets which can be directly used.
+   */
   chain: ChainConfig
 }
 
@@ -142,39 +200,8 @@ export type HardforksDict = {
   [key: string]: HardforkConfig
 }
 
-export type Chain = (typeof Chain)[keyof typeof Chain]
-// Only Chainstart hardfork - no EIPs, no other hardforks
-export type Hardfork = (typeof Hardfork)[keyof typeof Hardfork]
-
-export const Hardfork = {
-  Chainstart: 'chainstart',
-} as const
-
-// Only PoW consensus
-export type ConsensusType = (typeof ConsensusType)[keyof typeof ConsensusType]
-
-export const ConsensusType = {
-  ProofOfWork: 'pow',
-} as const
-
-// Only Ethash algorithm
-export type ConsensusAlgorithm =
-  (typeof ConsensusAlgorithm)[keyof typeof ConsensusAlgorithm]
-
-export const ConsensusAlgorithm = {
-  Ethash: 'ethash',
-} as const
-
-export const Chain = {
-  Mainnet: 1,
-  Sepolia: 11155111,
-  Holesky: 17000,
-  Hoodi: 560048,
-} as const
-export type GenesisState = {
-  name: string
-  /* blockNumber that can be used to update and track the regenesis marker */
-  blockNumber: bigint
-  /* stateRoot of the chain at the blockNumber */
-  stateRoot: Uint8Array
+export type BpoSchedule = {
+  targetBlobGasPerBlock: bigint
+  maxBlobGasPerBlock: bigint
+  blobGasPriceUpdateFraction: bigint
 }

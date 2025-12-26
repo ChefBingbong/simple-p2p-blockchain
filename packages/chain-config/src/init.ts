@@ -13,9 +13,11 @@ import {
   writeBootnodeInfo,
 } from './bootnodes'
 import { Common } from './common.js'
+import { Hardfork } from './enums'
+import type { GenesisState } from './gethGenesis'
 import { initPrivateKey } from './keys'
 import { getClientPaths } from './paths'
-import { type ChainConfig, type GenesisState, Hardfork } from './types'
+import type { ChainConfig } from './types'
 
 export interface ClientInitArgs extends Partial<any> {
   /** Root data directory */
@@ -128,16 +130,16 @@ export async function initClientConfig(args: ClientInitArgs): Promise<any> {
   const common = new Common({
     chain: chainConfig,
     hardfork: Hardfork.Chainstart,
-    params: args.common?.param
-      ? {}
-      : {
-          minGasLimit: 5000,
-          gasLimitBoundDivisor: 1024,
-          maxExtraDataSize: 32,
-          minimumDifficulty: 10,
-          difficultyBoundDivisor: 2048,
-          durationLimit: 13,
-        },
+    params: {
+      [12345]: {
+        minGasLimit: 5000,
+        gasLimitBoundDivisor: 1024,
+        maxExtraDataSize: 32,
+        minimumDifficulty: 10,
+        difficultyBoundDivisor: 2048,
+        durationLimit: 13,
+      },
+    },
   })
 
   // Convert viem Address to utils Address for ConfigOptions

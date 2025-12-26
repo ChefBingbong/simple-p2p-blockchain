@@ -46,7 +46,7 @@ const FIXTURES_DIR = path.join(import.meta.dir, 'fixtures')
 
 const NODE1_PORT = 9000
 const NODE2_PORT = 9001
-const CHAIN_ID = 99999
+const CHAIN_ID = 12345
 const TIMEOUT_MS = 30000
 let txHash: Hex | null = null
 
@@ -143,12 +143,14 @@ async function bootNode(
     chain: testChainConfig,
     hardfork: Hardfork.Chainstart,
     params: {
-      minGasLimit: 5000,
-      gasLimitBoundDivisor: 1024,
-      maxExtraDataSize: 32,
-      minimumDifficulty: 1,
-      difficultyBoundDivisor: 2048,
-      durationLimit: 2,
+      [12345]: {
+        minGasLimit: 5000,
+        gasLimitBoundDivisor: 1024,
+        maxExtraDataSize: 32,
+        minimumDifficulty: 1,
+        difficultyBoundDivisor: 2048,
+        durationLimit: 2,
+      },
     },
   })
 
@@ -184,8 +186,9 @@ async function bootNode(
   const _accounts = configOptions.accounts ? [...configOptions.accounts] : []
   const config = new Config({
     ...configOptions,
-    bootnodes: _bootnodes,
-    accounts: _accounts,
+    minerPriorityAddresses: configOptions?.minerPriorityAddresses as any,
+    bootnodes: _bootnodes as any,
+    accounts: _accounts as any,
   })
 
   // Setup paths and databases (using runtime copy of snapshot)
@@ -207,7 +210,6 @@ async function bootNode(
     validateConsensus: true,
     genesisState: genesisState as any,
   })
-
   // Create node
   const node = await ExecutionNode.init({
     config,
@@ -718,7 +720,7 @@ async function main() {
   } finally {
     // Shutdown
     console.log('Shutting down nodes...')
-
+    console.log(node1?.node.chain.config.chainCommon)
     if (node1) {
       node1.node.stop().catch(() => {})
     }

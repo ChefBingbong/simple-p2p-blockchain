@@ -1,5 +1,6 @@
 import type { BlockData } from '@ts-ethereum/block'
 import { createBlock } from '@ts-ethereum/block'
+import type { Chain } from '@ts-ethereum/chain-config'
 import { BIGINT_0, bytesToHex, equalsBytes } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
 import type { BlockchainOptions, DBOp } from '.'
@@ -22,9 +23,15 @@ export async function createBlockchain(opts: BlockchainOptions = {}) {
   let stateRoot = opts.genesisBlock?.header.stateRoot ?? opts.genesisStateRoot
   if (stateRoot === undefined) {
     if (blockchain['_customGenesisState'] !== undefined) {
-      stateRoot = await genGenesisStateRoot(blockchain['_customGenesisState'])
+      stateRoot = await genGenesisStateRoot(
+        blockchain['_customGenesisState'],
+        blockchain.common,
+      )
     } else {
-      stateRoot = await getGenesisStateRoot(blockchain.common)
+      stateRoot = await getGenesisStateRoot(
+        Number(blockchain.common.chainId()) as Chain,
+        blockchain.common,
+      )
     }
   }
 

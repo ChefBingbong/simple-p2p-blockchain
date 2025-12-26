@@ -97,14 +97,6 @@ export async function runTwoNodeExample(): Promise<void> {
       bootstrapNodes: [],
       consensus: { type: 'pow', algorithm: 'ethash' },
     },
-    params: {
-      minGasLimit: 5000,
-      gasLimitBoundDivisor: 1024,
-      maxExtraDataSize: 32,
-      minimumDifficulty: 10,
-      difficultyBoundDivisor: 2048,
-      durationLimit: 13,
-    },
   } as any)
 
   const port1 = 30303
