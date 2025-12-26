@@ -23,7 +23,6 @@ describe('[BaseTransaction]', () => {
   const common = new Common({
     chain: Mainnet,
     hardfork: Hardfork.Chainstart,
-    params: paramsTx[1],
   })
 
   const legacyTxs: LegacyTx[] = []
@@ -62,7 +61,6 @@ describe('[BaseTransaction]', () => {
       const initCommon = new Common({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart,
-        params: paramsTx[1],
       })
       tx = txType.create.txData({}, { common: initCommon })
       assert.strictEqual(

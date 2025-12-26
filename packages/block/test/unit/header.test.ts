@@ -16,7 +16,6 @@ import {
   createBlockHeader,
   createBlockHeaderFromBytesArray,
   createBlockHeaderFromRLP,
-  paramsBlock,
 } from '../../src/index.ts'
 import { goerliChainConfig, Mainnet } from './testdata/chainConfigs'
 import { goerliBlocks } from './testdata/goerliBlocks.ts'
@@ -53,7 +52,6 @@ describe('[Block]: Header functions', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     let header = createBlockHeader(undefined, { common })
     assert.isDefined(
@@ -88,7 +86,6 @@ describe('[Block]: Header functions', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     let header = createBlockHeader({}, { common, freeze: false })
 
@@ -124,7 +121,6 @@ describe('[Block]: Header functions', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     const zero = new Uint8Array(0)
     const headerArray: Uint8Array[] = []
@@ -188,7 +184,6 @@ describe('[Block]: Header functions', () => {
     const common = new Common({
       chain: goerliChainConfig,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     const header = createBlockHeader(
       { extraData: new Uint8Array(97) },
@@ -205,7 +200,6 @@ describe('[Block]: Header functions', () => {
     let common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     let genesis = createBlock({}, { common })
 
@@ -244,7 +238,6 @@ describe('[Block]: Header functions', () => {
     common = new Common({
       chain: goerliChainConfig,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     genesis = createBlock(
       { header: { extraData: new Uint8Array(97) } },
@@ -284,7 +277,6 @@ describe('[Block]: Header functions', () => {
     const common = new Common({
       chain: goerliChainConfig,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
 
     assert.doesNotThrow(
@@ -453,7 +445,6 @@ describe('[Block]: Header functions', () => {
     let common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     let header = createBlockHeader(mainnetBlocks[0]['header'], { common })
     assert.strictEqual(
@@ -465,7 +456,6 @@ describe('[Block]: Header functions', () => {
     common = new Common({
       chain: goerliChainConfig,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     header = createBlockHeader(goerliBlocks[0]['header'], { common })
     assert.strictEqual(

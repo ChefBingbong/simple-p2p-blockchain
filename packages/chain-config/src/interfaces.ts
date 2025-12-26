@@ -9,9 +9,42 @@ import type {
   PrefixedHexString,
 } from '@ts-ethereum/utils'
 
+export interface StorageDump {
+  [key: string]: string
+}
+
+/**
+ * Object that can contain a set of storage keys associated with an account.
+ */
+export interface StorageRange {
+  /**
+   * A dictionary where the keys are hashed storage keys, and the values are
+   * objects containing the preimage of the hashed key (in `key`) and the
+   * storage key (in `value`). Currently, there is no way to retrieve preimages,
+   * so they are always `null`.
+   */
+  storage: {
+    [key: string]: {
+      key: string | null
+      value: string
+    }
+  }
+  /**
+   * The next (hashed) storage key after the greatest storage key
+   * contained in `storage`.
+   */
+  nextKey: string | null
+}
+
 export type AccountFields = Partial<
   Pick<Account, 'nonce' | 'balance' | 'storageRoot' | 'codeHash' | 'codeSize'>
 >
+
+export type StorageProof = {
+  key: PrefixedHexString
+  proof: PrefixedHexString[]
+  value: PrefixedHexString
+}
 
 export type Proof = {
   address: PrefixedHexString
@@ -20,6 +53,7 @@ export type Proof = {
   nonce: PrefixedHexString
   storageHash: PrefixedHexString
   accountProof: PrefixedHexString[]
+  storageProof: StorageProof[]
 }
 
 /**

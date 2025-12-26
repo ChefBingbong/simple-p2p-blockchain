@@ -1,7 +1,5 @@
 #!/usr/bin/env bun
 
-import { cpSync, existsSync, rmSync } from 'node:fs'
-import path from 'node:path'
 import { createBlockchain } from '@ts-ethereum/blockchain'
 import {
   type ChainConfig,
@@ -14,6 +12,8 @@ import {
 } from '@ts-ethereum/chain-config'
 import { initDatabases } from '@ts-ethereum/db'
 import { BIGINT_0, bytesToHex } from '@ts-ethereum/utils'
+import { cpSync, existsSync, rmSync } from 'node:fs'
+import path from 'node:path'
 import {
   createWalletClient,
   defineChain,
@@ -46,7 +46,7 @@ const FIXTURES_DIR = path.join(import.meta.dir, 'fixtures')
 
 const NODE1_PORT = 9000
 const NODE2_PORT = 9001
-const CHAIN_ID = 99999
+const CHAIN_ID = 12345
 const TIMEOUT_MS = 30000
 let txHash: Hex | null = null
 
@@ -143,12 +143,14 @@ async function bootNode(
     chain: testChainConfig,
     hardfork: Hardfork.Chainstart,
     params: {
-      minGasLimit: 5000,
-      gasLimitBoundDivisor: 1024,
-      maxExtraDataSize: 32,
-      minimumDifficulty: 1,
-      difficultyBoundDivisor: 2048,
-      durationLimit: 2,
+      [12345]: {
+        minGasLimit: 5000,
+        gasLimitBoundDivisor: 1024,
+        maxExtraDataSize: 32,
+        minimumDifficulty: 1,
+        difficultyBoundDivisor: 2048,
+        durationLimit: 2,
+      },
     },
   })
 
@@ -207,7 +209,6 @@ async function bootNode(
     validateConsensus: true,
     genesisState: genesisState as any,
   })
-
   // Create node
   const node = await ExecutionNode.init({
     config,

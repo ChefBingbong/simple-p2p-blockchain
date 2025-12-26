@@ -1,5 +1,3 @@
-import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
-import path from 'node:path'
 import { createBlockchain } from '@ts-ethereum/blockchain'
 import {
   type ChainConfig,
@@ -27,6 +25,8 @@ import {
   genPrivateKey,
   hexToBytes,
 } from '@ts-ethereum/utils'
+import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import path from 'node:path'
 import type { GlobalArgs } from '../../options/globalOptions.js'
 import type { NodeArgs } from './options.js'
 
@@ -260,14 +260,6 @@ export async function nodeHandler(args: NodeHandlerArgs): Promise<void> {
   const common = new Common({
     chain: testChainConfig,
     hardfork: Hardfork.Chainstart,
-    params: {
-      minGasLimit: 5000,
-      gasLimitBoundDivisor: 1024,
-      maxExtraDataSize: 32,
-      minimumDifficulty: 10,
-      difficultyBoundDivisor: 2048,
-      durationLimit: 5,
-    },
   })
 
   // Setup bootnodes

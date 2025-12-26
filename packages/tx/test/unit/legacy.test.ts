@@ -61,7 +61,6 @@ describe('[Transaction]', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: {},
     })
     assert.isDefined(
       createLegacyTx({}, { common }),
@@ -187,7 +186,6 @@ describe('[Transaction]', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: {},
     })
 
     let tx = createLegacyTxFromBytesArray(
@@ -300,14 +298,12 @@ describe('[Transaction]', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: {},
     })
     const pkey = hexToBytes(`0x${txsData[0].privateKey}`)
     const txn = createLegacyTx({}, { common, freeze: false })
     const newCommon = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: {},
     })
     assert.deepEqual(
       newCommon.hardfork(),

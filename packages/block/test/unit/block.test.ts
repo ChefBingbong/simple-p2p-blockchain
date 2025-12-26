@@ -22,7 +22,6 @@ describe('[Block]: block functions', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     const genesis = createBlock({}, { common })
     assert.isDefined(bytesToHex(genesis.hash()), 'block should initialize')
@@ -94,7 +93,7 @@ describe('[Block]: block functions', () => {
   })
 
   it('should initialize with null parameters without throwing', () => {
-    const common = new Common({ chain: Mainnet, params: paramsBlock[1] })
+    const common = new Common({ chain: Mainnet })
     const opts = { common }
     assert.doesNotThrow(() => {
       createBlock({}, opts)
@@ -105,7 +104,6 @@ describe('[Block]: block functions', () => {
     const common = new Common({
       chain: goerliChainConfig,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
 
     try {
@@ -195,7 +193,6 @@ describe('[Block]: block functions', () => {
         common: new Common({
           chain: Mainnet,
           hardfork: Hardfork.Chainstart,
-          params: paramsBlock[1],
         }),
       },
     )
@@ -213,7 +210,6 @@ describe('[Block]: block functions', () => {
     const common = new Common({
       chain: Mainnet,
       hardfork: Hardfork.Chainstart,
-      params: paramsBlock[1],
     })
     const rlp = hexToBytes(`0x${genesisHashesTestData.test.genesis_rlp_hex}`)
     const hash = hexToBytes(`0x${genesisHashesTestData.test.genesis_hash}`)

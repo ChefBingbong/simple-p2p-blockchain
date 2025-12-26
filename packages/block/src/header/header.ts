@@ -16,8 +16,8 @@ import {
   EthereumJSErrorWithoutCode,
   KECCAK256_RLP,
   KECCAK256_RLP_ARRAY,
-  TypeOutput,
   toType,
+  TypeOutput,
 } from '@ts-ethereum/utils'
 import { keccak256 } from 'ethereum-cryptography/keccak'
 import { paramsBlock } from '../params'
@@ -70,9 +70,9 @@ export class BlockHeader {
    *
    */
   constructor(headerData: HeaderData, opts: BlockOptions = {}) {
-    this.common =
-      opts.common?.copy() ??
-      new Common({ chain: Mainnet, params: paramsBlock[1] })
+    this.common = opts.common?.copy() ?? new Common({ chain: Mainnet })
+
+    this.common.updateParams(opts.params ?? paramsBlock)
 
     this.keccakFunction = keccak256
     const skipValidateConsensusFormat =

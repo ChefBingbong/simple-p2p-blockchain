@@ -14,7 +14,6 @@ import {
 const common = new Common({
   chain: Mainnet,
   hardfork: Hardfork.Chainstart,
-  params: {},
 })
 
 const pKey = hexToBytes(

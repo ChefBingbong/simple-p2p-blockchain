@@ -12,4 +12,10 @@ export const paramsTx: ParamsDict = {
     txDataZeroGas: 4, // Per byte of data attached to a transaction that equals zero
     txDataNonZeroGas: 68, // Per byte of data attached to a transaction that is not equal to zero
   },
+  12345: {
+    txGas: 21000,
+    txCreationGas: 32000,
+    txDataZeroGas: 4,
+    txDataNonZeroGas: 68,
+  },
 }
