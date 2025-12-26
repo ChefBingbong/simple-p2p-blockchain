@@ -1,11 +1,10 @@
-import {
-  BIGINT_0,
-  EthereumJSErrorWithoutCode,
-  createZeroAddress,
-} from '@ts-ethereum/utils'
-
 import type { BinaryTreeAccessWitnessInterface } from '@ts-ethereum/chain-config'
 import type { Address, PrefixedHexString } from '@ts-ethereum/utils'
+import {
+  BIGINT_0,
+  createZeroAddress,
+  EthereumJSErrorWithoutCode,
+} from '@ts-ethereum/utils'
 import type { PrecompileFunc } from './precompiles/index'
 import type { EOFEnv } from './types'
 

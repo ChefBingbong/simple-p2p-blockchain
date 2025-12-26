@@ -1,7 +1,7 @@
 import { short } from '@ts-ethereum/utils'
 
-import { EVMError } from 'src/errors'
-import type { ExecResult } from 'src/types'
+import { EVMError } from '../errors'
+import type { ExecResult } from '../types'
 import type { PrecompileInput } from './index'
 
 /**

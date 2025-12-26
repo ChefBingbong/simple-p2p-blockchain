@@ -1,11 +1,9 @@
 import { Common, Mainnet } from '@ts-ethereum/chain-config'
 import { SimpleStateManager } from '@ts-ethereum/state-manager'
-
+import type { EVMOpts } from './index'
 import { EVM } from './index'
 import { NobleBN254 } from './precompiles/index'
 import { EVMMockBlockchain } from './types'
-
-import type { EVMOpts } from './index'
 
 /**
  * Use this async static constructor for the initialization

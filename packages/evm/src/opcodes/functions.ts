@@ -4,19 +4,19 @@ import {
   Address,
   BIGINT_0,
   BIGINT_1,
-  BIGINT_2,
-  BIGINT_2EXP96,
-  BIGINT_2EXP160,
-  BIGINT_2EXP224,
-  BIGINT_7,
-  BIGINT_8,
-  BIGINT_31,
-  BIGINT_32,
-  BIGINT_96,
   BIGINT_160,
+  BIGINT_2,
   BIGINT_224,
   BIGINT_255,
   BIGINT_256,
+  BIGINT_2EXP160,
+  BIGINT_2EXP224,
+  BIGINT_2EXP96,
+  BIGINT_31,
+  BIGINT_32,
+  BIGINT_7,
+  BIGINT_8,
+  BIGINT_96,
   bigIntToAddressBytes,
   bigIntToBytes,
   bytesToBigInt,
@@ -56,18 +56,18 @@ export type AsyncOpHandler = (
 export type OpHandler = SyncOpHandler | AsyncOpHandler
 
 // the opcode functions
-export const handlers: Map<number, OpHandler> = new Map([
+export const handlers = new Map([
   // 0x00: STOP
   [
     0x00,
-    () => {
+    (runState: any) => {
       trap(EVMError.errorMessages.STOP)
     },
   ],
   // 0x01: ADD
   [
     0x01,
-    (runState) => {
+    (runState: { stack: { popN: (arg0: number) => [any, any]; push: (arg0: bigint) => void } }) => {
       const [a, b] = runState.stack.popN(2)
       const r = mod(a + b, TWO_POW256)
       runState.stack.push(r)
@@ -76,31 +76,31 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x02: MUL
   [
     0x02,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
-      const r = mod(a * b, TWO_POW256)
+      const r = mod(BigInt(a) * BigInt(b), TWO_POW256)
       runState.stack.push(r)
     },
   ],
   // 0x03: SUB
   [
     0x03,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
-      const r = mod(a - b, TWO_POW256)
+      const r = mod(BigInt(a) - BigInt(b), TWO_POW256)
       runState.stack.push(r)
     },
   ],
   // 0x04: DIV
   [
     0x04,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       let r
       if (b === BIGINT_0) {
         r = BIGINT_0
       } else {
-        r = mod(a / b, TWO_POW256)
+        r = mod(BigInt(a) / BigInt(b), TWO_POW256)
       }
       runState.stack.push(r)
     },
@@ -108,7 +108,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x05: SDIV
   [
     0x05,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       let r
       if (b === BIGINT_0) {
@@ -122,7 +122,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x06: MOD
   [
     0x06,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       let r
       if (b === BIGINT_0) {
@@ -136,7 +136,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x07: SMOD
   [
     0x07,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       let r
       if (b === BIGINT_0) {
@@ -150,7 +150,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x08: ADDMOD
   [
     0x08,
-    (runState) => {
+    (runState: any) => {
       const [a, b, c] = runState.stack.popN(3)
       let r
       if (c === BIGINT_0) {
@@ -164,13 +164,13 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x09: MULMOD
   [
     0x09,
-    (runState) => {
+    (runState: any) => {
       const [a, b, c] = runState.stack.popN(3)
       let r
       if (c === BIGINT_0) {
         r = BIGINT_0
       } else {
-        r = mod(a * b, c)
+        r = mod(BigInt(a) * BigInt(b), BigInt(c))
       }
       runState.stack.push(r)
     },
@@ -178,7 +178,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x0a: EXP
   [
     0x0a,
-    (runState) => {
+    (runState: any) => {
       const [base, exponent] = runState.stack.popN(2)
       if (base === BIGINT_2) {
         switch (exponent) {
@@ -209,7 +209,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x0b: SIGNEXTEND
   [
     0x0b,
-    (runState) => {
+    (runState: any) => {
       /* eslint-disable-next-line prefer-const */
       let [k, val] = runState.stack.popN(2)
       if (k < BIGINT_31) {
@@ -228,7 +228,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x10: LT
   [
     0x10,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = a < b ? BIGINT_1 : BIGINT_0
       runState.stack.push(r)
@@ -237,7 +237,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x11: GT
   [
     0x11,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = a > b ? BIGINT_1 : BIGINT_0
       runState.stack.push(r)
@@ -246,7 +246,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x12: SLT
   [
     0x12,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = fromTwos(a) < fromTwos(b) ? BIGINT_1 : BIGINT_0
       runState.stack.push(r)
@@ -255,7 +255,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x13: SGT
   [
     0x13,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = fromTwos(a) > fromTwos(b) ? BIGINT_1 : BIGINT_0
       runState.stack.push(r)
@@ -264,7 +264,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x14: EQ
   [
     0x14,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = a === b ? BIGINT_1 : BIGINT_0
       runState.stack.push(r)
@@ -273,8 +273,8 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x15: ISZERO
   [
     0x15,
-    (runState) => {
-      const a = runState.stack.pop()
+    (runState: any) => {
+      const a = runState.stack.popN()
       const r = a === BIGINT_0 ? BIGINT_1 : BIGINT_0
       runState.stack.push(r)
     },
@@ -282,7 +282,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x16: AND
   [
     0x16,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = a & b
       runState.stack.push(r)
@@ -291,7 +291,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x17: OR
   [
     0x17,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = a | b
       runState.stack.push(r)
@@ -300,7 +300,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x18: XOR
   [
     0x18,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       const r = a ^ b
       runState.stack.push(r)
@@ -309,16 +309,16 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x19: NOT
   [
     0x19,
-    (runState) => {
+    (runState: any) => {
       const a = runState.stack.pop()
-      const r = BigInt.asUintN(256, ~a)
+      const r = BigInt.asUintN(256, ~BigInt(a))
       runState.stack.push(r)
     },
   ],
   // 0x1a: BYTE
   [
     0x1a,
-    (runState) => {
+    (runState: any) => {
       const [pos, word] = runState.stack.popN(2)
       if (pos > BIGINT_32) {
         runState.stack.push(BIGINT_0)
@@ -332,21 +332,21 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x1b: SHL
   [
     0x1b,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       if (a > BIGINT_256) {
         runState.stack.push(BIGINT_0)
         return
       }
 
-      const r = (b << a) & MAX_INTEGER_BIGINT
+      const r = (BigInt(b) << BigInt(a)) & MAX_INTEGER_BIGINT
       runState.stack.push(r)
     },
   ],
   // 0x1c: SHR
   [
     0x1c,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
       if (a > 256) {
         runState.stack.push(BIGINT_0)
@@ -360,7 +360,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x1d: SAR
   [
     0x1d,
-    (runState) => {
+    (runState: any) => {
       const [a, b] = runState.stack.popN(2)
 
       let r
@@ -379,18 +379,18 @@ export const handlers: Map<number, OpHandler> = new Map([
       const c = b >> a
       if (isSigned) {
         const shiftedOutWidth = BIGINT_255 - a
-        const mask = (MAX_INTEGER_BIGINT >> shiftedOutWidth) << shiftedOutWidth
-        r = c | mask
+        const mask = (MAX_INTEGER_BIGINT >> BigInt(shiftedOutWidth)) << BigInt(shiftedOutWidth)
+        r = BigInt(c) | mask as bigint
       } else {
-        r = c
+        r = c 
       }
-      runState.stack.push(r)
+      runState.stack.push(r as bigint)
     },
   ],
   // 0x1e: CLZ
   [
     0x1e,
-    (runState) => {
+    (runState: any) => {
       const x = runState.stack.pop()
 
       // If x is zero, return 256
@@ -411,7 +411,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x20: KECCAK256
   [
     0x20,
-    (runState, common) => {
+    (runState: any, common: Common) => {
       const [offset, length] = runState.stack.popN(2)
       let data = new Uint8Array(0)
       if (length !== BIGINT_0) {
@@ -427,7 +427,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x30: ADDRESS
   [
     0x30,
-    (runState) => {
+    (runState: any) => {
       const address = bytesToBigInt(runState.interpreter.getAddress().bytes)
       runState.stack.push(address)
     },
@@ -435,7 +435,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x31: BALANCE
   [
     0x31,
-    async (runState) => {
+    async (runState: any) => {
       const addressBigInt = runState.stack.pop()
       const address = createAddressFromStackBigInt(addressBigInt)
       const balance = await runState.interpreter.getExternalBalance(address)
@@ -445,28 +445,28 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x32: ORIGIN
   [
     0x32,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getTxOrigin())
     },
   ],
   // 0x33: CALLER
   [
     0x33,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getCaller())
     },
   ],
   // 0x34: CALLVALUE
   [
     0x34,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getCallValue())
     },
   ],
   // 0x35: CALLDATALOAD
   [
     0x35,
-    (runState) => {
+    (runState: any) => {
       const pos = runState.stack.pop()
       if (pos > runState.interpreter.getCallDataSize()) {
         runState.stack.push(BIGINT_0)
@@ -486,7 +486,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x36: CALLDATASIZE
   [
     0x36,
-    (runState) => {
+    (runState: any) => {
       const r = runState.interpreter.getCallDataSize()
       runState.stack.push(r)
     },
@@ -494,7 +494,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x37: CALLDATACOPY
   [
     0x37,
-    (runState) => {
+    (runState: any) => {
       const [memOffset, dataOffset, dataLength] = runState.stack.popN(3)
 
       if (dataLength !== BIGINT_0) {
@@ -512,14 +512,14 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x38: CODESIZE
   [
     0x38,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getCodeSize())
     },
   ],
   // 0x39: CODECOPY
   [
     0x39,
-    (runState) => {
+    (runState: any) => {
       const [memOffset, codeOffset, dataLength] = runState.stack.popN(3)
 
       if (dataLength !== BIGINT_0) {
@@ -537,7 +537,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x3b: EXTCODESIZE
   [
     0x3b,
-    async (runState) => {
+    async (runState: any) => {
       const addressBigInt = runState.stack.pop()
       const address = createAddressFromStackBigInt(addressBigInt)
       // EOF check
@@ -556,7 +556,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x3c: EXTCODECOPY
   [
     0x3c,
-    async (runState) => {
+    async (runState: any) => {
       const [addressBigInt, memOffset, codeOffset, dataLength] =
         runState.stack.popN(4)
 
@@ -579,7 +579,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x3f: EXTCODEHASH
   [
     0x3f,
-    async (runState) => {
+    async (runState: any) => {
       const addressBigInt = runState.stack.pop()
       const address = createAddressFromStackBigInt(addressBigInt)
 
@@ -604,14 +604,14 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x3d: RETURNDATASIZE
   [
     0x3d,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getReturnDataSize())
     },
   ],
   // 0x3e: RETURNDATACOPY
   [
     0x3e,
-    (runState) => {
+    (runState: any) => {
       const [memOffset, returnDataOffset, dataLength] = runState.stack.popN(3)
 
       if (dataLength !== BIGINT_0) {
@@ -629,7 +629,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x3a: GASPRICE
   [
     0x3a,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getTxGasPrice())
     },
   ],
@@ -637,7 +637,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x40: BLOCKHASH
   [
     0x40,
-    async (runState, common) => {
+    async (runState: any, common: Common) => {
       const number = runState.stack.pop()
 
       if (common.isActivatedEIP(7709)) {
@@ -694,28 +694,28 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x41: COINBASE
   [
     0x41,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getBlockCoinbase())
     },
   ],
   // 0x42: TIMESTAMP
   [
     0x42,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getBlockTimestamp())
     },
   ],
   // 0x43: NUMBER
   [
     0x43,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getBlockNumber())
     },
   ],
   // 0x44: DIFFICULTY (EIP-4399: supplanted as PREVRANDAO)
   [
     0x44,
-    (runState, common) => {
+    (runState: any, common: Common) => {
       if (common.isActivatedEIP(4399)) {
         runState.stack.push(runState.interpreter.getBlockPrevRandao())
       } else {
@@ -726,35 +726,35 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x45: GASLIMIT
   [
     0x45,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getBlockGasLimit())
     },
   ],
   // 0x46: CHAINID
   [
     0x46,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getChainId())
     },
   ],
   // 0x47: SELFBALANCE
   [
     0x47,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getSelfBalance())
     },
   ],
   // 0x48: BASEFEE
   [
     0x48,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getBlockBaseFee())
     },
   ],
   // 0x49: BLOBHASH
   [
     0x49,
-    (runState) => {
+    (runState: any) => {
       const index = runState.stack.pop()
       if (runState.env.blobVersionedHashes.length > Number(index)) {
         runState.stack.push(
@@ -768,7 +768,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x4a: BLOBBASEFEE
   [
     0x4a,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getBlobBaseFee())
     },
   ],
@@ -776,14 +776,14 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x50: POP
   [
     0x50,
-    (runState) => {
+    (runState: any) => {
       runState.stack.pop()
     },
   ],
   // 0x51: MLOAD
   [
     0x51,
-    (runState) => {
+    (runState: any) => {
       const pos = runState.stack.pop()
       const word = runState.memory.read(Number(pos), 32, true)
       runState.stack.push(bytesToBigInt(word))
@@ -792,7 +792,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x52: MSTORE
   [
     0x52,
-    (runState) => {
+    (runState: any) => {
       const [offset, word] = runState.stack.popN(2)
       const buf = setLengthLeft(bigIntToBytes(word), 32)
       const offsetNum = Number(offset)
@@ -802,7 +802,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x53: MSTORE8
   [
     0x53,
-    (runState) => {
+    (runState: any) => {
       const [offset, byte] = runState.stack.popN(2)
 
       const buf = bigIntToBytes(byte & BIGINT_255)
@@ -813,7 +813,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x54: SLOAD
   [
     0x54,
-    async (runState) => {
+    async (runState: any) => {
       const key = runState.stack.pop()
       const keyBuf = setLengthLeft(bigIntToBytes(key), 32)
       const value = await runState.interpreter.storageLoad(keyBuf)
@@ -824,7 +824,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x55: SSTORE
   [
     0x55,
-    async (runState) => {
+    async (runState: any) => {
       const [key, val] = runState.stack.popN(2)
 
       const keyBuf = setLengthLeft(bigIntToBytes(key), 32)
@@ -842,7 +842,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x56: JUMP
   [
     0x56,
-    (runState) => {
+    (runState: any) => {
       const dest = runState.stack.pop()
       if (dest > runState.interpreter.getCodeSize()) {
         trap(
@@ -868,7 +868,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x57: JUMPI
   [
     0x57,
-    (runState) => {
+    (runState: any) => {
       const [dest, cond] = runState.stack.popN(2)
       if (cond !== BIGINT_0) {
         if (dest > runState.interpreter.getCodeSize()) {
@@ -896,21 +896,21 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x58: PC
   [
     0x58,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(BigInt(runState.programCounter - 1))
     },
   ],
   // 0x59: MSIZE
   [
     0x59,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.memoryWordCount * BIGINT_32)
     },
   ],
   // 0x5a: GAS
   [
     0x5a,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(runState.interpreter.getGasLeft())
     },
   ],
@@ -919,7 +919,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x5c: TLOAD (EIP 1153)
   [
     0x5c,
-    (runState) => {
+    (runState: any) => {
       const key = runState.stack.pop()
       const keyBuf = setLengthLeft(bigIntToBytes(key), 32)
       const value = runState.interpreter.transientStorageLoad(keyBuf)
@@ -930,7 +930,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x5d: TSTORE (EIP 1153)
   [
     0x5d,
-    (runState) => {
+    (runState: any) => {
       // TSTORE
       if (runState.interpreter.isStatic()) {
         trap(EVMError.errorMessages.STATIC_STATE_CHANGE)
@@ -952,7 +952,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x5e: MCOPY (5656)
   [
     0x5e,
-    (runState) => {
+    (runState: any) => {
       const [dst, src, length] = runState.stack.popN(3)
       const data = runState.memory.read(Number(src), Number(length), true)
       runState.memory.write(Number(dst), Number(length), data)
@@ -961,14 +961,14 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x5f: PUSH0
   [
     0x5f,
-    (runState) => {
+    (runState: any) => {
       runState.stack.push(BIGINT_0)
     },
   ],
   // 0x60: PUSH
   [
     0x60,
-    (runState, common) => {
+    (runState: any, common: Common) => {
       const numToPush = runState.opCode - 0x5f
 
       if (
@@ -1012,7 +1012,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x80: DUP
   [
     0x80,
-    (runState) => {
+    (runState: any) => {
       const stackPos = runState.opCode - 0x7f
       runState.stack.dup(stackPos)
     },
@@ -1020,7 +1020,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0x90: SWAP
   [
     0x90,
-    (runState) => {
+    (runState: any) => {
       const stackPos = runState.opCode - 0x8f
       runState.stack.swap(stackPos)
     },
@@ -1028,7 +1028,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xa0: LOG
   [
     0xa0,
-    (runState) => {
+    (runState: any) => {
       const [memOffset, memLength] = runState.stack.popN(2)
 
       const topicsCount = runState.opCode - 0xa0
@@ -1049,7 +1049,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xd0: DATALOAD
   [
     0xd0,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1077,7 +1077,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xd1: DATALOADN
   [
     0xd1,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1103,7 +1103,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xd2: DATASIZE
   [
     0xd2,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1116,7 +1116,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xd3: DATACOPY
   [
     0xd3,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1137,7 +1137,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe0: RJUMP
   [
     0xe0,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1153,7 +1153,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe1: RJUMPI
   [
     0xe1,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1175,7 +1175,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe2: RJUMPV
   [
     0xe2,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1202,7 +1202,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe3: CALLF
   [
     0xe3,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1234,7 +1234,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe4: RETF
   [
     0xe4,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1250,7 +1250,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe5: JUMPF
   [
     0xe5,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1283,7 +1283,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe6: DUPN
   [
     0xe6,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1304,7 +1304,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe7: SWAPN
   [
     0xe7,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1325,7 +1325,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xe8: EXCHANGE
   [
     0xe8,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1347,7 +1347,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xec: EOFCREATE
   [
     0xec,
-    async (runState) => {
+    async (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1391,7 +1391,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xee: RETURNCONTRACT
   [
     0xee,
-    async (runState) => {
+    async (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1452,7 +1452,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf0: CREATE
   [
     0xf0,
-    async (runState, common) => {
+    async (runState: any, common: Common) => {
       const [value, offset, length] = runState.stack.popN(3)
 
       if (
@@ -1484,7 +1484,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf5: CREATE2
   [
     0xf5,
-    async (runState, common) => {
+    async (runState: any, common: Common) => {
       if (runState.interpreter.isStatic()) {
         trap(EVMError.errorMessages.STATIC_STATE_CHANGE)
       }
@@ -1605,7 +1605,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf4: DELEGATECALL
   [
     0xf4,
-    async (runState) => {
+    async (runState: any) => {
       const value = runState.interpreter.getCallValue()
       const [
         _currentGasLimit,
@@ -1639,7 +1639,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf7: RETURNDATALOAD
   [
     0xf7,
-    (runState) => {
+    (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1663,7 +1663,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf8: EXTCALL
   [
     0xf8,
-    async (runState) => {
+    async (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1702,7 +1702,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf9: EXTDELEGATECALL
   [
     0xf9,
-    async (runState) => {
+    async (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1749,7 +1749,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xfa: STATICCALL
   [
     0xfa,
-    async (runState) => {
+    async (runState: any) => {
       const value = BIGINT_0
       const [
         _currentGasLimit,
@@ -1783,7 +1783,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xfb: EXTSTATICCALL
   [
     0xfb,
-    async (runState) => {
+    async (runState: any) => {
       if (runState.env.eof === undefined) {
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
@@ -1821,7 +1821,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xf3: RETURN
   [
     0xf3,
-    (runState) => {
+    (runState: any) => {
       const [offset, length] = runState.stack.popN(2)
       let returnData = new Uint8Array(0)
       if (length !== BIGINT_0) {
@@ -1833,7 +1833,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xfd: REVERT
   [
     0xfd,
-    (runState) => {
+    (runState: any) => {
       const [offset, length] = runState.stack.popN(2)
       let returnData = new Uint8Array(0)
       if (length !== BIGINT_0) {
@@ -1846,7 +1846,7 @@ export const handlers: Map<number, OpHandler> = new Map([
   // 0xff: SELFDESTRUCT
   [
     0xff,
-    async (runState) => {
+    async (runState: any) => {
       const selfdestructToAddressBigInt = runState.stack.pop()
       const selfdestructToAddress = createAddressFromStackBigInt(
         selfdestructToAddressBigInt,
@@ -1854,7 +1854,7 @@ export const handlers: Map<number, OpHandler> = new Map([
       return runState.interpreter.selfDestruct(selfdestructToAddress)
     },
   ],
-])
+] as any)
 
 // Fill in rest of PUSHn, DUPn, SWAPn, LOGn for handlers
 const pushFn = handlers.get(0x60)!

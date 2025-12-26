@@ -1,4 +1,4 @@
-import { EthereumJSErrorWithoutCode, concatBytes } from '@ts-ethereum/utils'
+import { concatBytes, EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
 
 const ceil = (value: number, ceiling: number): number => {
   const r = value % ceiling

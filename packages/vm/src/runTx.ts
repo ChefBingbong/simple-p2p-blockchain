@@ -222,7 +222,7 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
 
   const results = (await vm.evm.runCall({
-    block,
+    block: block as any,
     gasPrice,
     caller,
     gasLimit,

@@ -1,6 +1,5 @@
-import { EthereumJSErrorWithoutCode, bytesToHex } from '@ts-ethereum/utils'
-
 import type { Address } from '@ts-ethereum/utils'
+import { bytesToHex, EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
 import type { TransientStorageInterface } from './types'
 
 type TransientStorageCurrent = Map<string, Map<string, Uint8Array>>

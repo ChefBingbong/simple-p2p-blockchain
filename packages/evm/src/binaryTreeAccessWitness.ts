@@ -1,11 +1,20 @@
 import type {
   AccessEventFlags,
-  BinaryTreeAccessWitnessInterface,
   BinaryTreeAccessedState,
   BinaryTreeAccessedStateWithAddress,
+  BinaryTreeAccessWitnessInterface,
   RawBinaryTreeAccessedState,
 } from '@ts-ethereum/chain-config'
 import { BinaryTreeAccessedStateType } from '@ts-ethereum/chain-config'
+import type {
+  BinaryTree,
+  StatefulBinaryTreeStateManager,
+} from '@ts-ethereum/state-manager'
+import type {
+  Address,
+  BinaryTreeExecutionWitness,
+  PrefixedHexString,
+} from '@ts-ethereum/utils'
 import {
   BIGINT_0,
   BINARY_TREE_BASIC_DATA_LEAF_KEY,
@@ -24,17 +33,6 @@ import {
   intToBytes,
 } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
-
-import type {
-  BinaryTree,
-  StatefulBinaryTreeStateManager,
-} from '@ts-ethereum/state-manager'
-
-import type {
-  Address,
-  BinaryTreeExecutionWitness,
-  PrefixedHexString,
-} from '@ts-ethereum/utils'
 import { ChunkCache } from './chunkCache'
 import { StemCache } from './stemCache'
 
@@ -471,10 +469,10 @@ export const generateBinaryExecutionWitness = async (
     const stem = chunkKey.slice(0, 64) as PrefixedHexString
     if (accessedSuffixes.has(stem)) {
       const suffixes = accessedSuffixes.get(stem)
-      suffixes!.push(parseInt(chunkKey.slice(64), 16))
+      suffixes!.push(Number.parseInt(chunkKey.slice(64), 16))
       accessedSuffixes.set(stem, suffixes!)
     } else {
-      accessedSuffixes.set(stem, [parseInt(chunkKey.slice(64), 16)])
+      accessedSuffixes.set(stem, [Number.parseInt(chunkKey.slice(64), 16)])
     }
   }
 

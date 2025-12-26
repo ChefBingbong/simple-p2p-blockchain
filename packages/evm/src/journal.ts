@@ -1,19 +1,18 @@
+import type { Common, StateManagerInterface } from '@ts-ethereum/chain-config'
 import { Hardfork } from '@ts-ethereum/chain-config'
+import type { Account, PrefixedHexString } from '@ts-ethereum/utils'
 import {
   Address,
-  EthereumJSErrorWithoutCode,
-  RIPEMD160_ADDRESS_STRING,
   bytesToHex,
   bytesToUnprefixedHex,
+  EthereumJSErrorWithoutCode,
   hexToBytes,
+  RIPEMD160_ADDRESS_STRING,
   stripHexPrefix,
   unprefixedHexToBytes,
 } from '@ts-ethereum/utils'
-import debugDefault from 'debug'
-
-import type { Common, StateManagerInterface } from '@ts-ethereum/chain-config'
-import type { Account, PrefixedHexString } from '@ts-ethereum/utils'
 import type { Debugger } from 'debug'
+import debugDefault from 'debug'
 
 type AddressString = string
 type SlotString = string
@@ -223,7 +222,7 @@ export class Journal {
     delete this.preimages
   }
 
-  addAlwaysWarmAddress(addressStr: string, addToAccessList: boolean = false) {
+  addAlwaysWarmAddress(addressStr: string, addToAccessList = false) {
     const address = stripHexPrefix(addressStr)
     if (!this.alwaysWarmJournal.has(address)) {
       this.alwaysWarmJournal.set(address, new Set())
@@ -238,7 +237,7 @@ export class Journal {
   addAlwaysWarmSlot(
     addressStr: string,
     slotStr: string,
-    addToAccessList: boolean = false,
+    addToAccessList = false,
   ) {
     const address = stripHexPrefix(addressStr)
     this.addAlwaysWarmAddress(address, addToAccessList)

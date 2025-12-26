@@ -8,7 +8,7 @@ export class Stack {
   private _store: bigint[]
   private _maxHeight: number
 
-  private _len: number = 0
+  private _len = 0
 
   constructor(maxHeight?: number) {
     // It is possible to initialize the array with `maxHeight` items. However,
@@ -55,7 +55,7 @@ export class Stack {
    * @param num - Number of items to pop (defaults to 1)
    * @returns Array containing the popped values
    */
-  popN(num: number = 1): bigint[] {
+  popN(num = 1): bigint[] {
     if (this._len < num) {
       throw new EVMError(EVMError.errorMessages.STACK_UNDERFLOW)
     }
@@ -81,7 +81,7 @@ export class Stack {
    * @returns Array of items, with index 0 representing the top of the stack
    * @throws {@link EVMError} with code STACK_UNDERFLOW if there are not enough items on the stack
    */
-  peek(num: number = 1): bigint[] {
+  peek(num = 1): bigint[] {
     const peekArray: bigint[] = Array(num)
     let start = this._len
 
