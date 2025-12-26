@@ -1,30 +1,28 @@
+import type { PutBatch } from '@ts-ethereum/utils'
 import {
-  EthereumJSErrorWithoutCode,
-  Lock,
   bitsToBytes,
   bytesToBits,
   bytesToHex,
   concatBytes,
+  EthereumJSErrorWithoutCode,
   equalsBits,
   equalsBytes,
+  Lock,
   matchingBitsLength,
   setLengthRight,
 } from '@ts-ethereum/utils'
+import type { Debugger } from 'debug'
 import debug from 'debug'
-
 import { CheckpointDB } from './db/index'
 import { InternalBinaryNode } from './node/internalNode'
 import { StemBinaryNode } from './node/stemNode'
+import type { BinaryNode } from './node/types'
 import {
   decodeBinaryNode,
   isInternalBinaryNode,
   isStemBinaryNode,
 } from './node/util'
 import { type BinaryTreeOpts, ROOT_DB_KEY } from './types'
-
-import type { PutBatch } from '@ts-ethereum/utils'
-import type { Debugger } from 'debug'
-import type { BinaryNode } from './node/types'
 
 interface Path {
   node: BinaryNode | null

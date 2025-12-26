@@ -3,7 +3,6 @@ export * from './execution'
 export * from './logging'
 export * from './net'
 export { ETH } from './net/protocol/eth/eth'
-export { ExecutionNode } from './node/index'
 export type { ExecutionNodeInitOptions } from './node/index'
+export { ExecutionNode } from './node/index'
 export * from './types'
-

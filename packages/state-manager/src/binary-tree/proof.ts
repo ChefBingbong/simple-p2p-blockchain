@@ -1,10 +1,8 @@
 import { EthereumJSErrorWithoutCode, equalsBytes } from '@ts-ethereum/utils'
-
-import { createBinaryTree } from './constructors'
-import { decodeBinaryNode } from './node/index'
-
 import type { BinaryTree } from './binaryTree'
+import { createBinaryTree } from './constructors'
 import type { BinaryNode } from './node/index'
+import { decodeBinaryNode } from './node/index'
 import type { StemBinaryNode } from './node/stemNode'
 
 /**

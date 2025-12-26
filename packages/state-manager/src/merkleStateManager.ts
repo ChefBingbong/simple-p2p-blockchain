@@ -16,8 +16,8 @@ import {
   createAccount,
   createAccountFromRLP,
   createAddressFromString,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   hexToBytes,
   short,
   toBytes,
@@ -593,10 +593,7 @@ export class MerkleStateManager implements StateManagerInterface {
    * the state trie.
    * @param stateRoot - The state-root to reset the instance to
    */
-  async setStateRoot(
-    stateRoot: Uint8Array,
-    clearCache: boolean = true,
-  ): Promise<void> {
+  async setStateRoot(stateRoot: Uint8Array, clearCache = true): Promise<void> {
     await this.flush()
 
     if (!equalsBytes(stateRoot, this._trie.EMPTY_TRIE_ROOT)) {

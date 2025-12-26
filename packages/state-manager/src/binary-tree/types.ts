@@ -1,6 +1,5 @@
-import { utf8ToBytes } from '@ts-ethereum/utils'
-
 import type { DB, ValueEncoding } from '@ts-ethereum/utils'
+import { utf8ToBytes } from '@ts-ethereum/utils'
 
 export interface BinaryTreeOpts {
   /**

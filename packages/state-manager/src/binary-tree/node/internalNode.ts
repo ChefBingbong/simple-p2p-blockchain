@@ -1,13 +1,11 @@
 import { RLP } from '@ts-ethereum/rlp'
 import {
-  EthereumJSErrorWithoutCode,
   bitsToBytes,
   bytesToBits,
+  EthereumJSErrorWithoutCode,
 } from '@ts-ethereum/utils'
-
-import { BinaryNodeType } from './types'
-
 import type { BinaryNodeOptions, ChildBinaryNode } from './types'
+import { BinaryNodeType } from './types'
 
 export class InternalBinaryNode {
   public children: Array<ChildBinaryNode | null>

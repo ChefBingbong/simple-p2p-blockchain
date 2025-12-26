@@ -1,9 +1,7 @@
 import { RLP } from '@ts-ethereum/rlp'
 import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
-
-import { BinaryNodeType, NODE_WIDTH } from './types'
-
 import type { BinaryNodeOptions } from './types'
+import { BinaryNodeType, NODE_WIDTH } from './types'
 
 export class StemBinaryNode {
   public stem: Uint8Array

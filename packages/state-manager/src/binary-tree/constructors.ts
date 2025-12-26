@@ -1,16 +1,15 @@
 import { blake3 } from '@noble/hashes/blake3.js'
 import {
+  bytesToHex,
   KeyEncoding,
   MapDB,
-  ValueEncoding,
-  bytesToHex,
   unprefixedHexToBytes,
+  ValueEncoding,
 } from '@ts-ethereum/utils'
 
 import { BinaryTree } from './binaryTree'
-import { ROOT_DB_KEY } from './types'
-
 import type { BinaryTreeOpts } from './types'
+import { ROOT_DB_KEY } from './types'
 
 export async function createBinaryTree(opts?: Partial<BinaryTreeOpts>) {
   const key = bytesToHex(ROOT_DB_KEY)

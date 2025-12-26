@@ -6,4 +6,3 @@ export * from './rpcStateManager'
 export * from './simpleStateManager'
 export * from './statefulBinaryTreeStateManager'
 export * from './types'
-

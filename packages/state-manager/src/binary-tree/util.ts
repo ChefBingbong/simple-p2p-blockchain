@@ -1,16 +1,14 @@
 import {
-  type PrefixedHexString,
   bytesToHex,
   concatBytes,
   equalsBytes,
+  type PrefixedHexString,
 } from '@ts-ethereum/utils'
-
+import type { BinaryTree } from './binaryTree'
 import { InternalBinaryNode } from './node/internalNode'
 import { StemBinaryNode } from './node/stemNode'
-import { decodeBinaryNode } from './node/util'
-
-import type { BinaryTree } from './binaryTree'
 import type { ChildBinaryNode } from './node/types'
+import { decodeBinaryNode } from './node/util'
 
 /**
  * Recursively walks down the tree from a given starting node and returns all the leaf values

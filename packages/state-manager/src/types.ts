@@ -1,6 +1,6 @@
 import type { Common } from '@ts-ethereum/chain-config'
 import type { MerklePatriciaTrie } from '@ts-ethereum/mpt'
-import { type PrefixedHexString } from '@ts-ethereum/utils'
+import type { PrefixedHexString } from '@ts-ethereum/utils'
 import type { BinaryTree } from './binary-tree/binaryTree'
 import type { Caches } from './index'
 

@@ -12,8 +12,8 @@ import {
   bytesToHex,
   createAccountFromRLP,
   createAddressFromString,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   hexToBytes,
   KECCAK256_NULL,
   KECCAK256_NULL_S,
@@ -94,7 +94,7 @@ export async function addMerkleStateStorageProof(
   storageProof: StorageProof[],
   storageHash: PrefixedHexString,
   address: Address,
-  safe: boolean = false,
+  safe = false,
 ) {
   const trie = sm['_getStorageTrie'](address)
   trie.root(hexToBytes(storageHash))
@@ -117,7 +117,7 @@ export async function addMerkleStateStorageProof(
  */
 export async function fromMerkleStateProof(
   proof: Proof | Proof[],
-  safe: boolean = false,
+  safe = false,
   opts: MerkleStateManagerOpts = {},
 ): Promise<MerkleStateManager> {
   if (Array.isArray(proof)) {
@@ -160,7 +160,7 @@ export async function fromMerkleStateProof(
 export async function addMerkleStateProofData(
   sm: MerkleStateManager,
   proof: Proof | Proof[],
-  safe: boolean = false,
+  safe = false,
 ) {
   if (Array.isArray(proof)) {
     for (let i = 0; i < proof.length; i++) {

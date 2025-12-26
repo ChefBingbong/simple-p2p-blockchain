@@ -1,9 +1,8 @@
-import { Account, bytesToHex, type Address } from '@ts-ethereum/utils'
-
 import type {
   AccountFields,
   StateManagerInterface,
 } from '@ts-ethereum/chain-config'
+import { Account, type Address, bytesToHex } from '@ts-ethereum/utils'
 
 export async function modifyAccountFields(
   stateManager: StateManagerInterface,
