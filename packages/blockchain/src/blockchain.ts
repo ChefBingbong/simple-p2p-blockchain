@@ -1270,7 +1270,7 @@ export class Blockchain implements BlockchainInterface {
         break
       }
 
-      DBSaveLookups(blockHash, blockNumber).map((op) => {
+      DBSaveLookups(blockHash, blockNumber).forEach((op) => {
         ops.push(op)
       })
 

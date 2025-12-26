@@ -176,8 +176,7 @@ export function generateCliqueBlockExtraData(
   // sigBytes format: [recovery (1 byte) | r (32 bytes) | s (32 bytes)]
   const sigBytes = ecSignFunction(msgHash, cliqueSigner, {
     prehash: false,
-    format: 'recovered',
-  })
+  }) as any
 
   // clique format: [r (32 bytes) | s (32 bytes) | recovery (1 byte)]
   const cliqueSignature = concatBytes(

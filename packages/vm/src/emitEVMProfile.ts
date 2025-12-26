@@ -1,4 +1,4 @@
-import type { EVMPerformanceLogOutput } from '@ts-ethereum/evm/src/logger'
+import type { EVMPerformanceLogOutput } from '@ts-ethereum/evm'
 
 /**
  * Emit EVM profile logs
@@ -108,10 +108,10 @@ export function emitEVMProfile(
   const bpSAvg = Math.round((avgGas / bpsNormalizer) * 1e3) / 1e3
 
   // Write the profile title
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line
   console.log('+== ' + profileTitle + ' ==+')
   // Write the summary of this profile
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line
   console.log(
     `+== Calls: ${calls}, Total time: ${
       Math.round(totalMs * 1e3) / 1e3
@@ -120,7 +120,7 @@ export function emitEVMProfile(
 
   // Generate and write the header
   const header = '|' + '-'.repeat(headerLength) + '|'
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line
   console.log(header)
 
   // Write the columns
@@ -130,7 +130,7 @@ export function emitEVMProfile(
   }
   str += '|'
 
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line
   console.log(str)
 
   // Write each profile entry
@@ -144,12 +144,12 @@ export function emitEVMProfile(
       }
     }
     str += '|'
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line
     console.log(str)
   }
 
   // Finally, write the footer
   const footer = '+' + '-'.repeat(headerLength) + '+'
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line
   console.log(footer)
 }

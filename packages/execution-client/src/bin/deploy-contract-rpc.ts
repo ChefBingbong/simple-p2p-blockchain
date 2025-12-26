@@ -22,7 +22,6 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-// @ts-expect-error - solc types may not be available
 import solc from 'solc'
 import {
   createPublicClient,
@@ -408,6 +407,8 @@ async function main() {
   const bytecode = getGreeterDeploymentBytecode(solcOutput)
   const abi = getGreeterABI(solcOutput)
 
+  console.log('bytecode', bytecode)
+  console.log('abi', abi)
   // Deploy contract
   console.log('-'.repeat(60))
   console.log('DEPLOYING CONTRACT')

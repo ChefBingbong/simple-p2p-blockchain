@@ -9,7 +9,6 @@ import {
   setLengthLeft,
 } from '@ts-ethereum/utils'
 import type { ExecutionNode } from '../../../node/index'
-import { INVALID_HEX_STRING, INVALID_PARAMS } from '../../error-code'
 import { getBlockByOption } from '../../helpers'
 import { createRpcMethod } from '../../validation'
 import { getStorageAtSchema } from './schema'
@@ -25,24 +24,21 @@ export const getStorageAt = (node: ExecutionNode) => {
       const [addressHex, keyHex, blockOpt] = params
 
       if (!/^[0-9a-fA-F]+$/.test(keyHex.slice(2))) {
-        return safeError({
-          code: INVALID_HEX_STRING,
-          message: `unable to decode storage key: hex string invalid`,
-        })
+        return safeError(
+          new Error(`unable to decode storage key: hex string invalid` as any),
+        )
       }
 
       if (keyHex.length > 66) {
-        return safeError({
-          code: INVALID_HEX_STRING,
-          message: `unable to decode storage key: hex string too long, want at most 32 bytes`,
-        })
+        return safeError(
+          new Error(
+            `unable to decode storage key: hex string too long, want at most 32 bytes` as any,
+          ),
+        )
       }
 
       if (blockOpt === 'pending') {
-        return safeError({
-          code: INVALID_PARAMS,
-          message: '"pending" is not yet supported',
-        })
+        return safeError(new Error('"pending" is not yet supported'))
       }
 
       if (vm === undefined) {

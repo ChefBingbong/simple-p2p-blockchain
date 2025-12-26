@@ -1,4 +1,5 @@
 import type { Block } from '@ts-ethereum/block'
+import type { Log } from '@ts-ethereum/evm'
 import type { TypedTransaction } from '@ts-ethereum/tx'
 import {
   BIGINT_0,
@@ -10,11 +11,8 @@ import {
   safeError,
   safeResult,
 } from '@ts-ethereum/utils'
-import type { Log } from '@ts-ethereum/vm'
 import type { ReceiptsManager } from '../../../execution/receipt'
 import type { ExecutionNode } from '../../../node/index'
-import { INVALID_PARAMS } from '../../error-code'
-import { getBlockByOption } from '../../helpers'
 import { createRpcMethod } from '../../validation'
 import { getLogsSchema } from './schema'
 
@@ -60,7 +58,7 @@ const toJSONRPCLog = async (
   transactionHash: tx !== undefined ? bytesToHex(tx.hash()) : null,
   blockHash: block ? bytesToHex(block.hash()) : null,
   blockNumber: block ? bigIntToHex(block.header.number) : null,
-  blockTimestamp: block ? bytesToHex(block.header.timestamp) : null,
+  blockTimestamp: block ? bytesToHex(block.header.timestamp as any) : null,
   address: bytesToHex(log[0]),
   topics: log[1].map(bytesToHex),
   data: bytesToHex(log[2]),
@@ -82,21 +80,19 @@ export const getLogs = (node: ExecutionNode) => {
       blockHash !== undefined &&
       (fromBlock !== undefined || toBlock !== undefined)
     ) {
-      return safeError({
-        code: INVALID_PARAMS,
-        message: `Can only specify a blockHash if fromBlock or toBlock are not provided`,
-      })
+      return safeError(
+        new Error(
+          `Can only specify a blockHash if fromBlock or toBlock are not provided`,
+        ),
+      )
     }
 
     let from: Block, to: Block
     if (blockHash !== undefined) {
       try {
-        from = to = await chain.getBlock(hexToBytes(blockHash))
+        from = to = await chain.getBlock(hexToBytes(blockHash as any))
       } catch {
-        return safeError({
-          code: INVALID_PARAMS,
-          message: 'unknown blockHash',
-        })
+        return safeError(new Error('unknown blockHash'))
       }
     } else {
       if (fromBlock === 'earliest') {
@@ -108,10 +104,11 @@ export const getLogs = (node: ExecutionNode) => {
       } else {
         const blockNum = BigInt(fromBlock)
         if (blockNum > chain.headers.height) {
-          return safeError({
-            code: INVALID_PARAMS,
-            message: 'specified `fromBlock` greater than current height',
-          })
+          return safeError(
+            new Error(
+              'specified `fromBlock` greater than current height' as any,
+            ),
+          )
         }
         from = await chain.getBlock(blockNum)
       }
@@ -124,10 +121,9 @@ export const getLogs = (node: ExecutionNode) => {
       } else {
         const blockNum = BigInt(toBlock)
         if (blockNum > chain.headers.height) {
-          return safeError({
-            code: INVALID_PARAMS,
-            message: 'specified `toBlock` greater than current height',
-          })
+          return safeError(
+            new Error('specified `toBlock` greater than current height' as any),
+          )
         }
         to = await chain.getBlock(blockNum)
       }
@@ -137,28 +133,29 @@ export const getLogs = (node: ExecutionNode) => {
       to.header.number - from.header.number >
       BigInt(receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT)
     ) {
-      return safeError({
-        code: INVALID_PARAMS,
-        message: `block range limit is ${receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT} blocks`,
-      })
+      return safeError(
+        new Error(
+          `block range limit is ${receiptsManager.GET_LOGS_BLOCK_RANGE_LIMIT} blocks` as any,
+        ),
+      )
     }
 
     const formattedTopics = topics?.map((t) => {
       if (t === null) {
         return null
       } else if (Array.isArray(t)) {
-        return t.map((x) => hexToBytes(x))
+        return t.map((x) => hexToBytes(x as any))
       } else {
-        return hexToBytes(t)
+        return hexToBytes(t as any)
       }
     })
 
     let addressBytes: Uint8Array[] | undefined
     if (address !== undefined && address !== null) {
       if (Array.isArray(address)) {
-        addressBytes = address.map((a) => hexToBytes(a))
+        addressBytes = address.map((a) => hexToBytes(a as any))
       } else {
-        addressBytes = [hexToBytes(address)]
+        addressBytes = [hexToBytes(address as any)]
       }
     }
 

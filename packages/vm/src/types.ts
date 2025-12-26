@@ -9,8 +9,8 @@ import type {
   EVMMockBlockchainInterface,
   EVMOpts,
   EVMResult,
+  Log,
 } from '@ts-ethereum/evm'
-import type { Log } from '@ts-ethereum/evm/src/types'
 import type { AccessList, TypedTransaction } from '@ts-ethereum/tx'
 import type {
   BigIntLike,
@@ -19,7 +19,11 @@ import type {
   PrefixedHexString,
   WithdrawalData,
 } from '@ts-ethereum/utils'
-import type { Bloom } from './bloom'
+import type { Bloom } from './bloom/index'
+export type TxReceipt =
+  | PreByzantiumTxReceipt
+  | PostByzantiumTxReceipt
+  | EIP4844BlobTxReceipt
 
 /**
  * Abstract interface with common transaction receipt fields
@@ -40,8 +44,8 @@ export interface BaseTxReceipt {
 }
 
 /**
- * Transaction receipt type for Frontier/Chainstart.
- * Uses state root field (pre-Byzantium style).
+ * Pre-Byzantium receipt type with a field
+ * for the intermediary state root
  */
 export interface PreByzantiumTxReceipt extends BaseTxReceipt {
   /**
@@ -77,11 +81,6 @@ export interface EIP4844BlobTxReceipt extends PostByzantiumTxReceipt {
    */
   blobGasPrice: bigint
 }
-
-export type TxReceipt =
-  | PreByzantiumTxReceipt
-  | PostByzantiumTxReceipt
-  | EIP4844BlobTxReceipt
 
 export type EVMProfilerOpts = {
   enabled: boolean
@@ -231,7 +230,6 @@ export interface BuildBlockOpts {
   headerData?: HeaderData
 
   withdrawals?: WithdrawalData[]
-
   /**
    * The block and builder options to use.
    */

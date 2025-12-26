@@ -92,7 +92,7 @@ export class VM {
     // Skip DEBUG calls unless 'ethjs' included in environmental DEBUG variables
     // Additional window check is to prevent vite browser bundling (and potentially other) to break
     this.DEBUG =
-      typeof globalThis.window === 'undefined'
+      typeof window === 'undefined'
         ? (process?.env?.DEBUG?.includes('ethjs') ?? false)
         : false
   }

@@ -261,6 +261,7 @@ export class CliqueConsensus implements Consensus {
         if (value[0] === blockNumber) {
           return true
         }
+        return false
       })
       if (known !== undefined) {
         return

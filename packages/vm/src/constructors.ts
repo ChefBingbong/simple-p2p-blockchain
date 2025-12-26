@@ -31,7 +31,7 @@ export async function createVM(opts: VMOpts = {}): Promise<VM> {
 
   if (opts.stateManager === undefined) {
     opts.stateManager = new MerkleStateManager({
-      common: opts.common as Common,
+      common: opts.common,
     })
   }
 

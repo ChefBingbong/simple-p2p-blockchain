@@ -69,7 +69,7 @@ export const getTransactionReceipt = (node: ExecutionNode) => {
           tx,
           txIdx,
           logIndex,
-          createdAddress,
+          createdAddress as any,
           blobGasPrice,
           blobGasUsed,
         )

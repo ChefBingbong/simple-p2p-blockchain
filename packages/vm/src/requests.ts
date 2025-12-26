@@ -244,7 +244,7 @@ function parseDepositLog(requestData: Uint8Array) {
   }
 
   const pubKeySize = Number(pubKeySizeBigInt)
-  const withdrawalCreditsSize = Number(withdrawalCreditsIdxBigInt)
+  const withdrawalCreditsSize = Number(withdrawalCreditsSizeBigInt)
   const amountSize = Number(amountSizeBigInt)
   const sigSize = Number(sigSizeBigInt)
   const indexSize = Number(indexSizeBigInt)

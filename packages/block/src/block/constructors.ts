@@ -391,8 +391,8 @@ export async function createBlockFromExecutionPayload(
  * @returns A sealed Clique {@link Block} object
  */
 export function createSealedCliqueBlock(
-  blockData: BlockData = {},
   cliqueSigner: Uint8Array,
+  blockData: BlockData = {},
   opts: BlockOptions = {},
 ): Block {
   const sealedCliqueBlock = createBlock(blockData, {

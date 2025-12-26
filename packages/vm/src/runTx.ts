@@ -2,8 +2,7 @@ import type { Block } from '@ts-ethereum/block'
 import { cliqueSigner, createBlockHeader } from '@ts-ethereum/block'
 import type { Common } from '@ts-ethereum/chain-config'
 import { ConsensusType, Hardfork } from '@ts-ethereum/chain-config'
-import { BinaryTreeAccessWitness } from '@ts-ethereum/evm'
-import type { EVM } from '@ts-ethereum/evm/src/evm'
+import { BinaryTreeAccessWitness, type EVM } from '@ts-ethereum/evm'
 import type {
   AccessList,
   AccessList2930Tx,
@@ -34,7 +33,7 @@ import {
   short,
 } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
-import { Bloom } from './bloom'
+import { Bloom } from './bloom/index'
 import { emitEVMProfile } from './emitEVMProfile'
 import type {
   AfterTxEvent,
@@ -355,6 +354,7 @@ async function _runTx(vm: VM, opts: RunTxOpts): Promise<RunTxResult> {
         // If the EOA is 7702-delegated, sending txs from this EOA is fine
         if (equalsBytes(code.slice(0, 3), DELEGATION_7702_FLAG)) break
         // Trying to send TX from account with code (which is not 7702-delegated), falls through and throws
+        break
       }
       default: {
         const msg = _errorMsg(
