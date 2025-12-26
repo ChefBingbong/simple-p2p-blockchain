@@ -17,7 +17,7 @@ export type {
   EVMOpts,
   EVMResult,
   EVMRunCallOpts,
-  ExecResult,
+  ExecResult
 }
 
 export { EVM, EVMError, EVMMockBlockchain, Message }
@@ -25,3 +25,4 @@ export { EVM, EVMError, EVMMockBlockchain, Message }
 export * from './binaryTreeAccessWitness'
 export * from './constructors'
 export * from './params'
+export * from './precompiles'

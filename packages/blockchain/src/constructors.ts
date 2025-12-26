@@ -1,9 +1,7 @@
-import type { BlockData } from '@ts-ethereum/block'
 import { createBlock } from '@ts-ethereum/block'
-import type { Chain } from '@ts-ethereum/chain-config'
-import { BIGINT_0, bytesToHex, equalsBytes } from '@ts-ethereum/utils'
+import { BIGINT_0, EthereumJSErrorWithoutCode, bytesToHex, equalsBytes } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
-import type { BlockchainOptions, DBOp } from '.'
+
 import {
   Blockchain,
   DBSaveLookups,
@@ -11,48 +9,44 @@ import {
   DBSetTD,
   genGenesisStateRoot,
   getGenesisStateRoot,
-} from '.'
+} from './index'
 
-const DEBUG = true
+import type { BlockData } from '@ts-ethereum/block'
+import type { Chain } from '@ts-ethereum/chain-config'
+import type { BlockchainOptions, DBOp } from './index'
+
+const DEBUG =
+  typeof window === 'undefined' ? (process?.env?.DEBUG?.includes('ethjs') ?? false) : false
 const debug = debugDefault('blockchain:#')
 
 export async function createBlockchain(opts: BlockchainOptions = {}) {
   const blockchain = new Blockchain(opts)
+
   await blockchain.consensus?.setup({ blockchain })
 
   let stateRoot = opts.genesisBlock?.header.stateRoot ?? opts.genesisStateRoot
   if (stateRoot === undefined) {
     if (blockchain['_customGenesisState'] !== undefined) {
-      stateRoot = await genGenesisStateRoot(
-        blockchain['_customGenesisState'],
-        blockchain.common,
-      )
+      stateRoot = await genGenesisStateRoot(blockchain['_customGenesisState'], blockchain.common)
     } else {
       stateRoot = await getGenesisStateRoot(
         Number(blockchain.common.chainId()) as Chain,
         blockchain.common,
-        opts.genesisState ?? {},
       )
     }
   }
 
-  const genesisBlock =
-    opts.genesisBlock ?? blockchain.createGenesisBlock(stateRoot)
+  const genesisBlock = opts.genesisBlock ?? blockchain.createGenesisBlock(stateRoot)
 
   let genesisHash = await blockchain.dbManager.numberToHash(BIGINT_0)
 
   const dbGenesisBlock =
-    genesisHash !== undefined
-      ? await blockchain.dbManager.getBlock(genesisHash)
-      : undefined
+    genesisHash !== undefined ? await blockchain.dbManager.getBlock(genesisHash) : undefined
 
   // If the DB has a genesis block, then verify that the genesis block in the
   // DB is indeed the Genesis block generated or assigned.
-  if (
-    dbGenesisBlock !== undefined &&
-    !equalsBytes(genesisBlock.hash(), dbGenesisBlock.hash())
-  ) {
-    throw new Error(
+  if (dbGenesisBlock !== undefined && !equalsBytes(genesisBlock.hash(), dbGenesisBlock.hash())) {
+    throw EthereumJSErrorWithoutCode(
       'The genesis block in the DB has a different hash than the provided genesis block.',
     )
   }
@@ -88,17 +82,11 @@ export async function createBlockchain(opts: BlockchainOptions = {}) {
   blockchain['_headBlockHash'] = hash ?? genesisHash
 
   if (blockchain['_hardforkByHeadBlockNumber']) {
-    const latestHeader = await blockchain['_getHeader'](
-      blockchain['_headHeaderHash'],
-    )
-    await blockchain.checkAndTransitionHardForkByNumber(
-      latestHeader.number,
-      latestHeader.timestamp,
-    )
+    const latestHeader = await blockchain['_getHeader'](blockchain['_headHeaderHash'])
+    await blockchain.checkAndTransitionHardForkByNumber(latestHeader.number, latestHeader.timestamp)
   }
 
-  DEBUG &&
-    debug(`genesis block initialized with hash ${bytesToHex(genesisHash!)}`)
+  DEBUG && debug(`genesis block initialized with hash ${bytesToHex(genesisHash!)}`)
 
   return blockchain
 }
@@ -118,6 +106,7 @@ export async function createBlockchainFromBlocksData(
   for (const blockData of blocksData) {
     const block = createBlock(blockData, {
       common: blockchain.common,
+      setHardfork: true,
     })
     await blockchain.putBlock(block)
   }

@@ -54,7 +54,7 @@ export class VM {
    * performance reasons to avoid string literal evaluation
    * @hidden
    */
-  DEBUG = false
+  readonly DEBUG: boolean = false
 
   /**
    * Instantiates a new {@link VM} Object.
@@ -112,6 +112,7 @@ export class VM {
    */
   async shallowCopy(downlevelCaches = true): Promise<VM> {
     const common = this.common.copy()
+    common.setHardfork(this.common.hardfork())
     const blockchain = this.blockchain.shallowCopy()
     const stateManager = this.stateManager.shallowCopy(downlevelCaches)
     const evmOpts = {
