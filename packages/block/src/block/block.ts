@@ -11,8 +11,8 @@ import {
 import {
   BIGINT_0,
   bytesToHex,
-  EthereumJSErrorWithoutCode,
   equalsBytes,
+  EthereumJSErrorWithoutCode,
   KECCAK256_RLP,
   KECCAK256_RLP_ARRAY,
   type Withdrawal,
@@ -20,7 +20,7 @@ import {
 /* eslint-enable */
 import { keccak256 } from 'ethereum-cryptography/keccak'
 import { sha256 } from 'ethereum-cryptography/sha256.js'
-import { genWithdrawalsTrieRoot } from 'src/helpers'
+import { genWithdrawalsTrieRoot } from '../helpers'
 /* eslint-disable */
 // This is to allow for a proper and linked collection of constructors for the class header.
 // For tree shaking/code size this should be no problem since types go away on transpilation.
