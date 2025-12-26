@@ -186,8 +186,9 @@ async function bootNode(
   const _accounts = configOptions.accounts ? [...configOptions.accounts] : []
   const config = new Config({
     ...configOptions,
-    bootnodes: _bootnodes,
-    accounts: _accounts,
+    minerPriorityAddresses: configOptions?.minerPriorityAddresses as any,
+    bootnodes: _bootnodes as any,
+    accounts: _accounts as any,
   })
 
   // Setup paths and databases (using runtime copy of snapshot)
