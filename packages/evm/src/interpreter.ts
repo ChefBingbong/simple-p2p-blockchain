@@ -1,15 +1,10 @@
-import type {
-  BinaryTreeAccessWitnessInterface,
-  Common,
-  StateManagerInterface,
-} from '@ts-ethereum/chain-config'
+import type { Common, StateManagerInterface } from '@ts-ethereum/chain-config'
 import { ConsensusAlgorithm } from '@ts-ethereum/chain-config'
 import type { Address, PrefixedHexString } from '@ts-ethereum/utils'
 import {
   Account,
   BIGINT_0,
   BIGINT_1,
-  BIGINT_2,
   bigIntToHex,
   bytesToBigInt,
   bytesToHex,
@@ -19,11 +14,6 @@ import {
   setLengthRight,
 } from '@ts-ethereum/utils'
 import debugDefault from 'debug'
-import { FORMAT, MAGIC, VERSION } from './eof/constants'
-import { EOFContainerMode, validateEOF } from './eof/container'
-import { setupEOF } from './eof/setup'
-import { stackDelta } from './eof/stackDelta'
-import { ContainerSectionType } from './eof/verify'
 import { EVMError, EVMErrorTypeString } from './errors'
 import type { EVM } from './evm'
 import type { Journal } from './journal'
@@ -35,7 +25,6 @@ import { trap } from './opcodes/index'
 import { Stack } from './stack'
 import type {
   Block,
-  EOFEnv,
   EVMMockBlockchainInterface,
   EVMProfilerOpts,
   EVMResult,
@@ -58,11 +47,6 @@ export interface RunResult {
    * A set of accounts to selfdestruct
    */
   selfdestruct: Set<PrefixedHexString>
-
-  /**
-   * A map which tracks which addresses were created (used in EIP 6780)
-   */
-  createdAddresses?: Set<PrefixedHexString>
 }
 
 export interface Env {
@@ -80,10 +64,7 @@ export interface Env {
   contract: Account
   codeAddress: Address /* Different than address for DELEGATECALL and CALLCODE */
   gasRefund: bigint /* Current value (at begin of the frame) of the gas refund */
-  eof?: EOFEnv /* Optional EOF environment in case of EOF execution */
   blobVersionedHashes: PrefixedHexString[] /** Versioned hashes for blob transactions */
-  createdAddresses?: Set<string>
-  accessWitness?: BinaryTreeAccessWitnessInterface
   chargeCodeAccesses?: boolean
 }
 
@@ -132,9 +113,6 @@ export interface InterpreterStep {
   memory: Uint8Array
   memoryWordCount: bigint
   codeAddress: Address
-  eofSection?: number // Current EOF section being executed
-  immediate?: Uint8Array // Immediate argument of the opcode
-  eofFunctionDepth?: number // Depth of CALLF return stack
   error?: Uint8Array // Error bytes returned if revert occurs
   storage?: [PrefixedHexString, PrefixedHexString][]
 }
@@ -218,66 +196,8 @@ export class Interpreter {
     code: Uint8Array,
     opts: InterpreterOpts = {},
   ): Promise<InterpreterResult> {
-    if (!this.common.isActivatedEIP(3540) || code[0] !== FORMAT) {
-      // EIP-3540 isn't active and first byte is not 0xEF - treat as legacy bytecode
-      this._runState.code = code
-    } else if (this.common.isActivatedEIP(3540)) {
-      if (code[1] !== MAGIC) {
-        // Bytecode contains invalid EOF magic byte
-        return {
-          runState: this._runState,
-          exceptionError: new EVMError(
-            EVMError.errorMessages.INVALID_BYTECODE_RESULT,
-          ),
-        }
-      }
-      if (code[2] !== VERSION) {
-        // Bytecode contains invalid EOF version number
-        return {
-          runState: this._runState,
-          exceptionError: new EVMError(
-            EVMError.errorMessages.INVALID_EOF_FORMAT,
-          ),
-        }
-      }
-      this._runState.code = code
-
-      const isTxCreate = this._env.isCreate && this._env.depth === 0
-      const eofMode = isTxCreate
-        ? EOFContainerMode.TxInitmode
-        : EOFContainerMode.Default
-
-      try {
-        setupEOF(this._runState, eofMode)
-      } catch {
-        return {
-          runState: this._runState,
-          exceptionError: new EVMError(
-            EVMError.errorMessages.INVALID_EOF_FORMAT,
-          ), // TODO: verify if all gas should be consumed
-        }
-      }
-
-      if (isTxCreate) {
-        // Tx tries to deploy container
-        try {
-          validateEOF(
-            this._runState.code,
-            this._evm,
-            ContainerSectionType.InitCode,
-            EOFContainerMode.TxInitmode,
-          )
-        } catch {
-          // Trying to deploy an invalid EOF container
-          return {
-            runState: this._runState,
-            exceptionError: new EVMError(
-              EVMError.errorMessages.INVALID_EOF_FORMAT,
-            ), // TODO: verify if all gas should be consumed
-          }
-        }
-      }
-    }
+    // Treat all bytecode as legacy bytecode (no EOF support in Chainstart)
+    this._runState.code = code
     this._runState.programCounter = opts.pc ?? this._runState.programCounter
     // Check that the programCounter is in range
     const pc = this._runState.programCounter
@@ -323,28 +243,6 @@ export class Interpreter {
         opCode = opCodeObj.opcodeInfo.code
       }
 
-      // if its an invalid opcode with binary activated, then check if its because of a missing code
-      // chunk in the witness, and throw appropriate error to distinguish from an actual invalid opcode
-      if (
-        opCode === 0xfe &&
-        this.common.isActivatedEIP(7864) &&
-        // is this a code loaded from state using witnesses
-        this._runState.env.chargeCodeAccesses === true
-      ) {
-        const contract = this._runState.interpreter.getAddress()
-
-        if (
-          !(await this._runState.stateManager.checkChunkWitnessPresent!(
-            contract,
-            programCounter,
-          ))
-        ) {
-          throw Error(
-            `Invalid witness with missing codeChunk for pc=${programCounter}`,
-          )
-        }
-      }
-
       this._runState.opCode = opCode
 
       try {
@@ -356,8 +254,6 @@ export class Interpreter {
           this.performanceLogger.unpauseTimer(overheadTimer)
         }
       } catch (e: any) {
-        // Revert access witness changes if we revert - per EIP-4762
-        this._runState.env.accessWitness?.revert()
         if (overheadTimer !== undefined) {
           this.performanceLogger.unpauseTimer(overheadTimer)
         }
@@ -416,22 +312,6 @@ export class Interpreter {
         await this._runStepHook(gas, this.getGasLeft(), memorySizeCache)
       }
 
-      if (
-        (this.common.isActivatedEIP(6800) ||
-          this.common.isActivatedEIP(7864)) &&
-        this._env.chargeCodeAccesses === true
-      ) {
-        const contract = this._runState.interpreter.getAddress()
-        const statelessGas =
-          this._runState.env.accessWitness!.readAccountCodeChunks(
-            contract,
-            this._runState.programCounter,
-            this._runState.programCounter,
-          )
-        gas += statelessGas
-        debugGas(`codechunk accessed statelessGas=${statelessGas} (-> ${gas})`)
-      }
-
       // Check for invalid opcode
       if (opInfo.isInvalid) {
         throw new EVMError(EVMError.errorMessages.INVALID_OPCODE)
@@ -454,7 +334,6 @@ export class Interpreter {
       } else {
         opFn.apply(null, [this._runState, this.common])
       }
-      this._runState.env.accessWitness?.commit()
     } finally {
       if (this.profilerOpts?.enabled === true) {
         this.performanceLogger.stopTimer(
@@ -481,12 +360,7 @@ export class Interpreter {
     memorySize: bigint,
   ): Promise<void> {
     const opcodeInfo = this.lookupOpInfo(this._runState.opCode).opcodeInfo
-    const section =
-      this._env.eof?.container.header.getSectionFromProgramCounter(
-        this._runState.programCounter,
-      )
     let error
-    let immediate
     if (opcodeInfo.code === 0xfd) {
       // If opcode is REVERT, read error data and return in trace
       const [offset, length] = this._runState.stack.peek(2)
@@ -494,19 +368,6 @@ export class Interpreter {
       if (length !== BIGINT_0) {
         error = this._runState.memory.read(Number(offset), Number(length))
       }
-    }
-
-    // Add immediate if present (i.e. bytecode parameter for a preceding opcode like (RJUMP 01 - jumps to PC 1))
-    if (
-      stackDelta[opcodeInfo.code] !== undefined &&
-      stackDelta[opcodeInfo.code].intermediates > 0
-    ) {
-      immediate = this._runState.code.slice(
-        this._runState.programCounter + 1, // immediates start "immediately" following current opcode
-        this._runState.programCounter +
-          1 +
-          stackDelta[opcodeInfo.code].intermediates,
-      )
     }
 
     // Create event object for step
@@ -529,13 +390,7 @@ export class Interpreter {
       memoryWordCount: memorySize,
       codeAddress: this._env.codeAddress,
       stateManager: this._runState.stateManager,
-      eofSection: section,
-      immediate,
       error,
-      eofFunctionDepth:
-        this._env.eof !== undefined
-          ? this._env.eof?.eofRunState.returnStack.length + 1
-          : undefined,
     }
 
     if (this._evm.DEBUG) {
@@ -585,10 +440,7 @@ export class Interpreter {
      * @property {Uint8Array} memory the memory of the EVM as a `Uint8Array`
      * @property {BigInt} memoryWordCount current size of memory in words
      * @property {Address} codeAddress the address of the code which is currently being ran (this differs from `address` in a `DELEGATECALL` and `CALLCODE` call)
-     * @property {number} eofSection the current EOF code section referenced by the PC
-     * @property {Uint8Array} immediate the immediate argument of the opcode
      * @property {Uint8Array} error the error data of the opcode (only present for REVERT)
-     * @property {number} eofFunctionDepth the depth of the function call (only present for EOF)
      * @property {Array} storage an array of tuples, where each tuple contains a storage key and value
      */
     await this._evm['_emit']('step', eventObj)
@@ -982,7 +834,6 @@ export class Interpreter {
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
       blobVersionedHashes: this._env.blobVersionedHashes,
-      accessWitness: this._env.accessWitness,
     })
 
     return this._baseCall(msg)
@@ -1007,7 +858,6 @@ export class Interpreter {
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
       blobVersionedHashes: this._env.blobVersionedHashes,
-      accessWitness: this._env.accessWitness,
     })
 
     return this._baseCall(msg)
@@ -1033,7 +883,6 @@ export class Interpreter {
       isStatic: true,
       depth: this._env.depth + 1,
       blobVersionedHashes: this._env.blobVersionedHashes,
-      accessWitness: this._env.accessWitness,
     })
 
     return this._baseCall(msg)
@@ -1060,7 +909,6 @@ export class Interpreter {
       delegatecall: true,
       depth: this._env.depth + 1,
       blobVersionedHashes: this._env.blobVersionedHashes,
-      accessWitness: this._env.accessWitness,
     })
 
     return this._baseCall(msg)
@@ -1070,14 +918,6 @@ export class Interpreter {
     const selfdestruct = new Set(this._result.selfdestruct)
     msg.selfdestruct = selfdestruct
     msg.gasRefund = this._runState.gasRefund
-
-    // empty the return data Uint8Array
-    this._runState.returnBytes = new Uint8Array(0)
-    let createdAddresses: Set<PrefixedHexString>
-    if (this.common.isActivatedEIP(6780)) {
-      createdAddresses = new Set(this._result.createdAddresses)
-      msg.createdAddresses = createdAddresses
-    }
 
     // empty the return data Uint8Array
     this._runState.returnBytes = new Uint8Array(0)
@@ -1116,12 +956,6 @@ export class Interpreter {
       for (const addressToSelfdestructHex of selfdestruct) {
         this._result.selfdestruct.add(addressToSelfdestructHex)
       }
-      if (this.common.isActivatedEIP(6780)) {
-        // copy over the items to result via iterator
-        for (const item of createdAddresses!) {
-          this._result.createdAddresses!.add(item)
-        }
-      }
       // update stateRoot on current contract
       const account = await this._stateManager.getAccount(this._env.address)
       if (!account) {
@@ -1142,7 +976,6 @@ export class Interpreter {
     value: bigint,
     codeToRun: Uint8Array,
     salt?: Uint8Array,
-    eofCallData?: Uint8Array,
   ): Promise<bigint> {
     const selfdestruct = new Set(this._result.selfdestruct)
     const caller = this._env.address
@@ -1167,34 +1000,17 @@ export class Interpreter {
     this._env.contract.nonce += BIGINT_1
     await this.journal.putAccount(this._env.address, this._env.contract)
 
-    if (this.common.isActivatedEIP(3860)) {
-      if (
-        codeToRun.length > Number(this.common.param('maxInitCodeSize')) &&
-        this._evm.allowUnlimitedInitCodeSize === false
-      ) {
-        return BIGINT_0
-      }
-    }
-
     const message = new Message({
       caller,
       gasLimit,
       value,
       data: codeToRun,
-      eofCallData,
       salt,
       depth,
       selfdestruct,
       gasRefund: this._runState.gasRefund,
       blobVersionedHashes: this._env.blobVersionedHashes,
-      accessWitness: this._env.accessWitness,
     })
-
-    let createdAddresses: Set<PrefixedHexString>
-    if (this.common.isActivatedEIP(6780)) {
-      createdAddresses = new Set(this._result.createdAddresses)
-      message.createdAddresses = createdAddresses
-    }
 
     const results = await this._evm.runCall({ message })
 
@@ -1221,12 +1037,6 @@ export class Interpreter {
       for (const addressToSelfdestructHex of selfdestruct) {
         this._result.selfdestruct.add(addressToSelfdestructHex)
       }
-      if (this.common.isActivatedEIP(6780)) {
-        // copy over the items to result via iterator
-        for (const item of createdAddresses!) {
-          this._result.createdAddresses!.add(item)
-        }
-      }
       // update stateRoot on current contract
       const account = await this._stateManager.getAccount(this._env.address)
       if (!account) {
@@ -1240,7 +1050,7 @@ export class Interpreter {
       }
     }
 
-    return this._getReturnCode(results, true)
+    return this._getReturnCode(results)
   }
 
   /**
@@ -1254,20 +1064,6 @@ export class Interpreter {
     salt: Uint8Array,
   ): Promise<bigint> {
     return this.create(gasLimit, value, data, salt)
-  }
-
-  /**
-   * Creates a new contract with a given value. Generates
-   * a deterministic address via EOFCREATE rules.
-   */
-  async eofcreate(
-    gasLimit: bigint,
-    value: bigint,
-    containerData: Uint8Array,
-    salt: Uint8Array,
-    callData: Uint8Array,
-  ): Promise<bigint> {
-    return this.create(gasLimit, value, containerData, salt, callData)
   }
 
   /**
@@ -1301,19 +1097,8 @@ export class Interpreter {
     }
 
     // Modify the account (set balance to 0) flag
-    let doModify = !this.common.isActivatedEIP(6780) // Always do this if 6780 is not active
-
-    if (!doModify) {
-      // If 6780 is active, check if current address is being created. If so
-      // old behavior of SELFDESTRUCT exists and balance should be set to 0 of this account
-      // (i.e. burn the ETH in current account)
-      doModify = this._env.createdAddresses!.has(this._env.address.toString())
-      // If contract is not being created in this tx...
-      if (!doModify) {
-        // Check if ETH being sent to another account (thus set balance to 0)
-        doModify = !toSelf
-      }
-    }
+    // In Chainstart, always set balance to 0
+    const doModify = true
 
     // Set contract balance to 0
     if (doModify) {
@@ -1341,28 +1126,11 @@ export class Interpreter {
     this._result.logs.push(log)
   }
 
-  private _getReturnCode(results: EVMResult, isEOFCreate = false) {
-    if (this._runState.env.eof === undefined || isEOFCreate) {
-      if (results.execResult.exceptionError) {
-        return BIGINT_0
-      } else {
-        return BIGINT_1
-      }
-    } else {
-      // EOF mode, call was either EXTCALL / EXTDELEGATECALL / EXTSTATICCALL
-      if (results.execResult.exceptionError !== undefined) {
-        if (
-          results.execResult.exceptionError.error ===
-          EVMError.errorMessages.REVERT
-        ) {
-          // Revert
-          return BIGINT_1
-        } else {
-          // Failure
-          return BIGINT_2
-        }
-      }
+  private _getReturnCode(results: EVMResult) {
+    if (results.execResult.exceptionError) {
       return BIGINT_0
+    } else {
+      return BIGINT_1
     }
   }
 }

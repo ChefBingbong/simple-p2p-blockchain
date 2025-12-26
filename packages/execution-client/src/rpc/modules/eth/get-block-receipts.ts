@@ -6,7 +6,7 @@ import {
   safeError,
   safeResult,
 } from '@ts-ethereum/utils'
-import type { EIP4844BlobTxReceipt, VM } from '@ts-ethereum/vm'
+import type { VM } from '@ts-ethereum/vm'
 import { runBlock } from '@ts-ethereum/vm'
 import type { ReceiptsManager } from '../../../execution/receipt'
 import type { ExecutionNode } from '../../../node/index'
@@ -50,10 +50,7 @@ export const getBlockReceipts = (node: ExecutionNode) => {
       const receipts = await Promise.all(
         result.map(async (r, i) => {
           const tx = block.transactions[i]
-          const { totalGasSpent, createdAddress } = runBlockResult.results[i]
-          const { blobGasPrice, blobGasUsed } = runBlockResult.receipts[
-            i
-          ] as EIP4844BlobTxReceipt
+          const { totalGasSpent } = runBlockResult.results[i]
           const effectiveGasPrice = (tx as LegacyTx).gasPrice
 
           return toJSONRPCReceipt(
@@ -64,9 +61,7 @@ export const getBlockReceipts = (node: ExecutionNode) => {
             tx,
             i,
             i,
-            createdAddress as any,
-            blobGasPrice,
-            blobGasUsed,
+            undefined,
           )
         }),
       )

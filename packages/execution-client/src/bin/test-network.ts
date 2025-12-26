@@ -32,7 +32,7 @@ const ACCOUNT_SEEDS = [
 export const customChainConfig: ChainConfig = {
   name: 'testnet',
   chainId: 12345,
-  defaultHardfork: 'tangerineWhistle',
+  defaultHardfork: 'chainstart',
   consensus: {
     type: 'pow',
     algorithm: 'ethash',
@@ -44,14 +44,7 @@ export const customChainConfig: ChainConfig = {
     extraData:
       '0xcc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
   },
-  hardforks: [
-    { name: 'chainstart', block: 0 },
-    { name: 'homestead', block: 0 },
-    { name: 'dao', block: 0 },
-    { name: 'tangerineWhistle', block: 0 },
-    { name: 'spuriousDragon', block: 0 },
-    { name: 'byzantium', block: 0 },
-  ],
+  hardforks: [{ name: 'chainstart', block: 0 }],
   bootstrapNodes: [],
 }
 
@@ -96,7 +89,6 @@ async function startClient() {
     accountSeeds: ACCOUNT_SEEDS,
     logger: nodeLogger,
     persistNetworkIdentity: true,
-    savePreimages: true,
   })
 
   const clientConfig = await createConfigOptions(_clientConfig)

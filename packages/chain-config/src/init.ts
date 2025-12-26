@@ -129,7 +129,17 @@ export async function initClientConfig(args: ClientInitArgs): Promise<any> {
 
   const common = new Common({
     chain: chainConfig,
-    hardfork: Hardfork.TangerineWhistle,
+    hardfork: Hardfork.Chainstart,
+    params: {
+      [12345]: {
+        minGasLimit: 5000,
+        gasLimitBoundDivisor: 1024,
+        maxExtraDataSize: 32,
+        minimumDifficulty: 10,
+        difficultyBoundDivisor: 2048,
+        durationLimit: 13,
+      },
+    },
   })
 
   // Convert viem Address to utils Address for ConfigOptions
