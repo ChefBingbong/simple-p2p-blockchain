@@ -499,7 +499,7 @@ export function getOpcodesForHF(
     const handler = handlersCopy.get(opNumber)!
     opcodeMap[opNumber] = {
       opcodeInfo: op,
-      opHandler: handler,
+      opHandler: handler as OpHandler,
       gasHandler: dynamicGas,
     }
   }
@@ -514,7 +514,7 @@ export function getOpcodesForHF(
 
   return {
     dynamicGasHandlers: dynamicGasHandlersCopy,
-    handlers: handlersCopy,
+    handlers: handlersCopy as Map<number, OpHandler>,
     opcodes: ops,
     opcodeMap,
   }

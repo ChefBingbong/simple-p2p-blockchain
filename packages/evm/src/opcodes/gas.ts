@@ -1,6 +1,5 @@
 import type { Common } from '@ts-ethereum/chain-config'
 import { Hardfork } from '@ts-ethereum/chain-config'
-import type { Address } from '@ts-ethereum/utils'
 import {
   BIGINT_0,
   BIGINT_1,
@@ -9,15 +8,11 @@ import {
   BIGINT_32,
   BIGINT_64,
   bigIntToBytes,
-  equalsBytes,
   setLengthLeft,
 } from '@ts-ethereum/utils'
 import { EOFErrorMessage } from '../eof/errors'
 import { EVMError } from '../errors'
-import type { RunState } from '../interpreter'
-import { DELEGATION_7702_FLAG } from '../types'
-import { updateSstoreGasEIP1283 } from './EIP1283'
-import { updateSstoreGasEIP2200 } from './EIP2200'
+// import type { RunState } from '../interpreter'
 import { accessAddressEIP2929, accessStorageEIP2929 } from './EIP2929'
 import {
   createAddressFromStackBigInt,
@@ -29,25 +24,8 @@ import {
   updateSstoreGas,
 } from './util'
 
+type RunState = any
 const EXTCALL_TARGET_MAX = BigInt(2) ** BigInt(8 * 20) - BigInt(1)
-
-async function eip7702GasCost(
-  runState: RunState,
-  common: Common,
-  address: Address,
-  charge2929Gas: boolean,
-) {
-  const code = await runState.stateManager.getCode(address)
-  if (equalsBytes(code.slice(0, 3), DELEGATION_7702_FLAG)) {
-    return accessAddressEIP2929(
-      runState,
-      code.slice(3, 24),
-      common,
-      charge2929Gas,
-    )
-  }
-  return BIGINT_0
-}
 
 /**
  * This file returns the dynamic parts of opcodes which have dynamic gas
@@ -109,22 +87,9 @@ export const dynamicGasHandlers: Map<
     0x31,
     async (runState, gas, common): Promise<bigint> => {
       const address = createAddressFromStackBigInt(runState.stack.peek()[0])
-      let charge2929Gas = true
-      if (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) {
-        const coldAccessGas =
-          runState.env.accessWitness!.readAccountBasicData(address)
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
 
       if (common.isActivatedEIP(2929)) {
-        gas += accessAddressEIP2929(
-          runState,
-          address.bytes,
-          common,
-          charge2929Gas,
-        )
+        gas += accessAddressEIP2929(runState, address.bytes, common, true)
       }
 
       return gas
@@ -152,24 +117,6 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, memOffset, dataLength, common)
       if (dataLength !== BIGINT_0) {
         gas += common.param('copyGas') * divCeil(dataLength, BIGINT_32)
-
-        if (
-          (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-          runState.env.chargeCodeAccesses === true
-        ) {
-          const contract = runState.interpreter.getAddress()
-          let codeEnd = _codeOffset + dataLength
-          const codeSize = runState.interpreter.getCodeSize()
-          if (codeEnd > codeSize) {
-            codeEnd = codeSize
-          }
-
-          gas += runState.env.accessWitness!.readAccountCodeChunks(
-            contract,
-            Number(_codeOffset),
-            Number(codeEnd),
-          )
-        }
       }
       return gas
     },
@@ -180,30 +127,8 @@ export const dynamicGasHandlers: Map<
     async (runState, gas, common): Promise<bigint> => {
       const address = createAddressFromStackBigInt(runState.stack.peek()[0])
 
-      let charge2929Gas = true
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(address) === undefined &&
-        !address.equals(
-          createAddressFromStackBigInt(common.param('systemAddress')),
-        )
-      ) {
-        let coldAccessGas = BIGINT_0
-        coldAccessGas +=
-          runState.env.accessWitness!.readAccountBasicData(address)
-
-        gas += coldAccessGas
-        // if cold access gas has been charged 2929 gas shouldn't be charged
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
-        gas += accessAddressEIP2929(
-          runState,
-          address.bytes,
-          common,
-          charge2929Gas,
-        )
+        gas += accessAddressEIP2929(runState, address.bytes, common, true)
       }
 
       return gas
@@ -219,50 +144,12 @@ export const dynamicGasHandlers: Map<
 
       gas += subMemUsage(runState, memOffset, dataLength, common)
 
-      let charge2929Gas = true
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(address) === undefined &&
-        !address.equals(
-          createAddressFromStackBigInt(common.param('systemAddress')),
-        )
-      ) {
-        let coldAccessGas = BIGINT_0
-        coldAccessGas +=
-          runState.env.accessWitness!.readAccountBasicData(address)
-
-        gas += coldAccessGas
-        // if cold access gas has been charged 2929 gas shouldn't be charged
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
-        gas += accessAddressEIP2929(
-          runState,
-          address.bytes,
-          common,
-          charge2929Gas,
-        )
+        gas += accessAddressEIP2929(runState, address.bytes, common, true)
       }
 
       if (dataLength !== BIGINT_0) {
         gas += common.param('copyGas') * divCeil(dataLength, BIGINT_32)
-
-        if (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) {
-          let codeEnd = _codeOffset + dataLength
-          const codeSize = BigInt(
-            (await runState.stateManager.getCode(address)).length,
-          )
-          if (codeEnd > codeSize) {
-            codeEnd = codeSize
-          }
-
-          gas += runState.env.accessWitness!.readAccountCodeChunks(
-            address,
-            Number(_codeOffset),
-            Number(codeEnd),
-          )
-        }
       }
       return gas
     },
@@ -277,8 +164,6 @@ export const dynamicGasHandlers: Map<
         returnDataOffset + dataLength >
         runState.interpreter.getReturnDataSize()
       ) {
-        // For an EOF contract, the behavior is changed (see EIP 7069)
-        // RETURNDATACOPY in that case does not throw OOG when reading out-of-bounds
         if (runState.env.eof === undefined) {
           trap(EVMError.errorMessages.OUT_OF_GAS)
         }
@@ -297,30 +182,9 @@ export const dynamicGasHandlers: Map<
     0x3f,
     async (runState, gas, common): Promise<bigint> => {
       const address = createAddressFromStackBigInt(runState.stack.peek()[0])
-      let charge2929Gas = true
-
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(address) === undefined &&
-        !address.equals(
-          createAddressFromStackBigInt(common.param('systemAddress')),
-        )
-      ) {
-        let coldAccessGas = BIGINT_0
-        coldAccessGas +=
-          runState.env.accessWitness!.readAccountCodeHash(address)
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
 
       if (common.isActivatedEIP(2929)) {
-        gas += accessAddressEIP2929(
-          runState,
-          address.bytes,
-          common,
-          charge2929Gas,
-        )
+        gas += accessAddressEIP2929(runState, address.bytes, common, true)
       }
 
       return gas
@@ -360,26 +224,8 @@ export const dynamicGasHandlers: Map<
       const key = runState.stack.peek()[0]
       const keyBuf = setLengthLeft(bigIntToBytes(key), 32)
 
-      let charge2929Gas = true
-      if (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) {
-        const address = runState.interpreter.getAddress()
-        const coldAccessGas = runState.env.accessWitness!.readAccountStorage(
-          address,
-          key,
-        )
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
-        gas += accessStorageEIP2929(
-          runState,
-          keyBuf,
-          false,
-          common,
-          charge2929Gas,
-        )
+        gas += accessStorageEIP2929(runState, keyBuf, false, common, true)
       }
 
       return gas
@@ -406,60 +252,16 @@ export const dynamicGasHandlers: Map<
       const currentStorage = setLengthLeftStorage(
         await runState.interpreter.storageLoad(keyBytes),
       )
-      const originalStorage = setLengthLeftStorage(
-        await runState.interpreter.storageLoad(keyBytes, true),
+
+      gas += updateSstoreGas(
+        runState,
+        currentStorage,
+        setLengthLeftStorage(value),
+        common,
       )
-      if (common.hardfork() === Hardfork.Constantinople) {
-        gas += updateSstoreGasEIP1283(
-          runState,
-          currentStorage,
-          originalStorage,
-          setLengthLeftStorage(value),
-          common,
-        )
-      } else if (common.gteHardfork(Hardfork.Istanbul)) {
-        if (!common.isActivatedEIP(6800) && !common.isActivatedEIP(7864)) {
-          gas += updateSstoreGasEIP2200(
-            runState,
-            currentStorage,
-            originalStorage,
-            setLengthLeftStorage(value),
-            keyBytes,
-            common,
-          )
-        }
-      } else {
-        gas += updateSstoreGas(
-          runState,
-          currentStorage,
-          setLengthLeftStorage(value),
-          common,
-        )
-      }
-
-      let charge2929Gas = true
-      if (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) {
-        const contract = runState.interpreter.getAddress()
-        const coldAccessGas = runState.env.accessWitness!.writeAccountStorage(
-          contract,
-          key,
-        )
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
 
       if (common.isActivatedEIP(2929)) {
-        // We have to do this after the Istanbul (EIP2200) checks.
-        // Otherwise, we might run out of gas, due to "sentry check" of 2300 gas,
-        // if we deduct extra gas first.
-        gas += accessStorageEIP2929(
-          runState,
-          keyBytes,
-          true,
-          common,
-          charge2929Gas,
-        )
+        gas += accessStorageEIP2929(runState, keyBytes, true, common, true)
       }
 
       return gas
@@ -536,19 +338,6 @@ export const dynamicGasHandlers: Map<
       // Pop stack values
       const [_value, _salt, inputOffset, inputSize] = runState.stack.peek(4)
 
-      //if (common.isActivatedEIP(2929)) {
-      // TODO: adding or not adding this makes test
-      // --test=tests/prague/eip7692_eof_v1/eip7620_eof_create/test_eofcreate.py::test_eofcreate_then_call[fork_CancunEIP7692-blockchain_test]
-      // still succeed. This only warms the current address?? This is also in CREATE/CREATE2
-      // Can this be removed in both?
-      /*gas += accessAddressEIP2929(
-            runState,
-            runState.interpreter.getAddress().bytes,
-            common,
-            false
-          )
-        }*/
-
       // Expand memory
       gas += subMemUsage(runState, inputOffset, inputSize, common)
 
@@ -598,11 +387,6 @@ export const dynamicGasHandlers: Map<
         )
       }
 
-      if (common.isActivatedEIP(3860)) {
-        gas +=
-          ((length + BIGINT_31) / BIGINT_32) * common.param('initCodeWordGas')
-      }
-
       gas += subMemUsage(runState, offset, length, common)
 
       let gasLimit = BigInt(runState.interpreter.getGasLeft()) - gas
@@ -633,42 +417,11 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
       gas += subMemUsage(runState, outOffset, outLength, common)
 
-      let charge2929Gas = true
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(toAddress) === undefined
-      ) {
-        const coldAccessGas =
-          runState.env.accessWitness!.readAccountBasicData(toAddress)
-        if (value !== BIGINT_0) {
-          const contractAddress = runState.interpreter.getAddress()
-          gas +=
-            runState.env.accessWitness!.writeAccountBasicData(contractAddress)
-          gas += runState.env.accessWitness!.writeAccountBasicData(toAddress)
-        }
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
-        gas += accessAddressEIP2929(
-          runState,
-          toAddress.bytes,
-          common,
-          charge2929Gas,
-        )
+        gas += accessAddressEIP2929(runState, toAddress.bytes, common, true)
       }
 
-      if (common.isActivatedEIP(7702)) {
-        gas += await eip7702GasCost(runState, common, toAddress, charge2929Gas)
-      }
-
-      if (
-        value !== BIGINT_0 &&
-        !common.isActivatedEIP(6800) &&
-        !common.isActivatedEIP(7864)
-      ) {
+      if (value !== BIGINT_0) {
         gas += common.param('callValueTransferGas')
       }
 
@@ -731,29 +484,13 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
       gas += subMemUsage(runState, outOffset, outLength, common)
 
-      let charge2929Gas = true
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(toAddress) === undefined
-      ) {
-        const coldAccessGas =
-          runState.env.accessWitness!.readAccountBasicData(toAddress)
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
         gas += accessAddressEIP2929(
           runState,
           createAddressFromStackBigInt(toAddr).bytes,
           common,
-          charge2929Gas,
+          true,
         )
-      }
-
-      if (common.isActivatedEIP(7702)) {
-        gas += await eip7702GasCost(runState, common, toAddress, charge2929Gas)
       }
 
       if (value !== BIGINT_0) {
@@ -802,29 +539,13 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
       gas += subMemUsage(runState, outOffset, outLength, common)
 
-      let charge2929Gas = true
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(toAddress) === undefined
-      ) {
-        const coldAccessGas =
-          runState.env.accessWitness!.readAccountBasicData(toAddress)
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
         gas += accessAddressEIP2929(
           runState,
           createAddressFromStackBigInt(toAddr).bytes,
           common,
-          charge2929Gas,
+          true,
         )
-      }
-
-      if (common.isActivatedEIP(7702)) {
-        gas += await eip7702GasCost(runState, common, toAddress, charge2929Gas)
       }
 
       const gasLimit = maxCallGas(
@@ -864,11 +585,6 @@ export const dynamicGasHandlers: Map<
         )
       }
 
-      if (common.isActivatedEIP(3860)) {
-        gas +=
-          ((length + BIGINT_31) / BIGINT_32) * common.param('initCodeWordGas')
-      }
-
       gas += common.param('keccak256WordGas') * divCeil(length, BIGINT_32)
       let gasLimit = runState.interpreter.getGasLeft() - gas
       gasLimit = maxCallGas(gasLimit, gasLimit, runState, common) // CREATE2 is only available after TangerineWhistle (Constantinople introduced this opcode)
@@ -884,8 +600,6 @@ export const dynamicGasHandlers: Map<
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
       }
-      // Charge WARM_STORAGE_READ_COST (100) -> done in accessAddressEIP2929
-
       // Peek stack values
       const [toAddr, inOffset, inLength, value] = runState.stack.peek(4)
 
@@ -908,9 +622,9 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
 
       const toAddress = createAddressFromStackBigInt(toAddr)
-      // Charge to make address warm (2600 gas)
-      // (in case if address is already warm, this charges the 100 gas)
-      gas += accessAddressEIP2929(runState, toAddress.bytes, common)
+      if (common.isActivatedEIP(2929)) {
+        gas += accessAddressEIP2929(runState, toAddress.bytes, common)
+      }
 
       // Charge account creation cost if value is nonzero
       if (value > BIGINT_0) {
@@ -961,8 +675,6 @@ export const dynamicGasHandlers: Map<
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
       }
-      // Charge WARM_STORAGE_READ_COST (100) -> done in accessAddressEIP2929
-
       // Peek stack values
       const [toAddr, inOffset, inLength] = runState.stack.peek(3)
 
@@ -975,9 +687,9 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
 
       const toAddress = createAddressFromStackBigInt(toAddr)
-      // Charge to make address warm (2600 gas)
-      // (in case if address is already warm, this charges the 100 gas)
-      gas += accessAddressEIP2929(runState, toAddress.bytes, common)
+      if (common.isActivatedEIP(2929)) {
+        gas += accessAddressEIP2929(runState, toAddress.bytes, common)
+      }
 
       const minRetainedGas = common.param('minRetainedGas')
       const minCalleeGas = common.param('minCalleeGas')
@@ -1025,34 +737,13 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
       gas += subMemUsage(runState, outOffset, outLength, common)
 
-      let charge2929Gas = true
       const toAddress = createAddressFromStackBigInt(toAddr)
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.interpreter._evm.getPrecompile(toAddress) === undefined
-      ) {
-        const coldAccessGas =
-          runState.env.accessWitness!.readAccountBasicData(toAddress)
-
-        gas += coldAccessGas
-        charge2929Gas = coldAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
         gas += accessAddressEIP2929(
           runState,
           createAddressFromStackBigInt(toAddr).bytes,
           common,
-          charge2929Gas,
-        )
-      }
-
-      if (common.isActivatedEIP(7702)) {
-        gas += await eip7702GasCost(
-          runState,
-          common,
-          createAddressFromStackBigInt(toAddr),
-          charge2929Gas,
+          true,
         )
       }
 
@@ -1075,8 +766,6 @@ export const dynamicGasHandlers: Map<
         // Opcode not available in legacy contracts
         trap(EVMError.errorMessages.INVALID_OPCODE)
       }
-      // Charge WARM_STORAGE_READ_COST (100) -> done in accessAddressEIP2929
-
       // Peek stack values
       const [toAddr, inOffset, inLength] = runState.stack.peek(3)
 
@@ -1089,9 +778,9 @@ export const dynamicGasHandlers: Map<
       gas += subMemUsage(runState, inOffset, inLength, common)
 
       const toAddress = createAddressFromStackBigInt(toAddr)
-      // Charge to make address warm (2600 gas)
-      // (in case if address is already warm, this charges the 100 gas)
-      gas += accessAddressEIP2929(runState, toAddress.bytes, common)
+      if (common.isActivatedEIP(2929)) {
+        gas += accessAddressEIP2929(runState, toAddress.bytes, common)
+      }
 
       const minRetainedGas = common.param('minRetainedGas')
       const minCalleeGas = common.param('minCalleeGas')
@@ -1174,38 +863,12 @@ export const dynamicGasHandlers: Map<
         gas += common.param('callNewAccountGas')
       }
 
-      let selfDestructToCharge2929Gas = true
-      if (
-        (common.isActivatedEIP(6800) || common.isActivatedEIP(7864)) &&
-        runState.env.chargeCodeAccesses === true
-      ) {
-        gas += runState.env.accessWitness!.readAccountBasicData(contractAddress)
-        if (balance > BIGINT_0) {
-          gas +=
-            runState.env.accessWitness!.writeAccountBasicData(contractAddress)
-        }
-
-        let selfDestructToColdAccessGas =
-          runState.env.accessWitness!.readAccountBasicData(
-            selfdestructToAddress,
-          )
-        if (balance > BIGINT_0) {
-          selfDestructToColdAccessGas +=
-            runState.env.accessWitness!.writeAccountBasicData(
-              selfdestructToAddress,
-            )
-        }
-
-        gas += selfDestructToColdAccessGas
-        selfDestructToCharge2929Gas = selfDestructToColdAccessGas === BIGINT_0
-      }
-
       if (common.isActivatedEIP(2929)) {
         gas += accessAddressEIP2929(
           runState,
           selfdestructToAddress.bytes,
           common,
-          selfDestructToCharge2929Gas,
+          true,
           true,
         )
       }

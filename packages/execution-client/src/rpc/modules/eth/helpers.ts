@@ -60,14 +60,12 @@ export type JSONRPCReceipt = {
   cumulativeGasUsed: string
   effectiveGasPrice: string
   gasUsed: string
-  contractAddress: string | null
+  contractAddress: null
   logs: []
   logsBloom: string
   root?: string
   status?: string
   type: string
-  blobGasUsed?: string
-  blobGasPrice?: string
 }
 
 /**
@@ -81,9 +79,7 @@ export const toJSONRPCReceipt = async (
   tx: TypedTransaction,
   txIndex: number,
   _logIndex: number,
-  contractAddress: Address,
-  blobGasPrice?: bigint,
-  blobGasUsed?: bigint,
+  _contractAddress?: Address,
 ): Promise<JSONRPCReceipt> => ({
   transactionHash: bytesToHex(tx.hash()),
   transactionIndex: intToHex(txIndex),
@@ -94,7 +90,7 @@ export const toJSONRPCReceipt = async (
   cumulativeGasUsed: bigIntToHex(receipt.cumulativeBlockGasUsed),
   effectiveGasPrice: bigIntToHex(effectiveGasPrice),
   gasUsed: bigIntToHex(gasUsed),
-  contractAddress: contractAddress?.toString() ?? null,
+  contractAddress: null,
   logs: [],
   logsBloom: bytesToHex(receipt.bitvector),
   root:
@@ -105,9 +101,5 @@ export const toJSONRPCReceipt = async (
     (receipt as PostByzantiumTxReceipt).status !== undefined
       ? intToHex((receipt as PostByzantiumTxReceipt).status)
       : undefined,
-
   type: intToHex(tx.type),
-  blobGasUsed: blobGasUsed !== undefined ? bigIntToHex(blobGasUsed) : undefined,
-  blobGasPrice:
-    blobGasPrice !== undefined ? bigIntToHex(blobGasPrice) : undefined,
 })

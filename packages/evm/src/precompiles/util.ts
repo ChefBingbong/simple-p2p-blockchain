@@ -1,5 +1,7 @@
 import { short } from '@ts-ethereum/utils'
 
+import { EVMError } from '../errors'
+import type { ExecResult } from '../types'
 import type { PrecompileInput } from './index'
 
 /**
@@ -79,4 +81,12 @@ export const moduloLengthCheck = (
     return false
   }
   return true
+}
+
+export function OOGResult(gasLimit: bigint): ExecResult {
+  return {
+    returnValue: new Uint8Array(0),
+    executionGasUsed: gasLimit,
+    exceptionError: new EVMError(EVMError.errorMessages.OUT_OF_GAS),
+  }
 }

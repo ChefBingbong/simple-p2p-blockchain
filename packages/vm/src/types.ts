@@ -9,24 +9,14 @@ import type {
   EVMMockBlockchainInterface,
   EVMOpts,
   EVMResult,
-  Log,
 } from '@ts-ethereum/evm'
-import type { AccessList, TypedTransaction } from '@ts-ethereum/tx'
-import type {
-  BigIntLike,
-  CLRequest,
-  CLRequestType,
-  PrefixedHexString,
-  WithdrawalData,
-} from '@ts-ethereum/utils'
-import type { Bloom } from './bloom/index'
-export type TxReceipt =
-  | PreByzantiumTxReceipt
-  | PostByzantiumTxReceipt
-  | EIP4844BlobTxReceipt
+import type { TypedTransaction } from '@ts-ethereum/tx'
+import type { BigIntLike, PrefixedHexString } from '@ts-ethereum/utils'
+import type { Bloom } from './bloom'
 
 /**
- * Abstract interface with common transaction receipt fields
+ * Base interface for transaction receipts.
+ * Note: logs are always empty in value-transfer-only mode.
  */
 export interface BaseTxReceipt {
   /**
@@ -38,14 +28,14 @@ export interface BaseTxReceipt {
    */
   bitvector: Uint8Array
   /**
-   * Logs emitted
+   * Logs emitted (always empty in value-transfer-only mode)
    */
-  logs: Log[]
+  logs: []
 }
 
 /**
- * Pre-Byzantium receipt type with a field
- * for the intermediary state root
+ * Transaction receipt type for Frontier/Chainstart.
+ * Uses state root field (pre-Byzantium style).
  */
 export interface PreByzantiumTxReceipt extends BaseTxReceipt {
   /**
@@ -55,8 +45,7 @@ export interface PreByzantiumTxReceipt extends BaseTxReceipt {
 }
 
 /**
- * Receipt type for Byzantium and beyond replacing the intermediary
- * state root field with a status code field (EIP-658)
+ * Post-Byzantium receipt type (not used in value-transfer-only mode, kept for compatibility).
  */
 export interface PostByzantiumTxReceipt extends BaseTxReceipt {
   /**
@@ -65,22 +54,11 @@ export interface PostByzantiumTxReceipt extends BaseTxReceipt {
   status: 0 | 1
 }
 
-export interface EIP4844BlobTxReceipt extends PostByzantiumTxReceipt {
-  /**
-   * blob gas consumed by a transaction
-   *
-   * Note: This value is not included in the receiptRLP used for encoding the receiptsRoot in a block
-   * and is only provided as part of receipt metadata.
-   */
-  blobGasUsed: bigint
-  /**
-   * blob gas price for block transaction was included in
-   *
-   * Note: This values is not included in the `receiptRLP` used for encoding the `receiptsRoot` in a block
-   * and is only provided as part of receipt metadata.
-   */
-  blobGasPrice: bigint
-}
+/**
+ * TxReceipt type - supports both Pre-Byzantium (stateRoot) and Post-Byzantium (status) receipts
+ * for network compatibility, though this value-transfer-only blockchain generates Pre-Byzantium receipts.
+ */
+export type TxReceipt = PreByzantiumTxReceipt | PostByzantiumTxReceipt
 
 export type EVMProfilerOpts = {
   enabled: boolean
@@ -229,7 +207,6 @@ export interface BuildBlockOpts {
    */
   headerData?: HeaderData
 
-  withdrawals?: WithdrawalData[]
   /**
    * The block and builder options to use.
    */
@@ -371,15 +348,6 @@ export interface RunBlockResult extends Omit<ApplyBlockResult, 'bloom'> {
    * The bloom filter of the LOGs (events) after executing the block
    */
   logsBloom: Uint8Array
-
-  /**
-   * The requestsHash for any CL requests in the block
-   */
-  requestsHash?: Uint8Array
-  /**
-   * Any CL requests that were processed in the course of this block
-   */
-  requests?: CLRequest<CLRequestType>[]
 }
 
 export interface AfterBlockEvent extends RunBlockResult {
@@ -480,7 +448,6 @@ export interface RunTxResult extends EVMResult {
   /**
    * EIP-2930 access list generated for the tx (see `reportAccessList` option)
    */
-  accessList?: AccessList
 
   /**
    * Preimages mapping of the touched accounts from the tx (see `reportPreimages` option)
@@ -491,11 +458,6 @@ export interface RunTxResult extends EVMResult {
    * The value that accrues to the miner by this transaction
    */
   minerValue: bigint
-
-  /**
-   * This is the blob gas units times the fee per blob gas for 4844 transactions
-   */
-  blobGasUsed?: bigint
 }
 
 export interface AfterTxEvent extends RunTxResult {

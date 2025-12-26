@@ -1,8 +1,4 @@
-import {
-  EthereumJSErrorWithoutCode,
-  KeyEncoding,
-  ValueEncoding,
-} from '@ts-ethereum/utils'
+import { KeyEncoding, ValueEncoding } from '@ts-ethereum/utils'
 
 import {
   bodyKey,
@@ -152,7 +148,7 @@ export class DBOp {
       } else if (this.baseDBOp.type === 'del') {
         cacheMap[this.cacheString].del(this.baseDBOp.key)
       } else {
-        throw EthereumJSErrorWithoutCode('unsupported db operation on cache')
+        throw new Error('unsupported db operation on cache')
       }
     }
   }
