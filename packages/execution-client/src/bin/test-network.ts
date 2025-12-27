@@ -49,8 +49,6 @@ export const customChainConfig: ChainConfig = {
     { name: 'homestead', block: 0 },
     { name: 'dao', block: 0 },
     { name: 'tangerineWhistle', block: 0 },
-    { name: 'spuriousDragon', block: 0 },
-    { name: 'byzantium', block: 0 },
   ],
   bootstrapNodes: [],
 }
