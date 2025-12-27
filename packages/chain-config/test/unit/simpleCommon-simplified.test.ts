@@ -99,6 +99,7 @@ describe('GlobalConfig - Simplified Layout Tests', () => {
         chain: Mainnet,
       })
 
+      // @ts-expect-error - nonExistentParam is not a valid param
       const nonExistent = common.getParam('nonExistentParam')
       expect(nonExistent).toBeUndefined()
     })
@@ -169,8 +170,8 @@ describe('GlobalConfig - Simplified Layout Tests', () => {
         hardfork: Hardfork.Berlin,
       })
       common
-        .overrideParams({ minGasLimit: 5000n })
-        .overrideParams({ minGasLimit: 6000n })
+        .updateParams({ minGasLimit: 5000n })
+        .updateParams({ minGasLimit: 6000n })
       const final = common.getParam('minGasLimit')
       expect(final).toBe(6000n)
     })
@@ -180,7 +181,7 @@ describe('GlobalConfig - Simplified Layout Tests', () => {
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
-      common.overrideParams({
+      common.updateParams({
         minGasLimit: 5000n,
         coldsloadGas: 2500n,
       })
@@ -447,7 +448,7 @@ describe('GlobalConfig - Simplified Layout Tests', () => {
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
-      common.overrideParams({ minGasLimit: 5000n })
+      common.updateParams({ minGasLimit: 5000n })
 
       const berlinValue = common.getParam('minGasLimit')
       expect(berlinValue).toBe(5000n)
@@ -464,9 +465,9 @@ describe('GlobalConfig - Simplified Layout Tests', () => {
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
-      common.overrideParams({ minGasLimit: 5000n })
+      common.updateParams({ minGasLimit: 5000n })
       common.setHardfork(Hardfork.London)
-      common.overrideParams({ minGasLimit: 6000n })
+      common.updateParams({ minGasLimit: 6000n })
 
       expect(common.getParam('minGasLimit')).toBe(6000n)
     })
