@@ -10,28 +10,30 @@ import type {
   CommonOpts,
   CustomCrypto,
   HardforkTransitionConfig,
+  MergedParamsAtHardfork,
 } from './types'
 
 export class SimpleCommon {
   public readonly customCrypto: CustomCrypto
   public readonly events: EventEmitter<CommonEvent>
 
-  protected _hardfork: Hardfork
-  protected _chainParams: ChainConfig
-  protected _paramsBuilder: HardforkParamsBuilder<Hardfork>
+  protected currentHardfork: Hardfork
+  protected chainParams: ChainConfig
+  protected paramsBuilder: HardforkParamsBuilder<Hardfork>
 
-  private _eipsCache?: number[]
-  private _hardforkMap?: Map<string | Hardfork, HardforkTransitionConfig>
+  private eipsCache?: number[]
+  private currentHardforkMap?: Map<string | Hardfork, HardforkTransitionConfig>
 
-  constructor(opts: CommonOpts) {
+  constructor(commonOptions: CommonOpts) {
     this.events = new EventEmitter<CommonEvent>()
 
-    this._chainParams = JSON.parse(JSON.stringify(opts.chain)) // copy
-    this.customCrypto = opts.customCrypto ?? {}
+    this.chainParams = Object.freeze(commonOptions.chain)
+    this.customCrypto = commonOptions.customCrypto ?? {}
 
-    const initialHardfork = (opts.hardfork as Hardfork) ?? Hardfork.Chainstart
-    this._hardfork = initialHardfork
-    this._paramsBuilder = HardforkParamsBuilder.create(
+    const initialHardfork = commonOptions.hardfork as Hardfork
+    this.currentHardfork = initialHardfork ?? Hardfork.Chainstart
+
+    this.paramsBuilder = HardforkParamsBuilder.create(
       initialHardfork,
       EIPParams,
       HardforkParams,
@@ -39,117 +41,111 @@ export class SimpleCommon {
   }
 
   setHardfork(hardfork: Hardfork) {
-    if (!this._isValidHardfork(hardfork) || this._hardfork === hardfork) {
+    if (!this.isValidHardfork(hardfork)) {
       throw EthereumJSErrorWithoutCode(
         `Hardfork with name ${hardfork} not supported`,
       )
     }
-    this._hardfork = hardfork
-    this._paramsBuilder = this._paramsBuilder.withHardfork(hardfork)
+    this.currentHardfork = hardfork
+    this.paramsBuilder = this.paramsBuilder.withHardfork(hardfork)
 
-    this._eipsCache = undefined
-    this._hardforkMap = undefined
+    this.eipsCache = undefined
+    this.currentHardforkMap = undefined
+
     this.events.emit('hardforkChanged', hardfork)
-    return hardfork
+    return this.paramsBuilder.currentHardfork
   }
 
-  private _isValidHardfork(hardfork: Hardfork): boolean {
-    return HARDFORK_ORDER.includes(hardfork)
+  public isActivatedEIP(eip: EIP) {
+    return this.paramsBuilder.activeEips.has(eip)
   }
 
-  overrideParams(overrides: Partial<ChainParams>): this {
-    this._paramsBuilder.overrideParams(overrides)
-    this._eipsCache = undefined
-    return this
-  }
-
-  param(name: string) {
-    return this._paramsBuilder.getParam(name as keyof ChainParams)
-  }
-
-  paramByHardfork(name: string, hardfork: Hardfork) {
-    const builder = this._paramsBuilder.withHardfork(hardfork)
-    return builder.getParam(name as keyof ChainParams)
-  }
-
-  paramByEIP(name: string, eip: number) {
-    return this._paramsBuilder.getEipParams(eip as EIP)?.[
-      name as keyof ChainParams
-    ]
-  }
-
-  isActivatedEIP(eip: number) {
-    return this._paramsBuilder.activeEips.has(eip as EIP)
-  }
-
-  gteHardfork(hardfork: Hardfork) {
-    const hardforks = this.hardforks()
-    const currentIdx = hardforks.findIndex((hf) => hf.name === this._hardfork)
+  public isHardforkAfter(hardfork: Hardfork) {
+    const hardforks = this.hardforks
+    const currentIdx = hardforks.findIndex(
+      (hf) => hf.name === this.currentHardfork,
+    )
     const targetIdx = hardforks.findIndex((hf) => hf.name === hardfork)
     return currentIdx >= targetIdx && targetIdx !== -1
   }
 
-  hardforkBlock(hardfork?: Hardfork) {
-    hardfork = hardfork ?? this._hardfork
-    return this._getHardfork(hardfork)?.block
+  public overrideParams(overrides: Partial<ChainParams>) {
+    this.paramsBuilder.overrideParams(overrides)
+    this.eipsCache = undefined
+    return this
   }
 
-  hardforkTimestamp(hardfork = this._hardfork) {
-    return this._getHardfork(hardfork)?.timestamp
+  public getParamByHardfork<K extends keyof MergedParamsAtHardfork<Hardfork>>(
+    name: K,
+    hardfork: Hardfork,
+  ) {
+    const builder = this.paramsBuilder.withHardfork<Hardfork>(hardfork)
+    return builder.getParam(name)
   }
 
-  getHardforkByBlockNumber(blockNumber: bigint) {
-    return this.hardforks().find(
+  public getParamByEIP<K extends keyof MergedParamsAtHardfork<Hardfork>>(
+    name: K,
+    eip: EIP,
+  ) {
+    return this.paramsBuilder.getEipParams<EIP>(eip)?.[name]
+  }
+
+  public getParam<K extends keyof MergedParamsAtHardfork<Hardfork>>(name: K) {
+    return this.paramsBuilder.getParam(name)
+  }
+
+  public getHardforkBlock(hardfork?: Hardfork) {
+    hardfork = hardfork ?? this.currentHardfork
+    return this.lookupHardfork(hardfork)?.block
+  }
+
+  public getHardforkTimestamp(hardfork = this.currentHardfork) {
+    return this.lookupHardfork(hardfork)?.timestamp
+  }
+
+  public getHardforkByBlockNumber(blockNumber: bigint) {
+    return this.hardforks.find(
       (hf) => hf.block !== null && BigInt(hf.block) === blockNumber,
     )?.name
   }
 
-  getHardforkByTimestamp(timestamp: bigint) {
-    return this.hardforks().find(
+  public getHardforkByTimestamp(timestamp: bigint) {
+    return this.hardforks.find(
       (hf) => hf.timestamp !== undefined && BigInt(hf.timestamp) === timestamp,
     )?.name
   }
 
-  protected _getHardfork(hardfork: Hardfork) {
-    if (this._hardforkMap) return this._hardforkMap.get(hardfork)
-    this._hardforkMap = new Map(this.hardforks().map((hf) => [hf.name, hf]))
-    return this._hardforkMap.get(hardfork)
+  private lookupHardfork(hardfork: Hardfork) {
+    if (this.currentHardforkMap) return this.currentHardforkMap.get(hardfork)
+    this.currentHardforkMap = new Map(this.hardforks.map((hf) => [hf.name, hf]))
+    return this.currentHardforkMap.get(hardfork)
   }
 
-  genesis() {
-    return this._chainParams.genesis
+  private isValidHardfork(hardfork: Hardfork) {
+    if (hardfork === this.currentHardfork) return false
+    const index = HARDFORK_ORDER.findIndex((hf) => hf === hardfork)
+    return (
+      index !== -1 &&
+      index > HARDFORK_ORDER.findIndex((hf) => hf === this.currentHardfork)
+    )
   }
 
-  hardforks() {
-    return this._chainParams.hardforks
+  get eips() {
+    return (
+      this.eipsCache ??
+      (this.eipsCache = this.paramsBuilder.activeEips.values().toArray())
+    )
   }
 
-  bootstrapNodes() {
-    return this._chainParams.bootstrapNodes
+  get hardforks() {
+    return this.chainParams.hardforks
   }
 
-  dnsNetworks() {
-    return this._chainParams.dnsNetworks ?? []
+  get params() {
+    return this.chainParams
   }
 
-  hardfork() {
-    return this._hardfork
-  }
-
-  chainId() {
-    return BigInt(this._chainParams.chainId)
-  }
-
-  chainName() {
-    return this._chainParams.name
-  }
-
-  eips() {
-    if (this._eipsCache) return this._eipsCache
-    return (this._eipsCache = this._paramsBuilder.activeEips.values().toArray())
-  }
-
-  consensusType() {
-    return this._chainParams.consensus.type
+  get activeHardfork() {
+    return this.currentHardfork
   }
 }

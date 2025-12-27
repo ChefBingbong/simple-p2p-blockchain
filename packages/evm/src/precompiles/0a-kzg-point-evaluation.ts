@@ -113,4 +113,3 @@ export async function precompile0a(opts: PrecompileInput): Promise<ExecResult> {
     returnValue: concatBytes(fieldElementsBuffer, modulusBuffer),
   }
 }
-

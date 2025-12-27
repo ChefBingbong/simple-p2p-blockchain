@@ -400,4 +400,3 @@ export {
   BLS12_381_ToG1Point,
   BLS12_381_ToG2Point,
 }
-

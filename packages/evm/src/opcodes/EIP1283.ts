@@ -74,4 +74,3 @@ export function updateSstoreGasEIP1283(
   }
   return common.param('netSstoreDirtyGas')
 }
-

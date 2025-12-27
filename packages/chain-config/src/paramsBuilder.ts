@@ -51,15 +51,19 @@ export class HardforkParamsBuilder<H extends Hardfork = Hardfork> {
     return activeEIPs
   }
 
-  static create(
-    initialHardfork: Hardfork = Hardfork.Chainstart,
+  static create<THardfork extends Hardfork = Hardfork>(
+    initialHardfork: THardfork,
     eipParams: typeof EIPParams = EIPParams,
     hardforkParams: typeof HardforkParams = HardforkParams,
-  ): HardforkParamsBuilder<typeof initialHardfork> {
-    return new HardforkParamsBuilder(initialHardfork, eipParams, hardforkParams)
+  ): HardforkParamsBuilder<THardfork> {
+    return new HardforkParamsBuilder<THardfork>(
+      initialHardfork,
+      eipParams,
+      hardforkParams,
+    )
   }
 
-  getParams<H extends Hardfork = Hardfork>(): MergedParamsAtHardfork<H> {
+  getParams(): MergedParamsAtHardfork<H> {
     const hasOverrides = this._paramOverrides.has(this._currentHardfork)
     if (!hasOverrides && this._mergedParamsCache.has(this._currentHardfork)) {
       return this._mergedParamsCache.get(
@@ -178,14 +182,3 @@ export class HardforkParamsBuilder<H extends Hardfork = Hardfork> {
     return this._getActiveEIPs(this._currentHardfork)
   }
 }
-
-const builder = HardforkParamsBuilder.create(Hardfork.Cancun)
-const params = builder.getParams()
-
-params.blobGasPerBlob // ✅ number (guaranteed)
-params.tstoreGas // ✅ number (guaranteed)
-
-const oldBuilder = HardforkParamsBuilder.create(Hardfork.Berlin)
-const oldParams = oldBuilder.getParams()
-
-oldParams.blobGasPerBlob

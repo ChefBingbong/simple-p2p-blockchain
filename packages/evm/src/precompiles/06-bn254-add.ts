@@ -44,4 +44,3 @@ export function precompile06(opts: PrecompileInput): ExecResult {
     returnValue: returnData,
   }
 }
-

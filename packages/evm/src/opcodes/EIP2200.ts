@@ -98,4 +98,3 @@ export function updateSstoreGasEIP2200(
   // Dirty update
   return common.param('sstoreDirtyEIP2200Gas')
 }
-

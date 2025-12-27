@@ -62,4 +62,3 @@ export async function precompile0d(opts: PrecompileInput): Promise<ExecResult> {
     returnValue,
   }
 }
-

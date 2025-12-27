@@ -35,7 +35,7 @@ type ConsensusConfig = {
 export interface ChainConfig {
   name: string
   chainId: number | string
-  defaultHardfork?: string
+  defaultHardfork?: Hardfork
   comment?: string
   url?: string
   genesis: GenesisBlockConfig
@@ -183,363 +183,469 @@ export type BpoSchedule = {
 }
 
 // ============================================================================
-// Domain-Based Parameter Types
+// EIP-Based Parameter Types (Required - no optionals)
+// These types mirror the params defined in mappings.ts EIPParams
 // ============================================================================
 
 /**
- * EVM opcode gas costs
+ * EIP-1: Frontier/Chainstart base parameters
  */
-export interface OpcodeGasParams {
-  // Basic operations
-  stopGas?: number
-  addGas?: number
-  mulGas?: number
-  subGas?: number
-  divGas?: number
-  sdivGas?: number
-  modGas?: number
-  smodGas?: number
-  addmodGas?: number
-  mulmodGas?: number
-  expGas?: number
-  expByteGas?: number
-  signextendGas?: number
-
-  // Comparison & bitwise
-  ltGas?: number
-  gtGas?: number
-  sltGas?: number
-  sgtGas?: number
-  eqGas?: number
-  iszeroGas?: number
-  andGas?: number
-  orGas?: number
-  xorGas?: number
-  notGas?: number
-  byteGas?: number
-  shlGas?: number
-  shrGas?: number
-  sarGas?: number
-
-  // SHA3/Keccak
-  keccak256Gas?: number
-  keccak256WordGas?: number
-
-  // Environment info
-  addressGas?: number
-  balanceGas?: number
-  originGas?: number
-  callerGas?: number
-  callvalueGas?: number
-  calldataloadGas?: number
-  calldatasizeGas?: number
-  calldatacopyGas?: number
-  codesizeGas?: number
-  codecopyGas?: number
-  gaspriceGas?: number
-  extcodesizeGas?: number
-  extcodecopyGas?: number
-  extcodehashGas?: number
-  blockhashGas?: number
-  coinbaseGas?: number
-  timestampGas?: number
-  numberGas?: number
-  difficultyGas?: number
-  prevrandaoGas?: number
-  gaslimitGas?: number
-  chainidGas?: number
-  selfbalanceGas?: number
-  basefeeGas?: number
-
-  // Memory & storage
-  popGas?: number
-  mloadGas?: number
-  mstoreGas?: number
-  mstore8Gas?: number
-  sloadGas?: number
-  sstoreGas?: number
-  sstoreSetGas?: number
-  sstoreResetGas?: number
-  sstoreRefundGas?: number
-  memoryGas?: number
-  mcopyGas?: number
-
-  // Control flow
-  jumpGas?: number
-  jumpiGas?: number
-  pcGas?: number
-  msizeGas?: number
-  gasGas?: number
-  jumpdestGas?: number
-
-  // Stack operations
-  pushGas?: number
-  push0Gas?: number
-  dupGas?: number
-  swapGas?: number
-
-  // Log operations
-  logGas?: number
-  logDataGas?: number
-  logTopicGas?: number
-
-  // System operations
-  createGas?: number
-  create2Gas?: number
-  callGas?: number
-  callStipendGas?: number
-  callValueTransferGas?: number
-  callNewAccountGas?: number
-  callcodeGas?: number
-  delegatecallGas?: number
-  staticcallGas?: number
-  returnGas?: number
-  revertGas?: number
-  invalidGas?: number
-  selfdestructGas?: number
-  selfdestructRefundGas?: number
-
-  // Return data
-  returndatasizeGas?: number
-  returndatacopyGas?: number
-
-  // Create data gas
-  createDataGas?: number
-  copyGas?: number
-  quadCoefficientDivGas?: number
+export interface EIP1Params {
+  // Gas config
+  maxRefundQuotient: number
+  minGasLimit: number
+  gasLimitBoundDivisor: number
+  // Opcode gas costs
+  basefeeGas: number
+  expGas: number
+  expByteGas: number
+  keccak256Gas: number
+  keccak256WordGas: number
+  sloadGas: number
+  sstoreSetGas: number
+  sstoreResetGas: number
+  sstoreRefundGas: number
+  jumpdestGas: number
+  logGas: number
+  logDataGas: number
+  logTopicGas: number
+  createGas: number
+  callGas: number
+  callStipendGas: number
+  callValueTransferGas: number
+  callNewAccountGas: number
+  selfdestructRefundGas: number
+  memoryGas: number
+  quadCoefficientDivGas: number
+  createDataGas: number
+  copyGas: number
+  stopGas: number
+  addGas: number
+  mulGas: number
+  subGas: number
+  divGas: number
+  sdivGas: number
+  modGas: number
+  smodGas: number
+  addmodGas: number
+  mulmodGas: number
+  signextendGas: number
+  ltGas: number
+  gtGas: number
+  sltGas: number
+  sgtGas: number
+  eqGas: number
+  iszeroGas: number
+  andGas: number
+  orGas: number
+  xorGas: number
+  notGas: number
+  byteGas: number
+  addressGas: number
+  balanceGas: number
+  originGas: number
+  callerGas: number
+  callvalueGas: number
+  calldataloadGas: number
+  calldatasizeGas: number
+  calldatacopyGas: number
+  codesizeGas: number
+  codecopyGas: number
+  gaspriceGas: number
+  extcodesizeGas: number
+  extcodecopyGas: number
+  blockhashGas: number
+  coinbaseGas: number
+  timestampGas: number
+  numberGas: number
+  difficultyGas: number
+  gaslimitGas: number
+  popGas: number
+  mloadGas: number
+  mstoreGas: number
+  mstore8Gas: number
+  sstoreGas: number
+  jumpGas: number
+  jumpiGas: number
+  pcGas: number
+  msizeGas: number
+  gasGas: number
+  pushGas: number
+  dupGas: number
+  swapGas: number
+  callcodeGas: number
+  returnGas: number
+  invalidGas: number
+  selfdestructGas: number
+  prevrandaoGas: number
+  // Precompile costs
+  ecRecoverGas: number
+  sha256Gas: number
+  sha256WordGas: number
+  ripemd160Gas: number
+  ripemd160WordGas: number
+  identityGas: number
+  identityWordGas: number
+  // Limits
+  stackLimit: number
+  maxExtraDataSize: number
+  // Transaction gas
+  txGas: number
+  txCreationGas: number
+  txDataZeroGas: number
+  txDataNonZeroGas: number
+  accessListStorageKeyGas: number
+  accessListAddressGas: number
+  // PoW params
+  minerReward: string
+  minimumDifficulty: number
+  difficultyBoundDivisor: number
+  durationLimit: number
+  difficultyBombDelay: number
 }
 
-/**
- * Precompile gas costs
- */
-export interface PrecompileGasParams {
-  // ECDSA
-  ecRecoverGas?: number
-
-  // SHA256
-  sha256Gas?: number
-  sha256WordGas?: number
-
-  // RIPEMD160
-  ripemd160Gas?: number
-  ripemd160WordGas?: number
-
-  // Identity
-  identityGas?: number
-  identityWordGas?: number
-
-  // ModExp
-  modexpGquaddivisorGas?: number
-
-  // BN254/alt_bn128
-  bn254AddGas?: number
-  bn254MulGas?: number
-  bn254PairingGas?: number
-  bn254PairingWordGas?: number
-
-  // Blake2
-  blake2RoundGas?: number
-
-  // BLS12-381
-  bls12381G1AddGas?: number
-  bls12381G1MulGas?: number
-  bls12381G2AddGas?: number
-  bls12381G2MulGas?: number
-  bls12381PairingBaseGas?: number
-  bls12381PairingPerPairGas?: number
-  bls12381MapG1Gas?: number
-  bls12381MapG2Gas?: number
-
-  // KZG
-  kzgPointEvaluationPrecompileGas?: number
+/** EIP-606: Homestead */
+export interface EIP606Params {
+  delegatecallGas: number
 }
 
-/**
- * EIP-2929 cold/warm access gas costs
- */
-export interface AccessGasParams {
-  coldsloadGas?: number
-  coldaccountaccessGas?: number
-  warmstoragereadGas?: number
+/** EIP-608: Tangerine Whistle - Gas cost increases */
+export interface EIP608Params {
+  sloadGas: number
+  callGas: number
+  extcodesizeGas: number
+  extcodecopyGas: number
+  balanceGas: number
+  delegatecallGas: number
+  callcodeGas: number
+  selfdestructGas: number
 }
 
-/**
- * EIP-2200 SSTORE gas costs
- */
-export interface SstoreGasParams {
-  // EIP-2200 (Istanbul)
-  sstoreSentryEIP2200Gas?: number
-  sstoreNoopEIP2200Gas?: number
-  sstoreDirtyEIP2200Gas?: number
-  sstoreInitEIP2200Gas?: number
-  sstoreInitRefundEIP2200Gas?: number
-  sstoreCleanEIP2200Gas?: number
-  sstoreCleanRefundEIP2200Gas?: number
-  sstoreClearRefundEIP2200Gas?: number
-
-  // Net gas metering (EIP-1283, disabled in Petersburg)
-  netSstoreNoopGas?: number | null
-  netSstoreInitGas?: number | null
-  netSstoreCleanGas?: number | null
-  netSstoreDirtyGas?: number | null
-  netSstoreClearRefundGas?: number | null
-  netSstoreResetRefundGas?: number | null
-  netSstoreResetClearRefundGas?: number | null
+/** EIP-607: Spurious Dragon */
+export interface EIP607Params {
+  expByteGas: number
+  maxCodeSize: number
 }
 
-/**
- * EOF-related gas costs
- */
-export interface EOFGasParams {
-  // EIP-663: SWAPN, DUPN, EXCHANGE
-  dupnGas?: number
-  swapnGas?: number
-  exchangeGas?: number
-
-  // EIP-4200: Static relative jumps
-  rjumpGas?: number
-  rjumpiGas?: number
-  rjumpvGas?: number
-
-  // EIP-4750: Functions
-  callfGas?: number
-  retfGas?: number
-
-  // EIP-6206: JUMPF
-  jumpfGas?: number
-
-  // EIP-7069: Revamped CALL
-  extcallGas?: number
-  extdelegatecallGas?: number
-  extstaticcallGas?: number
-  returndataloadGas?: number
-  minRetainedGas?: number
-  minCalleeGas?: number
-
-  // EIP-7480: Data section access
-  dataloadGas?: number
-  dataloadnGas?: number
-  datasizeGas?: number
-  datacopyGas?: number
-
-  // EIP-7620: EOF Contract Creation
-  eofcreateGas?: number
-  returncontractGas?: number
+/** EIP-609: Byzantium */
+export interface EIP609Params {
+  modexpGquaddivisorGas: number
+  bn254AddGas: number
+  bn254MulGas: number
+  bn254PairingGas: number
+  bn254PairingWordGas: number
+  revertGas: number
+  staticcallGas: number
+  returndatasizeGas: number
+  returndatacopyGas: number
+  difficultyBombDelay: number
+  minerReward: string
 }
 
-/**
- * Transient storage gas costs (EIP-1153)
- */
-export interface TransientStorageGasParams {
-  tstoreGas?: number
-  tloadGas?: number
+/** EIP-1013: Constantinople */
+export interface EIP1013Params {
+  // Net gas metering (can be nullified by EIP-1716)
+  netSstoreNoopGas: number | null
+  netSstoreInitGas: number | null
+  netSstoreCleanGas: number | null
+  netSstoreDirtyGas: number | null
+  netSstoreClearRefundGas: number | null
+  netSstoreResetRefundGas: number | null
+  netSstoreResetClearRefundGas: number | null
+  // Bitwise shift opcodes
+  shlGas: number
+  shrGas: number
+  sarGas: number
+  extcodehashGas: number
+  create2Gas: number
 }
 
-/**
- * Blob-related gas params (EIP-4844, EIP-7691)
- */
-export interface BlobGasParams {
-  blobhashGas?: number
-  blobbasefeeGas?: number
-  blobGasPerBlob?: number
-  maxBlobGasPerBlock?: number
-  targetBlobGasPerBlock?: number
-  blobGasPriceUpdateFraction?: number
-  minBlobGas?: number
-  blobBaseCost?: number
-  blobCommitmentVersionKzg?: number
-  fieldElementsPerBlob?: number
-  maxBlobsPerTx?: number
+/** EIP-1679: Istanbul */
+export interface EIP1679Params {
+  blake2RoundGas: number
+  sstoreSentryEIP2200Gas: number
+  sstoreNoopEIP2200Gas: number
+  sstoreDirtyEIP2200Gas: number
+  sstoreInitEIP2200Gas: number
+  sstoreInitRefundEIP2200Gas: number
+  sstoreCleanEIP2200Gas: number
+  sstoreCleanRefundEIP2200Gas: number
+  sstoreClearRefundEIP2200Gas: number
+  chainidGas: number
+  selfbalanceGas: number
+  txDataNonZeroGas: number
 }
 
-/**
- * Transaction gas params
- */
-export interface TxGasParams {
-  txGas?: number
-  txCreationGas?: number
-  txDataZeroGas?: number
-  txDataNonZeroGas?: number
-  accessListStorageKeyGas?: number
-  accessListAddressGas?: number
-  initCodeWordGas?: number
-  totalCostFloorPerToken?: number
-
-  // EIP-7702: EOA code delegation
-  perAuthBaseGas?: number
-  perEmptyAccountCost?: number
+/** EIP-2384: Muir Glacier difficulty bomb delay */
+export interface EIP2384Params {
+  difficultyBombDelay: number
 }
 
-/**
- * Block/chain limit params
- */
-export interface LimitParams {
-  maxCodeSize?: number
-  maxInitCodeSize?: number
-  stackLimit?: number
-  maxExtraDataSize?: number
-  maxTransactionGasLimit?: number
+/** EIP-2565: ModExp gas cost reduction */
+export interface EIP2565Params {
+  modexpGquaddivisorGas: number
 }
 
-/**
- * Gas config params
- */
-export interface GasConfigParams {
-  minGasLimit?: number
-  gasLimitBoundDivisor?: number
-  maxRefundQuotient?: number
-  baseFeeMaxChangeDenominator?: number
-  elasticityMultiplier?: number
-  initialBaseFee?: number
+/** EIP-3198: BASEFEE opcode */
+export interface EIP3198Params {
+  basefeeGas: number
 }
 
-/**
- * Proof of Work params
- */
-export interface PowParams {
-  minerReward?: string
-  minimumDifficulty?: number
-  difficultyBoundDivisor?: number
-  durationLimit?: number
-  difficultyBombDelay?: number
+/** EIP-3554: Difficulty bomb delay to December 2021 */
+export interface EIP3554Params {
+  difficultyBombDelay: number
 }
 
-/**
- * System contract addresses and config
- */
-export interface SystemParams {
-  systemAddress?: string
-  historyStorageAddress?: string
-  historyServeWindow?: number
-  historicalRootsLength?: number
-  withdrawalRequestPredeployAddress?: string
-  consolidationRequestPredeployAddress?: string
+/** EIP-4345: Difficulty bomb delay to June 2022 */
+export interface EIP4345Params {
+  difficultyBombDelay: number
 }
 
-/**
- * EIP-7939: CLZ opcode
- */
-export interface MiscOpcodeGasParams {
-  clzGas?: number
+/** EIP-5133: Difficulty bomb delay to September 2022 */
+export interface EIP5133Params {
+  difficultyBombDelay: number
 }
 
+/** EIP-2929: Gas cost increases for state access opcodes */
+export interface EIP2929Params {
+  coldsloadGas: number
+  coldaccountaccessGas: number
+  warmstoragereadGas: number
+}
+
+/** EIP-2930: Optional access lists */
+export interface EIP2930Params {
+  accessListStorageKeyGas: number
+  accessListAddressGas: number
+}
+
+/** EIP-1559: Fee market */
+export interface EIP1559Params {
+  elasticityMultiplier: number
+  baseFeeMaxChangeDenominator: number
+  initialBaseFee: number
+}
+
+/** EIP-3529: Reduction in refunds */
+export interface EIP3529Params {
+  maxRefundQuotient: number
+  selfdestructRefundGas: number
+  sstoreClearRefundEIP2200Gas: number
+}
+
+/** EIP-3855: PUSH0 instruction */
+export interface EIP3855Params {
+  push0Gas: number
+}
+
+/** EIP-3860: Limit and meter initcode */
+export interface EIP3860Params {
+  initCodeWordGas: number
+  maxInitCodeSize: number
+}
+
+/** EIP-4399: PREVRANDAO */
+export interface EIP4399Params {
+  prevrandaoGas: number
+}
+
+/** EIP-4788: Beacon block root in EVM */
+export interface EIP4788Params {
+  historicalRootsLength: number
+}
+
+/** EIP-4844: Shard Blob Transactions */
+export interface EIP4844Params {
+  kzgPointEvaluationPrecompileGas: number
+  blobhashGas: number
+  blobCommitmentVersionKzg: number
+  fieldElementsPerBlob: number
+  targetBlobGasPerBlock: number
+  blobGasPerBlob: number
+  maxBlobGasPerBlock: number
+  blobGasPriceUpdateFraction: number
+  minBlobGas: number
+  blobBaseCost: number
+}
+
+/** EIP-5656: MCOPY */
+export interface EIP5656Params {
+  mcopyGas: number
+}
+
+/** EIP-1153: Transient storage */
+export interface EIP1153Params {
+  tstoreGas: number
+  tloadGas: number
+}
+
+/** EIP-7516: BLOBBASEFEE opcode */
+export interface EIP7516Params {
+  blobbasefeeGas: number
+}
+
+/** EIP-2537: BLS12-381 precompiles */
+export interface EIP2537Params {
+  bls12381G1AddGas: number
+  bls12381G1MulGas: number
+  bls12381G2AddGas: number
+  bls12381G2MulGas: number
+  bls12381PairingBaseGas: number
+  bls12381PairingPerPairGas: number
+  bls12381MapG1Gas: number
+  bls12381MapG2Gas: number
+}
+
+/** EIP-2935: Historical block hashes in state */
+export interface EIP2935Params {
+  historyStorageAddress: string
+  historyServeWindow: number
+  systemAddress: string
+}
+
+/** EIP-7002: Execution layer triggerable withdrawals */
+export interface EIP7002Params {
+  withdrawalRequestPredeployAddress: string
+}
+
+/** EIP-7251: Increase MAX_EFFECTIVE_BALANCE */
+export interface EIP7251Params {
+  consolidationRequestPredeployAddress: string
+}
+
+/** EIP-7623: Increase calldata cost */
+export interface EIP7623Params {
+  totalCostFloorPerToken: number
+}
+
+/** EIP-7691: Blob throughput increase */
+export interface EIP7691Params {
+  targetBlobGasPerBlock: number
+  maxBlobGasPerBlock: number
+  blobGasPriceUpdateFraction: number
+}
+
+/** EIP-7702: Set EOA account code */
+export interface EIP7702Params {
+  perAuthBaseGas: number
+  perEmptyAccountCost: number
+}
+
+/** EIP-7594: PeerDAS */
+export interface EIP7594Params {
+  maxBlobsPerTx: number
+}
+
+/** EIP-7825: Transaction Gas Limit Cap */
+export interface EIP7825Params {
+  maxTransactionGasLimit: number
+}
+
+/** EIP-7939: CLZ opcode */
+export interface EIP7939Params {
+  clzGas: number
+}
+
+/** EIP-663: SWAPN, DUPN, EXCHANGE */
+export interface EIP663Params {
+  dupnGas: number
+  swapnGas: number
+  exchangeGas: number
+}
+
+/** EIP-4200: Static relative jumps */
+export interface EIP4200Params {
+  rjumpGas: number
+  rjumpiGas: number
+  rjumpvGas: number
+}
+
+/** EIP-4750: Functions */
+export interface EIP4750Params {
+  callfGas: number
+  retfGas: number
+}
+
+/** EIP-6206: JUMPF */
+export interface EIP6206Params {
+  jumpfGas: number
+}
+
+/** EIP-7069: Revamped CALL */
+export interface EIP7069Params {
+  extcallGas: number
+  extdelegatecallGas: number
+  extstaticcallGas: number
+  returndataloadGas: number
+  minRetainedGas: number
+  minCalleeGas: number
+}
+
+/** EIP-7480: Data section access */
+export interface EIP7480Params {
+  dataloadGas: number
+  dataloadnGas: number
+  datasizeGas: number
+  datacopyGas: number
+}
+
+/** EIP-7620: EOF Contract Creation */
+export interface EIP7620Params {
+  eofcreateGas: number
+  returncontractGas: number
+}
+
+// ============================================================================
+// Combined Chain Params - Partial composition of all EIP params
+// ============================================================================
+
 /**
- * Combined chain params - union of all domain params
+ * Combined chain params - union of all EIP params as Partial
+ * This allows any param to be undefined when not yet activated
  */
 export interface ChainParams
-  extends OpcodeGasParams,
-    PrecompileGasParams,
-    AccessGasParams,
-    SstoreGasParams,
-    EOFGasParams,
-    TransientStorageGasParams,
-    BlobGasParams,
-    TxGasParams,
-    LimitParams,
-    GasConfigParams,
-    PowParams,
-    SystemParams,
-    MiscOpcodeGasParams {
+  extends EIP1Params,
+    EIP606Params,
+    EIP608Params,
+    EIP607Params,
+    EIP609Params,
+    EIP1013Params,
+    EIP1679Params,
+    EIP2384Params,
+    EIP2565Params,
+    EIP2929Params,
+    EIP2930Params,
+    EIP1559Params,
+    EIP3198Params,
+    EIP3529Params,
+    EIP3554Params,
+    EIP3855Params,
+    EIP3860Params,
+    EIP4345Params,
+    EIP4399Params,
+    EIP4788Params,
+    EIP4844Params,
+    EIP5133Params,
+    EIP5656Params,
+    EIP1153Params,
+    EIP7516Params,
+    EIP2537Params,
+    EIP2935Params,
+    EIP7002Params,
+    EIP7251Params,
+    EIP7623Params,
+    EIP7691Params,
+    EIP7702Params,
+    EIP7594Params,
+    EIP7825Params,
+    EIP7939Params,
+    EIP663Params,
+    EIP4200Params,
+    EIP4750Params,
+    EIP6206Params,
+    EIP7069Params,
+    EIP7480Params,
+    EIP7620Params {
   // BPO schedule params (hardfork-specific)
   target?: number
   max?: number
@@ -589,9 +695,58 @@ export interface HardforkMetadata {
 // Hardfork-Specific Type Utilities
 // ============================================================================
 
-/**
- * Union of hardforks at or after Berlin (EIP-2929 access lists)
- */
+// All hardforks in order for reference:
+// chainstart -> homestead -> dao -> tangerineWhistle -> spuriousDragon ->
+// byzantium -> constantinople -> petersburg -> istanbul -> muirGlacier ->
+// berlin -> london -> arrowGlacier -> grayGlacier -> mergeNetsplitBlock ->
+// paris -> shanghai -> cancun -> prague -> osaka -> bpo1-5
+
+/** Hardforks at or after Homestead (EIP-606) */
+export type HomesteadAndLater = Exclude<Hardfork, 'chainstart'>
+
+/** Hardforks at or after Tangerine Whistle (EIP-608) */
+export type TangerineWhistleAndLater = Exclude<
+  Hardfork,
+  'chainstart' | 'homestead' | 'dao'
+>
+
+/** Hardforks at or after Spurious Dragon (EIP-607) */
+export type SpuriousDragonAndLater = Exclude<
+  Hardfork,
+  'chainstart' | 'homestead' | 'dao' | 'tangerineWhistle'
+>
+
+/** Hardforks at or after Byzantium (EIP-609) */
+export type ByzantiumAndLater = Exclude<
+  Hardfork,
+  'chainstart' | 'homestead' | 'dao' | 'tangerineWhistle' | 'spuriousDragon'
+>
+
+/** Hardforks at or after Constantinople (EIP-1013) */
+export type ConstantinopleAndLater = Exclude<
+  Hardfork,
+  | 'chainstart'
+  | 'homestead'
+  | 'dao'
+  | 'tangerineWhistle'
+  | 'spuriousDragon'
+  | 'byzantium'
+>
+
+/** Hardforks at or after Istanbul (EIP-1679) */
+export type IstanbulAndLater = Exclude<
+  Hardfork,
+  | 'chainstart'
+  | 'homestead'
+  | 'dao'
+  | 'tangerineWhistle'
+  | 'spuriousDragon'
+  | 'byzantium'
+  | 'constantinople'
+  | 'petersburg'
+>
+
+/** Hardforks at or after Berlin (EIP-2929, EIP-2930, EIP-2565) */
 export type BerlinAndLater =
   | 'berlin'
   | 'london'
@@ -609,9 +764,7 @@ export type BerlinAndLater =
   | 'bpo4'
   | 'bpo5'
 
-/**
- * Union of hardforks at or after London (EIP-1559 fee market)
- */
+/** Hardforks at or after London (EIP-1559, EIP-3198, EIP-3529) */
 export type LondonAndLater =
   | 'london'
   | 'arrowGlacier'
@@ -628,9 +781,7 @@ export type LondonAndLater =
   | 'bpo4'
   | 'bpo5'
 
-/**
- * Union of hardforks at or after Paris (The Merge - PoS)
- */
+/** Hardforks at or after Paris (The Merge - EIP-4399) */
 export type ParisAndLater =
   | 'paris'
   | 'shanghai'
@@ -643,9 +794,7 @@ export type ParisAndLater =
   | 'bpo4'
   | 'bpo5'
 
-/**
- * Union of hardforks at or after Shanghai (withdrawals, PUSH0)
- */
+/** Hardforks at or after Shanghai (EIP-3855, EIP-3860) */
 export type ShanghaiAndLater =
   | 'shanghai'
   | 'cancun'
@@ -657,9 +806,7 @@ export type ShanghaiAndLater =
   | 'bpo4'
   | 'bpo5'
 
-/**
- * Union of hardforks at or after Cancun (blobs, transient storage)
- */
+/** Hardforks at or after Cancun (EIP-4844, EIP-1153, EIP-5656, EIP-7516) */
 export type CancunAndLater =
   | 'cancun'
   | 'prague'
@@ -670,9 +817,7 @@ export type CancunAndLater =
   | 'bpo4'
   | 'bpo5'
 
-/**
- * Union of hardforks at or after Prague (EOF, BLS)
- */
+/** Hardforks at or after Prague (EIP-2537, EIP-7702, EIP-7691, etc.) */
 export type PragueAndLater =
   | 'prague'
   | 'osaka'
@@ -682,66 +827,115 @@ export type PragueAndLater =
   | 'bpo4'
   | 'bpo5'
 
+/** Hardforks at or after Osaka (EIP-7594, EIP-7825, EIP-7939) */
+export type OsakaAndLater = 'osaka' | 'bpo1' | 'bpo2' | 'bpo3' | 'bpo4' | 'bpo5'
+
 // ============================================================================
-// Hardfork-Specific Param Groups (Required at specific hardforks)
+// Hardfork-Specific Param Groups (Composed from EIP interfaces)
+// These directly mirror the params in fork-params/*.ts
 // ============================================================================
 
-/**
- * Params guaranteed to exist at Berlin+ (EIP-2929)
- */
-export interface BerlinParams {
-  coldsloadGas: number
-  coldaccountaccessGas: number
-  warmstoragereadGas: number
-}
+/** Params at Homestead+ (EIP-606) */
+export type HomesteadParams = EIP606Params
 
-/**
- * Params guaranteed to exist at London+ (EIP-1559)
- */
-export interface LondonParams {
-  baseFeeMaxChangeDenominator: number
-  elasticityMultiplier: number
-  initialBaseFee: number
-}
+/** Params at Tangerine Whistle+ (EIP-608) */
+export type TangerineWhistleParams = EIP608Params
 
-/**
- * Params guaranteed to exist at Shanghai+ (EIP-3855 PUSH0)
- */
-export interface ShanghaiParams {
-  push0Gas: number
-}
+/** Params at Spurious Dragon+ (EIP-607) */
+export type SpuriousDragonParams = EIP607Params
 
-/**
- * Params guaranteed to exist at Cancun+ (EIP-4844 blobs, EIP-1153 transient storage)
- */
-export interface CancunParams {
-  // Blob params (EIP-4844)
-  blobhashGas: number
-  blobGasPerBlob: number
-  maxBlobGasPerBlock: number
-  targetBlobGasPerBlock: number
-  blobGasPriceUpdateFraction: number
-  // Transient storage (EIP-1153)
-  tstoreGas: number
-  tloadGas: number
-  // MCOPY (EIP-5656)
-  mcopyGas: number
-}
+/** Params at Byzantium+ (EIP-609) */
+export type ByzantiumParams = EIP609Params
+
+/** Params at Constantinople+ (EIP-1013) */
+export type ConstantinopleParams = EIP1013Params
+
+/** Params at Istanbul+ (EIP-1679) */
+export type IstanbulParams = EIP1679Params
+
+/** Params at Berlin+ (EIP-2565, EIP-2929, EIP-2930) */
+export type BerlinParams = EIP2565Params & EIP2929Params & EIP2930Params
+
+/** Params at London+ (EIP-1559, EIP-3198, EIP-3529) */
+export type LondonParams = EIP1559Params & EIP3198Params & EIP3529Params
+
+/** Params at Paris+ (EIP-4399) */
+export type ParisParams = EIP4399Params
+
+/** Params at Shanghai+ (EIP-3855 PUSH0, EIP-3860 initcode) */
+export type ShanghaiParams = EIP3855Params & EIP3860Params
+
+/** Params at Cancun+ (EIP-4844 blobs, EIP-1153 transient, EIP-5656 MCOPY, EIP-4788, EIP-7516) */
+export type CancunParams = EIP4844Params &
+  EIP1153Params &
+  EIP5656Params &
+  EIP4788Params &
+  EIP7516Params
+
+/** Params at Prague+ (EIP-2537 BLS, EIP-7702, EIP-7691, EIP-7623, EIP-2935, EIP-7002, EIP-7251) */
+export type PragueParams = EIP2537Params &
+  EIP7702Params &
+  EIP7691Params &
+  EIP7623Params &
+  EIP2935Params &
+  EIP7002Params &
+  EIP7251Params
+
+/** Params at Osaka+ (EIP-7594 PeerDAS, EIP-7825 gas cap, EIP-7939 CLZ, EOF EIPs) */
+export type OsakaParams = EIP7594Params &
+  EIP7825Params &
+  EIP7939Params &
+  EIP663Params &
+  EIP4200Params &
+  EIP4750Params &
+  EIP6206Params &
+  EIP7069Params &
+  EIP7480Params &
+  EIP7620Params
 
 /**
  * Merged params type that varies based on hardfork.
- * Returns ChainParams intersected with guaranteed params for that hardfork.
+ * Properties that don't exist at a hardfork are completely absent (not optional).
+ * Accessing unavailable params is a compile-time error.
  *
  * @example
  * ```ts
- * // At Cancun, blob params are guaranteed to exist
  * const builder = HardforkParamsBuilder.create(Hardfork.Cancun)
  * const params = builder.getParams()
- * params.blobGasPerBlob // number (not number | undefined)
+ * params.blobGasPerBlob  // ✅ number - exists at Cancun
+ * params.tstoreGas       // ✅ number - exists at Cancun
+ *
+ * const oldBuilder = HardforkParamsBuilder.create(Hardfork.Berlin)
+ * const oldParams = oldBuilder.getParams()
+ * oldParams.blobGasPerBlob  // ❌ Error: Property does not exist
  * ```
  */
-export type MergedParamsAtHardfork<H extends Hardfork> = ChainParams &
-  (H extends BerlinAndLater ? BerlinParams : unknown) &
-  (H extends LondonAndLater ? LondonParams : unknown) &
-  (H extends ShanghaiAndLater ? ShanghaiParams : unknown) &
-  (H extends CancunAndLater ? CancunParams : unknown)
+export type MergedParamsAtHardfork<H extends Hardfork> =
+  // Base params always available (EIP-1 Chainstart)
+  EIP1Params &
+    // Homestead (EIP-606)
+    (H extends HomesteadAndLater ? HomesteadParams : {}) &
+    // Tangerine Whistle (EIP-608)
+    (H extends TangerineWhistleAndLater ? TangerineWhistleParams : {}) &
+    // Spurious Dragon (EIP-607)
+    (H extends SpuriousDragonAndLater ? SpuriousDragonParams : {}) &
+    // Byzantium (EIP-609)
+    (H extends ByzantiumAndLater ? ByzantiumParams : {}) &
+    // Constantinople (EIP-1013)
+    (H extends ConstantinopleAndLater ? ConstantinopleParams : {}) &
+    // Istanbul (EIP-1679)
+    (H extends IstanbulAndLater ? IstanbulParams : {}) &
+    // Berlin (EIP-2565, EIP-2929, EIP-2930)
+    (H extends BerlinAndLater ? BerlinParams : {}) &
+    // London (EIP-1559, EIP-3198, EIP-3529)
+    (H extends LondonAndLater ? LondonParams : {}) &
+    // Paris (EIP-4399)
+    (H extends ParisAndLater ? ParisParams : {}) &
+    // Shanghai (EIP-3855, EIP-3860)
+    (H extends ShanghaiAndLater ? ShanghaiParams : {}) &
+    // Cancun (EIP-4844, EIP-1153, EIP-5656, EIP-4788, EIP-7516)
+    (H extends CancunAndLater ? CancunParams : {}) &
+    // Prague (EIP-2537, EIP-7702, EIP-7691, EIP-7623, EIP-2935, EIP-7002, EIP-7251)
+    (H extends PragueAndLater ? PragueParams : {}) &
+    // Osaka (EIP-7594, EIP-7825, EIP-7939, EOF EIPs)
+    (H extends OsakaAndLater ? OsakaParams : {})

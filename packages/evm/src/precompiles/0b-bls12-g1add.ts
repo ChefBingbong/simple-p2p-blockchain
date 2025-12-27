@@ -59,4 +59,3 @@ export async function precompile0b(opts: PrecompileInput): Promise<ExecResult> {
     returnValue,
   }
 }
-
