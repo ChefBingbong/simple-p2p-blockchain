@@ -5,10 +5,10 @@ import type { Address } from '@ts-ethereum/utils'
 import {
   BIGINT_0,
   BIGINT_1,
-  BIGINT_160,
   BIGINT_2,
   BIGINT_32,
   BIGINT_64,
+  BIGINT_160,
   BIGINT_NEG1,
   bytesToHex,
   createAddressFromBigInt,

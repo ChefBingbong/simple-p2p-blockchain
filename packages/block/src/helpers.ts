@@ -14,8 +14,8 @@ import {
   BIGINT_1,
   EthereumJSErrorWithoutCode,
   isHexString,
-  toType,
   TypeOutput,
+  toType,
 } from '@ts-ethereum/utils'
 import type { BlockHeaderBytes, HeaderData } from './types'
 

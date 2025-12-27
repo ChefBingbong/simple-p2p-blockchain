@@ -20,8 +20,8 @@ import type {
 import {
   bytesToBigInt,
   bytesToHex,
-  equalsBytes,
   EthereumJSErrorWithoutCode,
+  equalsBytes,
   KECCAK256_RLP,
   KECCAK256_RLP_ARRAY,
   unprefixedHexToBytes,
