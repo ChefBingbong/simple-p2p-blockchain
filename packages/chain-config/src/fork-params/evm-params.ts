@@ -1,5 +1,5 @@
-import { EIP } from './enums'
 import type { ParamsDict } from '../types'
+import { EIP } from './enums'
 
 export const paramsEVM: ParamsDict = {
   /**
@@ -272,7 +272,7 @@ export const paramsEVM: ParamsDict = {
    */
   [EIP.EIP_2935]: {
     // evm
-    historyStorageAddress: 0x0000F90827F1C53A10CB7A02335B175320002935n, // The address where the historical blockhashes are stored
+    historyStorageAddress: 0x0000f90827f1c53a10cb7a02335b175320002935n, // The address where the historical blockhashes are stored
     historyServeWindow: 8192n, // The amount of blocks to be served by the historical blockhash contract
     systemAddress: 0xfffffffffffffffffffffffffffffffffffffffen, // The system address
   },

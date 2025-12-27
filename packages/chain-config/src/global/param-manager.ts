@@ -1,4 +1,4 @@
-import { EIP, Hardfork } from '../fork-params/enums'
+import type { EIP, Hardfork } from '../fork-params/enums'
 import type { ChainParams, ParamsConfig } from '../types'
 import {
   getCumulativeEIPs,

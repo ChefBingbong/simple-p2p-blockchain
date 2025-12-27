@@ -1,5 +1,5 @@
-import { EIP } from './enums'
 import type { ParamsDict } from '../types'
+import { EIP } from './enums'
 
 export const paramsTx: ParamsDict = {
   /**
