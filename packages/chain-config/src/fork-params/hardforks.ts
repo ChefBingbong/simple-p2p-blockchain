@@ -1,4 +1,4 @@
-import type { HardforksDict } from './types'
+import type { HardforksDict } from '../types'
 
 export const hardforksDict: HardforksDict = {
   /**

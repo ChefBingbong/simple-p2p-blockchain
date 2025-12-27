@@ -1,4 +1,4 @@
-import type { ChainConfig } from './types.ts'
+import type { ChainConfig } from '../types'
 
 export const Mainnet: ChainConfig = {
   name: 'mainnet',

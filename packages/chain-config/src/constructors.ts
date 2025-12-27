@@ -1,4 +1,4 @@
-import type { GethGenesis } from './gethGenesis.ts'
+import type { GethGenesis } from './defaults/gethGenesis.js'
 import { Common, parseGethGenesis } from './index'
 import type { BaseOpts, ChainConfig, GethConfigOpts } from './index.ts'
 

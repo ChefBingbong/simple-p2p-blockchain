@@ -6,10 +6,10 @@ import {
   isHexString,
   stripHexPrefix,
 } from '@ts-ethereum/utils'
-import { Holesky, Hoodi, Mainnet, Sepolia } from './chains'
-import { Hardfork } from './enums'
-import type { GethGenesis } from './gethGenesis.ts'
-import { hardforksDict } from './hardforks'
+import { Holesky, Hoodi, Mainnet, Sepolia } from './defaults/chains'
+import type { GethGenesis } from './defaults/gethGenesis'
+import { Hardfork } from './fork-params/enums'
+import { hardforksDict } from './fork-params/hardforks'
 import type { HardforksDict } from './types.ts'
 
 type ConfigHardfork =

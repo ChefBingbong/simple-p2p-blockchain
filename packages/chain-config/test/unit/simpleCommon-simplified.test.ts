@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { Mainnet } from '../../src/chains'
-import { Hardfork } from '../../src/enums'
-import { SimpleCommon } from '../../src/simpleCommon'
+import { Mainnet } from '../../src/defaults/chains'
+import { Hardfork } from '../../src/fork-params/enums'
+import { GlobalConfig } from '../../src/global/simpleCommon'
 
-describe('SimpleCommon - Simplified Layout Tests', () => {
+describe('GlobalConfig - Simplified Layout Tests', () => {
   describe('Constructor and Initialization', () => {
     it('should create instance with default hardfork (Chainstart)', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Prague,
       })
@@ -14,7 +14,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should create instance with specified hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -22,7 +22,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should initialize params builder with immutable config', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -33,7 +33,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('setHardfork', () => {
     it('should set hardfork and return it', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const result = common.setHardfork(Hardfork.Berlin)
@@ -42,7 +42,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should emit hardforkChanged event', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       let eventEmitted = false
@@ -59,7 +59,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should throw if setting same hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -67,7 +67,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should update params builder when hardfork changes', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart,
       })
@@ -84,28 +84,27 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('param - Returns undefined instead of throwing', () => {
     it('should return param value as bigint', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart,
       })
       const minGasLimit = common.getParam('minGasLimit')
       expect(minGasLimit).toBeDefined()
-      expect(typeof minGasLimit).toBe('number')
-      expect(minGasLimit).toBeGreaterThan(0)
+      expect(typeof minGasLimit).toBe('bigint')
+      expect(minGasLimit).toBeGreaterThan(0n)
     })
 
     it('should return undefined for non-existent param', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
 
-      // @ts-expect-error - nonExistentParam is not a valid param
       const nonExistent = common.getParam('nonExistentParam')
       expect(nonExistent).toBeUndefined()
     })
 
     it('should return different values for different hardforks', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart,
       })
@@ -120,56 +119,20 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
   })
 
-  describe('paramByHardfork', () => {
-    it('should return param for specific hardfork', () => {
-      const common = new SimpleCommon({
-        chain: Mainnet,
-        hardfork: Hardfork.Chainstart,
-      })
-      const berlinParam = common.getParamByHardfork(
-        'minGasLimit',
-        Hardfork.Berlin,
-      )
-      expect(berlinParam).toBeDefined()
-      expect(typeof berlinParam).toBe('number')
-    })
-
-    it('should return undefined for non-existent param in hardfork', () => {
-      const common = new SimpleCommon({
-        chain: Mainnet,
-      })
-      const nonExistent = common.getParamByHardfork(
-        'nonExistentParam',
-        Hardfork.Berlin,
-      )
-      expect(nonExistent).toBeUndefined()
-    })
-
-    it('should not affect current hardfork', () => {
-      const common = new SimpleCommon({
-        chain: Mainnet,
-        hardfork: Hardfork.Chainstart,
-      })
-      const currentHardfork = common.activeHardfork
-      common.getParamByHardfork('minGasLimit', Hardfork.Berlin)
-      expect(common.activeHardfork).toBe(currentHardfork)
-    })
-  })
-
   describe('paramByEIP', () => {
     it('should return param from EIP if active', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin, // Berlin has EIP_2929
       })
       // EIP_2929 introduces coldsloadGas
       const coldsloadGas = common.getParamByEIP('coldsloadGas', 2929)
       expect(coldsloadGas).toBeDefined()
-      expect(typeof coldsloadGas).toBe('number')
+      expect(typeof coldsloadGas).toBe('bigint')
     })
 
     it('should return undefined for EIP param if EIP not active', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart, // Chainstart doesn't have EIP_2929
       })
@@ -178,7 +141,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return undefined for non-existent param in EIP', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -189,46 +152,46 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('overrideParams', () => {
     it('should override param values', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
       const original = common.getParam('minGasLimit')
-      common.overrideParams({ minGasLimit: 5000 })
+      common.updateParams({ minGasLimit: 5000n })
       const overridden = common.getParam('minGasLimit')
-      expect(overridden).toBe(5000)
+      expect(overridden).toBe(5000n)
       expect(overridden).not.toBe(original)
     })
 
     it('should chain override calls', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
       common
-        .overrideParams({ minGasLimit: 5000 })
-        .overrideParams({ minGasLimit: 6000 })
+        .overrideParams({ minGasLimit: 5000n })
+        .overrideParams({ minGasLimit: 6000n })
       const final = common.getParam('minGasLimit')
-      expect(final).toBe(6000)
+      expect(final).toBe(6000n)
     })
 
     it('should override multiple params at once', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
       common.overrideParams({
-        minGasLimit: 5000,
-        coldsloadGas: 2500,
+        minGasLimit: 5000n,
+        coldsloadGas: 2500n,
       })
-      expect(common.getParam('minGasLimit')).toBe(5000)
-      expect(common.getParam('coldsloadGas')).toBe(2500)
+      expect(common.getParam('minGasLimit')).toBe(5000n)
+      expect(common.getParam('coldsloadGas')).toBe(2500n)
     })
   })
 
   describe('getHardforkByBlockNumber', () => {
     it('should find hardfork by exact block number match', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       // Homestead is at block 1150000
@@ -237,7 +200,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return undefined if no exact match', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const hardfork = common.getHardforkByBlockNumber(999999n)
@@ -245,7 +208,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should find Chainstart at block 0', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const hardfork = common.getHardforkByBlockNumber(0n)
@@ -255,7 +218,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('getHardforkByTimestamp', () => {
     it('should find hardfork by exact timestamp match', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       // Find a hardfork with timestamp (if any exist in Mainnet config)
@@ -272,7 +235,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return undefined if no exact timestamp match', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const hardfork = common.getHardforkByTimestamp(9999999999n)
@@ -283,7 +246,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('hardforkBlock and hardforkTimestamp', () => {
     it('should return block number for hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const block = common.getHardforkBlock(Hardfork.Homestead)
@@ -291,7 +254,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return null for hardfork without block', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       // Some hardforks might not have block numbers
@@ -300,7 +263,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return timestamp for hardfork with timestamp', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const hardforks = common.hardforks
@@ -317,7 +280,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return null for hardfork without timestamp', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const timestamp = common.getHardforkTimestamp(Hardfork.Chainstart)
@@ -325,7 +288,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should use current hardfork if none specified', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Homestead,
       })
@@ -336,7 +299,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('eips', () => {
     it('should return active EIPs for current hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -347,7 +310,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return different EIPs for different hardforks', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart,
       })
@@ -361,7 +324,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return EIPs as numbers', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -374,7 +337,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('isActivatedEIP', () => {
     it('should return true for active EIP', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -383,7 +346,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return false for inactive EIP', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Chainstart,
       })
@@ -394,7 +357,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('gteHardfork', () => {
     it('should return true for current hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -402,7 +365,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return true for earlier hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -410,7 +373,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return false for later hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
@@ -420,7 +383,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('consensusType', () => {
     it('should return consensus type from chain config', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const consensusType = common.params.consensus.type
@@ -430,21 +393,21 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('Chain info methods', () => {
     it('should return chain ID', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       expect(common.params.chainId).toBe(1)
     })
 
     it('should return chain name', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       expect(common.params.name).toBe('mainnet')
     })
 
     it('should return genesis config', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const genesis = common.params.genesis
@@ -453,7 +416,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return hardforks array', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const hardforks = common.hardforks
@@ -462,7 +425,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return bootstrap nodes', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const nodes = common.params.bootstrapNodes
@@ -470,7 +433,7 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
     })
 
     it('should return DNS networks', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
       })
       const dnsNetworks = common.params.dnsNetworks
@@ -480,32 +443,32 @@ describe('SimpleCommon - Simplified Layout Tests', () => {
 
   describe('Params Builder Immutability', () => {
     it('should maintain separate overrides per hardfork', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
-      common.overrideParams({ minGasLimit: 5000 })
+      common.overrideParams({ minGasLimit: 5000n })
 
       const berlinValue = common.getParam('minGasLimit')
-      expect(berlinValue).toBe(5000)
+      expect(berlinValue).toBe(5000n)
 
       common.setHardfork(Hardfork.London)
       const londonValue = common.getParam('minGasLimit')
       // London should have its own value (not overridden)
       expect(londonValue).toBeDefined()
-      expect(londonValue).not.toBe(5000) // Unless London also happens to be 5000
+      expect(londonValue).not.toBe(5000n) // Unless London also happens to be 5000n
     })
 
     it('should allow overriding params after hardfork change', () => {
-      const common = new SimpleCommon({
+      const common = new GlobalConfig({
         chain: Mainnet,
         hardfork: Hardfork.Berlin,
       })
-      common.overrideParams({ minGasLimit: 5000 })
+      common.overrideParams({ minGasLimit: 5000n })
       common.setHardfork(Hardfork.London)
-      common.overrideParams({ minGasLimit: 6000 })
+      common.overrideParams({ minGasLimit: 6000n })
 
-      expect(common.getParam('minGasLimit')).toBe(6000)
+      expect(common.getParam('minGasLimit')).toBe(6000n)
     })
   })
 })

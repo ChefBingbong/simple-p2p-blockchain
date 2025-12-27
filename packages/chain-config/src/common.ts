@@ -7,15 +7,15 @@ import {
   EthereumJSErrorWithoutCode,
   intToBytes,
   type PrefixedHexString,
-  TypeOutput,
   toType,
+  TypeOutput,
 } from '@ts-ethereum/utils'
 import { EventEmitter } from 'eventemitter3'
 import { crc32 } from './crc'
-import { eipsDict } from './eips'
-import { Hardfork } from './enums'
-import type { ConsensusAlgorithm, ConsensusType } from './enums.ts'
-import { hardforksDict } from './hardforks'
+import { eipsDict } from './fork-params/eips'
+import type { ConsensusAlgorithm, ConsensusType } from './fork-params/enums'
+import { Hardfork } from './fork-params/enums'
+import { hardforksDict } from './fork-params/hardforks'
 import type {
   BootstrapNodeConfig,
   BpoSchedule,

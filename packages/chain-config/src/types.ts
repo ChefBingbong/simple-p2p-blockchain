@@ -1,6 +1,10 @@
 import type { BigIntLike, KZG, PrefixedHexString } from '@ts-ethereum/utils'
 import type { secp256k1 } from 'ethereum-cryptography/secp256k1.js'
-import type { ConsensusAlgorithm, ConsensusType, Hardfork } from './enums'
+import type {
+  ConsensusAlgorithm,
+  ConsensusType,
+  Hardfork,
+} from './fork-params/enums'
 
 export interface ChainName {
   [chainId: string]: string
@@ -155,7 +159,7 @@ export type EIPConfig = {
 }
 
 export type ParamsConfig = {
-  [key: string]: number | string | null
+  [key: string]: number | string | bigint | null
 }
 
 export type HardforkConfig = {
@@ -192,407 +196,407 @@ export type BpoSchedule = {
  */
 export interface EIP1Params {
   // Gas config
-  maxRefundQuotient: number
-  minGasLimit: number
-  gasLimitBoundDivisor: number
-  // Opcode gas costs
-  basefeeGas: number
-  expGas: number
-  expByteGas: number
-  keccak256Gas: number
-  keccak256WordGas: number
-  sloadGas: number
-  sstoreSetGas: number
-  sstoreResetGas: number
-  sstoreRefundGas: number
-  jumpdestGas: number
-  logGas: number
-  logDataGas: number
-  logTopicGas: number
-  createGas: number
-  callGas: number
-  callStipendGas: number
-  callValueTransferGas: number
-  callNewAccountGas: number
-  selfdestructRefundGas: number
-  memoryGas: number
-  quadCoefficientDivGas: number
-  createDataGas: number
-  copyGas: number
-  stopGas: number
-  addGas: number
-  mulGas: number
-  subGas: number
-  divGas: number
-  sdivGas: number
-  modGas: number
-  smodGas: number
-  addmodGas: number
-  mulmodGas: number
-  signextendGas: number
-  ltGas: number
-  gtGas: number
-  sltGas: number
-  sgtGas: number
-  eqGas: number
-  iszeroGas: number
-  andGas: number
-  orGas: number
-  xorGas: number
-  notGas: number
-  byteGas: number
-  addressGas: number
-  balanceGas: number
-  originGas: number
-  callerGas: number
-  callvalueGas: number
-  calldataloadGas: number
-  calldatasizeGas: number
-  calldatacopyGas: number
-  codesizeGas: number
-  codecopyGas: number
-  gaspriceGas: number
-  extcodesizeGas: number
-  extcodecopyGas: number
-  blockhashGas: number
-  coinbaseGas: number
-  timestampGas: number
-  numberGas: number
-  difficultyGas: number
-  gaslimitGas: number
-  popGas: number
-  mloadGas: number
-  mstoreGas: number
-  mstore8Gas: number
-  sstoreGas: number
-  jumpGas: number
-  jumpiGas: number
-  pcGas: number
-  msizeGas: number
-  gasGas: number
-  pushGas: number
-  dupGas: number
-  swapGas: number
-  callcodeGas: number
-  returnGas: number
-  invalidGas: number
-  selfdestructGas: number
-  prevrandaoGas: number
+  maxRefundQuotient: bigint
+  minGasLimit: bigint
+  gasLimitBoundDivisor: bigint
+  // Opcode gas costs (all bigint - used in bigint arithmetic)
+  basefeeGas: bigint
+  expGas: bigint
+  expByteGas: bigint
+  keccak256Gas: bigint
+  keccak256WordGas: bigint
+  sloadGas: bigint
+  sstoreSetGas: bigint
+  sstoreResetGas: bigint
+  sstoreRefundGas: bigint
+  jumpdestGas: bigint
+  logGas: bigint
+  logDataGas: bigint
+  logTopicGas: bigint
+  createGas: bigint
+  callGas: bigint
+  callStipendGas: bigint
+  callValueTransferGas: bigint
+  callNewAccountGas: bigint
+  selfdestructRefundGas: bigint
+  memoryGas: bigint
+  quadCoefficientDivGas: bigint
+  createDataGas: bigint
+  copyGas: bigint
+  stopGas: bigint
+  addGas: bigint
+  mulGas: bigint
+  subGas: bigint
+  divGas: bigint
+  sdivGas: bigint
+  modGas: bigint
+  smodGas: bigint
+  addmodGas: bigint
+  mulmodGas: bigint
+  signextendGas: bigint
+  ltGas: bigint
+  gtGas: bigint
+  sltGas: bigint
+  sgtGas: bigint
+  eqGas: bigint
+  iszeroGas: bigint
+  andGas: bigint
+  orGas: bigint
+  xorGas: bigint
+  notGas: bigint
+  byteGas: bigint
+  addressGas: bigint
+  balanceGas: bigint
+  originGas: bigint
+  callerGas: bigint
+  callvalueGas: bigint
+  calldataloadGas: bigint
+  calldatasizeGas: bigint
+  calldatacopyGas: bigint
+  codesizeGas: bigint
+  codecopyGas: bigint
+  gaspriceGas: bigint
+  extcodesizeGas: bigint
+  extcodecopyGas: bigint
+  blockhashGas: bigint
+  coinbaseGas: bigint
+  timestampGas: bigint
+  numberGas: bigint
+  difficultyGas: bigint
+  gaslimitGas: bigint
+  popGas: bigint
+  mloadGas: bigint
+  mstoreGas: bigint
+  mstore8Gas: bigint
+  sstoreGas: bigint
+  jumpGas: bigint
+  jumpiGas: bigint
+  pcGas: bigint
+  msizeGas: bigint
+  gasGas: bigint
+  pushGas: bigint
+  dupGas: bigint
+  swapGas: bigint
+  callcodeGas: bigint
+  returnGas: bigint
+  invalidGas: bigint
+  selfdestructGas: bigint
+  prevrandaoGas: bigint
   // Precompile costs
-  ecRecoverGas: number
-  sha256Gas: number
-  sha256WordGas: number
-  ripemd160Gas: number
-  ripemd160WordGas: number
-  identityGas: number
-  identityWordGas: number
-  // Limits
+  ecRecoverGas: bigint
+  sha256Gas: bigint
+  sha256WordGas: bigint
+  ripemd160Gas: bigint
+  ripemd160WordGas: bigint
+  identityGas: bigint
+  identityWordGas: bigint
+  // Limits (number - used with Number() casts)
   stackLimit: number
-  maxExtraDataSize: number
+  maxExtraDataSize: bigint
   // Transaction gas
-  txGas: number
-  txCreationGas: number
-  txDataZeroGas: number
-  txDataNonZeroGas: number
-  accessListStorageKeyGas: number
-  accessListAddressGas: number
+  txGas: bigint
+  txCreationGas: bigint
+  txDataZeroGas: bigint
+  txDataNonZeroGas: bigint
+  accessListStorageKeyGas: bigint
+  accessListAddressGas: bigint
   // PoW params
-  minerReward: string
-  minimumDifficulty: number
-  difficultyBoundDivisor: number
-  durationLimit: number
-  difficultyBombDelay: number
+  minerReward: bigint
+  minimumDifficulty: bigint
+  difficultyBoundDivisor: bigint
+  durationLimit: bigint
+  difficultyBombDelay: bigint
 }
 
 /** EIP-606: Homestead */
 export interface EIP606Params {
-  delegatecallGas: number
+  delegatecallGas: bigint
 }
 
 /** EIP-608: Tangerine Whistle - Gas cost increases */
 export interface EIP608Params {
-  sloadGas: number
-  callGas: number
-  extcodesizeGas: number
-  extcodecopyGas: number
-  balanceGas: number
-  delegatecallGas: number
-  callcodeGas: number
-  selfdestructGas: number
+  sloadGas: bigint
+  callGas: bigint
+  extcodesizeGas: bigint
+  extcodecopyGas: bigint
+  balanceGas: bigint
+  delegatecallGas: bigint
+  callcodeGas: bigint
+  selfdestructGas: bigint
 }
 
 /** EIP-607: Spurious Dragon */
 export interface EIP607Params {
-  expByteGas: number
-  maxCodeSize: number
+  expByteGas: bigint
+  maxCodeSize: number // Used with Number() cast
 }
 
 /** EIP-609: Byzantium */
 export interface EIP609Params {
-  modexpGquaddivisorGas: number
-  bn254AddGas: number
-  bn254MulGas: number
-  bn254PairingGas: number
-  bn254PairingWordGas: number
-  revertGas: number
-  staticcallGas: number
-  returndatasizeGas: number
-  returndatacopyGas: number
-  difficultyBombDelay: number
-  minerReward: string
+  modexpGquaddivisorGas: bigint
+  bn254AddGas: bigint
+  bn254MulGas: bigint
+  bn254PairingGas: bigint
+  bn254PairingWordGas: bigint
+  revertGas: bigint
+  staticcallGas: bigint
+  returndatasizeGas: bigint
+  returndatacopyGas: bigint
+  difficultyBombDelay: bigint
+  minerReward: bigint
 }
 
 /** EIP-1013: Constantinople */
 export interface EIP1013Params {
   // Net gas metering (can be nullified by EIP-1716)
-  netSstoreNoopGas: number | null
-  netSstoreInitGas: number | null
-  netSstoreCleanGas: number | null
-  netSstoreDirtyGas: number | null
-  netSstoreClearRefundGas: number | null
-  netSstoreResetRefundGas: number | null
-  netSstoreResetClearRefundGas: number | null
+  netSstoreNoopGas: bigint | null
+  netSstoreInitGas: bigint | null
+  netSstoreCleanGas: bigint | null
+  netSstoreDirtyGas: bigint | null
+  netSstoreClearRefundGas: bigint | null
+  netSstoreResetRefundGas: bigint | null
+  netSstoreResetClearRefundGas: bigint | null
   // Bitwise shift opcodes
-  shlGas: number
-  shrGas: number
-  sarGas: number
-  extcodehashGas: number
-  create2Gas: number
+  shlGas: bigint
+  shrGas: bigint
+  sarGas: bigint
+  extcodehashGas: bigint
+  create2Gas: bigint
 }
 
 /** EIP-1679: Istanbul */
 export interface EIP1679Params {
-  blake2RoundGas: number
-  sstoreSentryEIP2200Gas: number
-  sstoreNoopEIP2200Gas: number
-  sstoreDirtyEIP2200Gas: number
-  sstoreInitEIP2200Gas: number
-  sstoreInitRefundEIP2200Gas: number
-  sstoreCleanEIP2200Gas: number
-  sstoreCleanRefundEIP2200Gas: number
-  sstoreClearRefundEIP2200Gas: number
-  chainidGas: number
-  selfbalanceGas: number
-  txDataNonZeroGas: number
+  blake2RoundGas: bigint
+  sstoreSentryEIP2200Gas: bigint
+  sstoreNoopEIP2200Gas: bigint
+  sstoreDirtyEIP2200Gas: bigint
+  sstoreInitEIP2200Gas: bigint
+  sstoreInitRefundEIP2200Gas: bigint
+  sstoreCleanEIP2200Gas: bigint
+  sstoreCleanRefundEIP2200Gas: bigint
+  sstoreClearRefundEIP2200Gas: bigint
+  chainidGas: bigint
+  selfbalanceGas: bigint
+  txDataNonZeroGas: bigint
 }
 
 /** EIP-2384: Muir Glacier difficulty bomb delay */
 export interface EIP2384Params {
-  difficultyBombDelay: number
+  difficultyBombDelay: bigint
 }
 
 /** EIP-2565: ModExp gas cost reduction */
 export interface EIP2565Params {
-  modexpGquaddivisorGas: number
+  modexpGquaddivisorGas: bigint
 }
 
 /** EIP-3198: BASEFEE opcode */
 export interface EIP3198Params {
-  basefeeGas: number
+  basefeeGas: bigint
 }
 
 /** EIP-3554: Difficulty bomb delay to December 2021 */
 export interface EIP3554Params {
-  difficultyBombDelay: number
+  difficultyBombDelay: bigint
 }
 
 /** EIP-4345: Difficulty bomb delay to June 2022 */
 export interface EIP4345Params {
-  difficultyBombDelay: number
+  difficultyBombDelay: bigint
 }
 
 /** EIP-5133: Difficulty bomb delay to September 2022 */
 export interface EIP5133Params {
-  difficultyBombDelay: number
+  difficultyBombDelay: bigint
 }
 
 /** EIP-2929: Gas cost increases for state access opcodes */
 export interface EIP2929Params {
-  coldsloadGas: number
-  coldaccountaccessGas: number
-  warmstoragereadGas: number
+  coldsloadGas: bigint
+  coldaccountaccessGas: bigint
+  warmstoragereadGas: bigint
 }
 
 /** EIP-2930: Optional access lists */
 export interface EIP2930Params {
-  accessListStorageKeyGas: number
-  accessListAddressGas: number
+  accessListStorageKeyGas: bigint
+  accessListAddressGas: bigint
 }
 
 /** EIP-1559: Fee market */
 export interface EIP1559Params {
-  elasticityMultiplier: number
-  baseFeeMaxChangeDenominator: number
-  initialBaseFee: number
+  elasticityMultiplier: bigint
+  baseFeeMaxChangeDenominator: bigint
+  initialBaseFee: bigint
 }
 
 /** EIP-3529: Reduction in refunds */
 export interface EIP3529Params {
-  maxRefundQuotient: number
-  selfdestructRefundGas: number
-  sstoreClearRefundEIP2200Gas: number
+  maxRefundQuotient: bigint
+  selfdestructRefundGas: bigint
+  sstoreClearRefundEIP2200Gas: bigint
 }
 
 /** EIP-3855: PUSH0 instruction */
 export interface EIP3855Params {
-  push0Gas: number
+  push0Gas: bigint
 }
 
 /** EIP-3860: Limit and meter initcode */
 export interface EIP3860Params {
-  initCodeWordGas: number
-  maxInitCodeSize: number
+  initCodeWordGas: bigint
+  maxInitCodeSize: number // Used with Number() cast
 }
 
 /** EIP-4399: PREVRANDAO */
 export interface EIP4399Params {
-  prevrandaoGas: number
+  prevrandaoGas: bigint
 }
 
 /** EIP-4788: Beacon block root in EVM */
 export interface EIP4788Params {
-  historicalRootsLength: number
+  historicalRootsLength: bigint
 }
 
 /** EIP-4844: Shard Blob Transactions */
 export interface EIP4844Params {
-  kzgPointEvaluationPrecompileGas: number
-  blobhashGas: number
-  blobCommitmentVersionKzg: number
-  fieldElementsPerBlob: number
-  targetBlobGasPerBlock: number
-  blobGasPerBlob: number
-  maxBlobGasPerBlock: number
-  blobGasPriceUpdateFraction: number
-  minBlobGas: number
-  blobBaseCost: number
+  kzgPointEvaluationPrecompileGas: bigint
+  blobhashGas: bigint
+  blobCommitmentVersionKzg: number // Version number - used with Number()
+  fieldElementsPerBlob: number // Count - used as number
+  targetBlobGasPerBlock: bigint
+  blobGasPerBlob: bigint
+  maxBlobGasPerBlock: bigint
+  blobGasPriceUpdateFraction: bigint
+  minBlobGas: bigint
+  blobBaseCost: bigint
 }
 
 /** EIP-5656: MCOPY */
 export interface EIP5656Params {
-  mcopyGas: number
+  mcopyGas: bigint
 }
 
 /** EIP-1153: Transient storage */
 export interface EIP1153Params {
-  tstoreGas: number
-  tloadGas: number
+  tstoreGas: bigint
+  tloadGas: bigint
 }
 
 /** EIP-7516: BLOBBASEFEE opcode */
 export interface EIP7516Params {
-  blobbasefeeGas: number
+  blobbasefeeGas: bigint
 }
 
 /** EIP-2537: BLS12-381 precompiles */
 export interface EIP2537Params {
-  bls12381G1AddGas: number
-  bls12381G1MulGas: number
-  bls12381G2AddGas: number
-  bls12381G2MulGas: number
-  bls12381PairingBaseGas: number
-  bls12381PairingPerPairGas: number
-  bls12381MapG1Gas: number
-  bls12381MapG2Gas: number
+  bls12381G1AddGas: bigint
+  bls12381G1MulGas: bigint
+  bls12381G2AddGas: bigint
+  bls12381G2MulGas: bigint
+  bls12381PairingBaseGas: bigint
+  bls12381PairingPerPairGas: bigint
+  bls12381MapG1Gas: bigint
+  bls12381MapG2Gas: bigint
 }
 
 /** EIP-2935: Historical block hashes in state */
 export interface EIP2935Params {
-  historyStorageAddress: string
-  historyServeWindow: number
-  systemAddress: string
+  historyStorageAddress: bigint // Used with bigIntToAddressBytes
+  historyServeWindow: bigint
+  systemAddress: bigint // Used with createAddressFromStackBigInt
 }
 
 /** EIP-7002: Execution layer triggerable withdrawals */
 export interface EIP7002Params {
-  withdrawalRequestPredeployAddress: string
+  withdrawalRequestPredeployAddress: bigint // Used with bigIntToBytes
 }
 
 /** EIP-7251: Increase MAX_EFFECTIVE_BALANCE */
 export interface EIP7251Params {
-  consolidationRequestPredeployAddress: string
+  consolidationRequestPredeployAddress: bigint // Used with bigIntToBytes
 }
 
 /** EIP-7623: Increase calldata cost */
 export interface EIP7623Params {
-  totalCostFloorPerToken: number
+  totalCostFloorPerToken: bigint
 }
 
 /** EIP-7691: Blob throughput increase */
 export interface EIP7691Params {
-  targetBlobGasPerBlock: number
-  maxBlobGasPerBlock: number
-  blobGasPriceUpdateFraction: number
+  targetBlobGasPerBlock: bigint
+  maxBlobGasPerBlock: bigint
+  blobGasPriceUpdateFraction: bigint
 }
 
 /** EIP-7702: Set EOA account code */
 export interface EIP7702Params {
-  perAuthBaseGas: number
-  perEmptyAccountCost: number
+  perAuthBaseGas: bigint
+  perEmptyAccountCost: number // Used with Number() cast
 }
 
 /** EIP-7594: PeerDAS */
 export interface EIP7594Params {
-  maxBlobsPerTx: number
+  maxBlobsPerTx: number // Count - used as number
 }
 
 /** EIP-7825: Transaction Gas Limit Cap */
 export interface EIP7825Params {
-  maxTransactionGasLimit: number
+  maxTransactionGasLimit: bigint
 }
 
 /** EIP-7939: CLZ opcode */
 export interface EIP7939Params {
-  clzGas: number
+  clzGas: bigint
 }
 
 /** EIP-663: SWAPN, DUPN, EXCHANGE */
 export interface EIP663Params {
-  dupnGas: number
-  swapnGas: number
-  exchangeGas: number
+  dupnGas: bigint
+  swapnGas: bigint
+  exchangeGas: bigint
 }
 
 /** EIP-4200: Static relative jumps */
 export interface EIP4200Params {
-  rjumpGas: number
-  rjumpiGas: number
-  rjumpvGas: number
+  rjumpGas: bigint
+  rjumpiGas: bigint
+  rjumpvGas: bigint
 }
 
 /** EIP-4750: Functions */
 export interface EIP4750Params {
-  callfGas: number
-  retfGas: number
+  callfGas: bigint
+  retfGas: bigint
 }
 
 /** EIP-6206: JUMPF */
 export interface EIP6206Params {
-  jumpfGas: number
+  jumpfGas: bigint
 }
 
 /** EIP-7069: Revamped CALL */
 export interface EIP7069Params {
-  extcallGas: number
-  extdelegatecallGas: number
-  extstaticcallGas: number
-  returndataloadGas: number
-  minRetainedGas: number
-  minCalleeGas: number
+  extcallGas: bigint
+  extdelegatecallGas: bigint
+  extstaticcallGas: bigint
+  returndataloadGas: bigint
+  minRetainedGas: bigint
+  minCalleeGas: bigint
 }
 
 /** EIP-7480: Data section access */
 export interface EIP7480Params {
-  dataloadGas: number
-  dataloadnGas: number
-  datasizeGas: number
-  datacopyGas: number
+  dataloadGas: bigint
+  dataloadnGas: bigint
+  datasizeGas: bigint
+  datacopyGas: bigint
 }
 
 /** EIP-7620: EOF Contract Creation */
 export interface EIP7620Params {
-  eofcreateGas: number
-  returncontractGas: number
+  eofcreateGas: bigint
+  returncontractGas: bigint
 }
 
 // ============================================================================

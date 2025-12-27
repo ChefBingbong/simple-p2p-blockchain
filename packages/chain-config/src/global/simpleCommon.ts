@@ -1,8 +1,6 @@
 import { EthereumJSErrorWithoutCode } from '@ts-ethereum/utils'
 import { EventEmitter } from 'eventemitter3'
-import { type EIP, HARDFORK_ORDER, Hardfork } from './enums'
-import { EIPParams, HardforkParams } from './mappings'
-import { HardforkParamsBuilder } from './paramsBuilder'
+import { type EIP, HARDFORK_ORDER, Hardfork } from '../fork-params/enums'
 import type {
   ChainConfig,
   ChainParams,
@@ -10,16 +8,18 @@ import type {
   CommonOpts,
   CustomCrypto,
   HardforkTransitionConfig,
-  MergedParamsAtHardfork,
-} from './types'
+  ParamsConfig,
+} from '../types'
+import { getRawParam } from './getters'
+import { HardforkParamManager } from './param-manager'
 
-export class SimpleCommon {
+export class GlobalConfig {
   public readonly customCrypto: CustomCrypto
   public readonly events: EventEmitter<CommonEvent>
 
   protected currentHardfork: Hardfork
   protected chainParams: ChainConfig
-  protected paramsBuilder: HardforkParamsBuilder<Hardfork>
+  protected hardforkParams: HardforkParamManager<Hardfork>
 
   private eipsCache?: number[]
   private currentHardforkMap?: Map<string | Hardfork, HardforkTransitionConfig>
@@ -30,14 +30,11 @@ export class SimpleCommon {
     this.chainParams = Object.freeze(commonOptions.chain)
     this.customCrypto = commonOptions.customCrypto ?? {}
 
-    const initialHardfork = commonOptions.hardfork as Hardfork
-    this.currentHardfork = initialHardfork ?? Hardfork.Chainstart
+    const initialHardfork =
+      (commonOptions.hardfork as Hardfork) ?? Hardfork.Chainstart
+    this.currentHardfork = initialHardfork
 
-    this.paramsBuilder = HardforkParamsBuilder.create(
-      initialHardfork,
-      EIPParams,
-      HardforkParams,
-    )
+    this.hardforkParams = new HardforkParamManager(initialHardfork)
   }
 
   setHardfork(hardfork: Hardfork) {
@@ -47,17 +44,17 @@ export class SimpleCommon {
       )
     }
     this.currentHardfork = hardfork
-    this.paramsBuilder = this.paramsBuilder.withHardfork(hardfork)
+    this.hardforkParams = this.hardforkParams.withHardfork(hardfork)
 
     this.eipsCache = undefined
     this.currentHardforkMap = undefined
 
     this.events.emit('hardforkChanged', hardfork)
-    return this.paramsBuilder.currentHardfork
+    return this.hardforkParams.currentHardfork
   }
 
-  public isActivatedEIP(eip: EIP) {
-    return this.paramsBuilder.activeEips.has(eip)
+  public isActivatedEIP(eip: number | EIP) {
+    return this.hardforkParams.isEIPActive(eip as EIP)
   }
 
   public isHardforkAfter(hardfork: Hardfork) {
@@ -69,29 +66,25 @@ export class SimpleCommon {
     return currentIdx >= targetIdx && targetIdx !== -1
   }
 
-  public overrideParams(overrides: Partial<ChainParams>) {
-    this.paramsBuilder.overrideParams(overrides)
-    this.eipsCache = undefined
+  public getParamByEIP(
+    param: string,
+    eip: number,
+  ): string | number | bigint | null | undefined {
+    if (!this.hardforkParams.isEIPActive(eip as EIP)) {
+      return undefined
+    }
+    return getRawParam(eip as EIP, param)
+  }
+
+  public getParam(
+    name: keyof ChainParams,
+  ): ChainParams[keyof ChainParams] | undefined {
+    return this.hardforkParams.getParam(name)
+  }
+
+  public updateParams(overrides: ParamsConfig): this {
+    this.hardforkParams.updateParams(overrides)
     return this
-  }
-
-  public getParamByHardfork<K extends keyof MergedParamsAtHardfork<Hardfork>>(
-    name: K,
-    hardfork: Hardfork,
-  ) {
-    const builder = this.paramsBuilder.withHardfork<Hardfork>(hardfork)
-    return builder.getParam(name)
-  }
-
-  public getParamByEIP<K extends keyof MergedParamsAtHardfork<Hardfork>>(
-    name: K,
-    eip: EIP,
-  ) {
-    return this.paramsBuilder.getEipParams<EIP>(eip)?.[name]
-  }
-
-  public getParam<K extends keyof MergedParamsAtHardfork<Hardfork>>(name: K) {
-    return this.paramsBuilder.getParam(name)
   }
 
   public getHardforkBlock(hardfork?: Hardfork) {
@@ -115,6 +108,20 @@ export class SimpleCommon {
     )?.name
   }
 
+  public copy(): GlobalConfig {
+    const copy = new GlobalConfig({
+      chain: this.chainParams,
+      hardfork: this.currentHardfork,
+      customCrypto: this.customCrypto,
+    })
+
+    const overrides = this.hardforkParams.getOverrides()
+    if (Object.keys(overrides).length > 0) {
+      copy.hardforkParams.updateParams(overrides)
+    }
+    return copy
+  }
+
   private lookupHardfork(hardfork: Hardfork) {
     if (this.currentHardforkMap) return this.currentHardforkMap.get(hardfork)
     this.currentHardforkMap = new Map(this.hardforks.map((hf) => [hf.name, hf]))
@@ -132,8 +139,7 @@ export class SimpleCommon {
 
   get eips() {
     return (
-      this.eipsCache ??
-      (this.eipsCache = this.paramsBuilder.activeEips.values().toArray())
+      this.eipsCache ?? (this.eipsCache = [...this.hardforkParams.activeEips])
     )
   }
 
